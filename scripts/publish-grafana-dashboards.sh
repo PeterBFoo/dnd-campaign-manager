@@ -49,16 +49,33 @@ folder_status=$(curl \
   --show-error \
   --output "$folder_response" \
   --write-out '%{http_code}' \
-  --request POST \
   --header "Authorization: Bearer ${token}" \
-  --header "Content-Type: application/json" \
-  --data "$folder_payload" \
-  "${grafana_url}/api/folders")
+  "${grafana_url}/api/folders/${folder_uid}")
 
 case "$folder_status" in
-  200|409) ;;
+  200) ;;
+  404)
+    folder_status=$(curl \
+      --silent \
+      --show-error \
+      --output "$folder_response" \
+      --write-out '%{http_code}' \
+      --request POST \
+      --header "Authorization: Bearer ${token}" \
+      --header "Content-Type: application/json" \
+      --data "$folder_payload" \
+      "${grafana_url}/api/folders")
+
+    case "$folder_status" in
+      200|409|412) ;;
+      *)
+        jq -r '.message // "Grafana folder creation failed."' "$folder_response" >&2
+        exit 1
+        ;;
+    esac
+    ;;
   *)
-    jq -r '.message // "Grafana folder creation failed."' "$folder_response" >&2
+    jq -r '.message // "Grafana folder lookup failed."' "$folder_response" >&2
     exit 1
     ;;
 esac
