@@ -56,7 +56,7 @@ La topología Azure, Neon, Grafana Cloud y GitHub Pages añade estas fronteras s
 | `API_BASE_URL` | variable pública de GitHub | build Angular |
 | `GRAFANA_URL` | variable pública de GitHub | publicación de dashboards |
 
-La identidad federada elimina el secreto de cliente Azure. Su sujeto queda limitado a `repo:PeterBFoo/dnd-campaign-manager:environment:production`, y su rol `Contributor` se limita al grupo de recursos productivo.
+La identidad federada elimina el secreto de cliente Azure. Su sujeto queda limitado a `repo:PeterBFoo@91556382/dnd-campaign-manager@1339476932:environment:production`, usando identificadores inmutables, y su rol `Contributor` se limita al grupo de recursos productivo.
 
 Neon entrega una URI PostgreSQL con host, base de datos, usuario, contraseña y TLS. La API la normaliza internamente al formato de Npgsql. Rotar la contraseña exige actualizar `DATABASE_CONNECTION_STRING`, ejecutar de nuevo `deploy-azure` y revocar la anterior después de superar readiness y las pruebas de humo.
 
