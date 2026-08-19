@@ -1,0 +1,142 @@
+name: deploy-oci
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  API_IMAGE_NAME: peterbfoo/dnd-campaign-api
+  WEB_IMAGE_NAME: peterbfoo/dnd-campaign-web
+
+jobs:
+  build-images:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - image_name: peterbfoo/dnd-campaign-api
+            dockerfile: apps/api/Dockerfile
+            target: runtime
+          - image_name: peterbfoo/dnd-campaign-web
+            dockerfile: apps/web/Dockerfile
+            target: runtime
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          target: ${{ matrix.target }}
+          platforms: linux/arm64
+          push: true
+          provenance: mode=max
+          sbom: true
+          tags: ${{ env.REGISTRY }}/${{ matrix.image_name }}:${{ github.sha }}
+
+  deploy:
+    needs: build-images
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://${{ vars.APP_HOST }}
+    env:
+      DEPLOYMENT_ROOT: /opt/dnd-campaign-manager
+      OCI_HOST: ${{ secrets.OCI_HOST }}
+      OCI_USER: ${{ vars.OCI_USER }}
+      API_IMAGE: ghcr.io/peterbfoo/dnd-campaign-api:${{ github.sha }}
+      WEB_IMAGE: ghcr.io/peterbfoo/dnd-campaign-web:${{ github.sha }}
+      APP_HOST: ${{ vars.APP_HOST }}
+      ACME_EMAIL: ${{ vars.ACME_EMAIL }}
+      GRAFANA_CLOUD_OTLP_ENDPOINT: ${{ vars.GRAFANA_CLOUD_OTLP_ENDPOINT }}
+      GRAFANA_URL: ${{ vars.GRAFANA_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure SSH
+        env:
+          OCI_SSH_PRIVATE_KEY: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
+          OCI_SSH_KNOWN_HOSTS: ${{ secrets.OCI_SSH_KNOWN_HOSTS }}
+        run: |
+          install -d -m 0700 ~/.ssh
+          printf '%s\n' "$OCI_SSH_PRIVATE_KEY" > ~/.ssh/oci
+          printf '%s\n' "$OCI_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 0600 ~/.ssh/oci ~/.ssh/known_hosts
+
+      - name: Package release configuration
+        run: |
+          tar -czf /tmp/dnd-release.tgz \
+            compose.deploy.yaml \
+            deploy/oci/Caddyfile \
+            deploy/oci/otel-collector.yaml \
+            infra/observability/postgres-exporter.yaml \
+            scripts/deploy-oci.sh \
+            scripts/smoke-test.sh
+
+      - name: Upload release configuration
+        run: |
+          scp -i ~/.ssh/oci /tmp/dnd-release.tgz "${OCI_USER}@${OCI_HOST}:/tmp/dnd-release.tgz"
+          ssh -i ~/.ssh/oci "${OCI_USER}@${OCI_HOST}" \
+            "install -d -m 0750 '${DEPLOYMENT_ROOT}/release' && tar -xzf /tmp/dnd-release.tgz -C '${DEPLOYMENT_ROOT}/release'"
+
+      - name: Configure non-secret production values
+        run: |
+          {
+            printf 'APP_HOST=%s\n' "$APP_HOST"
+            printf 'ACME_EMAIL=%s\n' "$ACME_EMAIL"
+            printf 'POSTGRES_DB=dnd_campaigns\n'
+            printf 'POSTGRES_USER=dnd_app\n'
+            printf 'GRAFANA_CLOUD_OTLP_ENDPOINT=%s\n' "$GRAFANA_CLOUD_OTLP_ENDPOINT"
+            printf 'SECRETS_DIR=%s/secrets\n' "$DEPLOYMENT_ROOT"
+          } > /tmp/production.env
+          scp -i ~/.ssh/oci /tmp/production.env "${OCI_USER}@${OCI_HOST}:${DEPLOYMENT_ROOT}/config/production.env"
+
+      - name: Install telemetry authorization secret
+        env:
+          GRAFANA_CLOUD_OTLP_AUTHORIZATION: ${{ secrets.GRAFANA_CLOUD_OTLP_AUTHORIZATION }}
+        run: |
+          printf '%s' "$GRAFANA_CLOUD_OTLP_AUTHORIZATION" | \
+            ssh -i ~/.ssh/oci "${OCI_USER}@${OCI_HOST}" \
+              "umask 077; cat > '${DEPLOYMENT_ROOT}/secrets/grafana_cloud_otlp_authorization'"
+
+      - name: Authenticate host to GHCR
+        env:
+          GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+          GHCR_PULL_USER: ${{ secrets.GHCR_PULL_USER }}
+        run: |
+          printf '%s' "$GHCR_PULL_TOKEN" | \
+            ssh -i ~/.ssh/oci "${OCI_USER}@${OCI_HOST}" \
+              "docker login ghcr.io --username '${GHCR_PULL_USER}' --password-stdin"
+
+      - name: Deploy immutable release
+        run: |
+          ssh -i ~/.ssh/oci "${OCI_USER}@${OCI_HOST}" \
+            "chmod 0750 '${DEPLOYMENT_ROOT}/release/scripts/deploy-oci.sh' && API_IMAGE='${API_IMAGE}' WEB_IMAGE='${WEB_IMAGE}' '${DEPLOYMENT_ROOT}/release/scripts/deploy-oci.sh'"
+
+      - name: Smoke test production
+        run: |
+          BASE_URL="https://${APP_HOST}" sh scripts/smoke-test.sh
+
+      - name: Publish Grafana Cloud dashboards
+        env:
+          GRAFANA_SERVICE_ACCOUNT_TOKEN: ${{ secrets.GRAFANA_SERVICE_ACCOUNT_TOKEN }}
+        run: |
+          printf '%s' "$GRAFANA_SERVICE_ACCOUNT_TOKEN" > /tmp/grafana-token
+          chmod 0600 /tmp/grafana-token
+          GRAFANA_URL="$GRAFANA_URL" \
+            GRAFANA_TOKEN_FILE=/tmp/grafana-token \
+            sh scripts/publish-grafana-dashboards.sh

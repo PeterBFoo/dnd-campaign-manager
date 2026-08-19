@@ -1,0 +1,10 @@
+tenancy_ocid       = "ocid1.tenancy.oc1..replace-me"
+compartment_ocid   = "ocid1.compartment.oc1..replace-me"
+region             = "eu-madrid-1"
+ssh_public_key     = "ssh-ed25519 AAAA... operator@example.com"
+ssh_allowed_cidr   = "203.0.113.10/32"
+
+# Límites actuales del conjunto Always Free Ampere A1.
+instance_ocpus      = 2
+instance_memory_gbs = 12
+boot_volume_size_gbs = 100

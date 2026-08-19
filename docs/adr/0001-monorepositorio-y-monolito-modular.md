@@ -209,6 +209,18 @@ La implementación inicial de este ADR debe entregar:
 
 Después de validar esta base, las decisiones de dominio podrán incorporarse de forma incremental tras su revisión y aceptación.
 
+## Addendum: topología productiva gratuita
+
+Para validar la fundación en un entorno real se adopta Oracle Cloud Infrastructure Always Free como destino inicial. Una VM ARM `VM.Standard.A1.Flex` ejecutará Caddy, Angular/Nginx, ASP.NET Core, PostgreSQL, PostgreSQL exporter y OpenTelemetry Collector mediante Docker Compose.
+
+La observabilidad productiva utilizará Grafana Cloud Free en lugar de la imagen LGTM local. El Collector conservará OTLP como frontera, incorporará las métricas de PostgreSQL y enviará las tres señales mediante HTTPS. Los dashboards versionados se publicarán con la API de Grafana.
+
+GitHub Actions construirá imágenes ARM64 con tags inmutables, las almacenará en GHCR y realizará el despliegue por SSH mediante el entorno protegido `production`. Los secretos de ejecución permanecerán como archivos `0600` en el host; GitHub solo conservará los secretos estrictamente necesarios para despliegue y telemetría.
+
+GitHub Pages se descarta para la aplicación completa porque únicamente alojaría Angular y obligaría a separar orígenes, CORS y autenticación. Podrá emplearse más adelante para documentación pública.
+
+Esta elección prioriza coste cero y simplicidad, pero no proporciona SLA ni alta disponibilidad. Oracle puede reclamar capacidad Always Free inactiva y la disponibilidad de Ampere A1 depende de la región. Antes de almacenar datos de campaña se deberá automatizar una copia cifrada fuera del volumen de la VM.
+
 ## Criterios de revisión
 
 Revisaremos esta decisión si:

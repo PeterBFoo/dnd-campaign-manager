@@ -1,6 +1,67 @@
 name: dnd-campaign-companion
 
 services:
+  edge:
+    image: caddy:2.10.2-alpine
+    environment:
+      APP_HOST: ${APP_HOST:?APP_HOST is required}
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL is required}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/oci/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:2019/config/"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  web:
+    image: ${WEB_IMAGE:?WEB_IMAGE is required}
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    image: ${API_IMAGE:?API_IMAGE is required}
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Database__Host: postgres
+      Database__Port: 5432
+      Database__Name: ${POSTGRES_DB:-dnd_campaigns}
+      Database__User: ${POSTGRES_USER:-dnd_app}
+      Database__Password_FILE: /run/secrets/postgres_password
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=production,cloud.provider=oracle_cloud
+    secrets:
+      - postgres_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/health/live"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
   postgres:
     image: postgres:18-alpine
     environment:
@@ -18,27 +79,6 @@ services:
       retries: 10
     restart: unless-stopped
 
-  observability:
-    image: grafana/otel-lgtm:0.30.0
-    environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
-    secrets:
-      - grafana_admin_password
-    ports:
-      - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
-    volumes:
-      - observability-data:/data
-      - ./infra/observability/prometheus.yaml:/otel-lgtm/prometheus.yaml:ro
-      - ./infra/observability/grafana/dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/dnd-campaign.yaml:ro
-      - ./infra/observability/grafana/dashboards:/otel-lgtm/grafana/conf/provisioning/dashboards/dnd-campaign:ro
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 15
-    restart: unless-stopped
-
   postgres-exporter:
     image: quay.io/prometheuscommunity/postgres-exporter:v0.20.1
     environment:
@@ -54,54 +94,24 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  api:
-    image: ${API_IMAGE:-dnd-campaign-api:latest}
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.159.0
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
     environment:
-      ASPNETCORE_ENVIRONMENT: Production
-      Database__Host: postgres
-      Database__Port: 5432
-      Database__Name: ${POSTGRES_DB:-dnd_campaigns}
-      Database__User: ${POSTGRES_USER:-dnd_app}
-      Database__Password_FILE: /run/secrets/postgres_password
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://observability:4317
-      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
-      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=production
+      GRAFANA_CLOUD_OTLP_ENDPOINT: ${GRAFANA_CLOUD_OTLP_ENDPOINT:?GRAFANA_CLOUD_OTLP_ENDPOINT is required}
     secrets:
-      - postgres_password
-    depends_on:
-      postgres:
-        condition: service_healthy
-      observability:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/health/live"]
-      interval: 10s
-      timeout: 3s
-      retries: 10
-    restart: unless-stopped
-
-  web:
-    image: ${WEB_IMAGE:-dnd-campaign-web:latest}
-    ports:
-      - "${HTTP_PORT:-80}:80"
-    depends_on:
-      api:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1/"]
-      interval: 10s
-      timeout: 3s
-      retries: 10
+      - grafana_cloud_otlp_authorization
+    volumes:
+      - ./deploy/oci/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
     restart: unless-stopped
 
 secrets:
   postgres_password:
-    external: true
-    name: ${POSTGRES_PASSWORD_SECRET_NAME:-dnd-postgres-password}
-  grafana_admin_password:
-    external: true
-    name: ${GRAFANA_ADMIN_PASSWORD_SECRET_NAME:-dnd-grafana-admin-password}
+    file: ${SECRETS_DIR:-./deploy/secrets}/postgres_password
+  grafana_cloud_otlp_authorization:
+    file: ${SECRETS_DIR:-./deploy/secrets}/grafana_cloud_otlp_authorization
 
 volumes:
   postgres18-data:
-  observability-data:
+  caddy-data:
+  caddy-config:

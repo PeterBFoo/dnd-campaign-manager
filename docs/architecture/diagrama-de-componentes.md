@@ -1,7 +1,7 @@
 # Diagrama de componentes
 
 - Estado: vigente
-- ADR relacionado: [ADR-0001: plataforma y observabilidad](../adr/ADR-0001-plataforma-y-observabilidad.md)
+- ADR relacionado: [ADR-0001: plataforma y observabilidad](../adr/0001-monorepositorio-y-monolito-modular.md)
 - Alcance: componentes lógicos de la plataforma inicial
 
 Esta vista describe las responsabilidades y dependencias de la plataforma. No define todavía componentes de dominio ni incorpora información específica de ninguna campaña.

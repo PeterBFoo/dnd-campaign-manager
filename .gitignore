@@ -7,6 +7,14 @@ deploy/secrets/
 *.pem
 *.key
 *.p12
+
+# Terraform y credenciales OCI locales
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
 *.pfx
 
 # Contenido privado de campaña

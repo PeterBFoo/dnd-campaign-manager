@@ -1,0 +1,43 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+packages:
+  - ca-certificates
+  - curl
+  - docker-compose-v2
+  - docker.io
+  - jq
+  - openssl
+  - unattended-upgrades
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/99-dnd-campaign-hardening.conf
+    owner: root:root
+    permissions: "0644"
+    content: |
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PermitRootLogin no
+  - path: /etc/sysctl.d/99-dnd-campaign.conf
+    owner: root:root
+    permissions: "0644"
+    content: |
+      net.ipv4.conf.all.accept_redirects = 0
+      net.ipv4.conf.default.accept_redirects = 0
+      net.ipv4.conf.all.send_redirects = 0
+      net.ipv4.conf.default.send_redirects = 0
+
+runcmd:
+  - systemctl enable --now docker
+  - usermod -aG docker ubuntu
+  - install -d -m 0750 -o ubuntu -g ubuntu ${deployment_root}
+  - install -d -m 0750 -o ubuntu -g ubuntu ${deployment_root}/config
+  - install -d -m 0750 -o ubuntu -g ubuntu ${deployment_root}/release
+  - install -d -m 0700 -o ubuntu -g ubuntu ${deployment_root}/secrets
+  - [bash, -c, "test -s ${deployment_root}/secrets/postgres_password || (umask 077 && openssl rand -base64 48 | tr -d '\\n' > ${deployment_root}/secrets/postgres_password)"]
+  - chown ubuntu:ubuntu ${deployment_root}/secrets/postgres_password
+  - chmod 0600 ${deployment_root}/secrets/postgres_password
+  - systemctl restart ssh
+  - sysctl --system
+  - systemctl enable --now unattended-upgrades
+  - touch /var/lib/cloud/instance/dnd-campaign-bootstrap-complete

@@ -1,11 +1,11 @@
 # Diagrama de despliegue
 
 - Estado: vigente
-- ADR relacionado: [ADR-0001: plataforma y observabilidad](../adr/ADR-0001-plataforma-y-observabilidad.md)
+- ADR relacionado: [ADR-0001: plataforma y observabilidad](../adr/0001-monorepositorio-y-monolito-modular.md)
 - Vista lógica relacionada: [diagrama de componentes](diagrama-de-componentes.md)
-- Alcance: entorno local integrado definido en `compose.yaml`
+- Alcance: entorno local integrado y topología productiva gratuita
 
-Esta vista muestra la distribución física de los componentes del primer incremento. Es una topología de desarrollo e integración local, no un diseño de producción.
+La primera vista muestra la distribución física del entorno local. La segunda concreta su despliegue productivo en Oracle Cloud sin trasladar al navegador secretos ni responsabilidades del backend.
 
 ```mermaid
 flowchart TB
@@ -75,4 +75,42 @@ flowchart TB
 - Los puertos publicados son conveniencias del entorno local y deben revisarse para otros entornos.
 - Las credenciales por defecto solo son válidas para desarrollo local.
 - Las fuentes privadas y la documentación excluida por Git no forman parte del contexto de las imágenes.
-- Una topología de producción deberá concretar red, TLS, identidad, secretos, alta disponibilidad, copias de seguridad y retención de telemetría antes de desplegarse.
+- La imagen LGTM local no se utiliza como backend productivo.
+
+## Oracle Cloud Always Free
+
+```mermaid
+flowchart TB
+    user["Navegador del usuario"]
+    github["GitHub Actions + GHCR<br/>imágenes ARM64 inmutables"]
+    grafana["Grafana Cloud Free<br/>métricas · logs · trazas · dashboards"]
+
+    subgraph oci["Oracle Cloud · VM Ampere A1 ARM64"]
+        caddy["Caddy<br/>HTTPS 80/443"]
+        web_prod["Nginx + Angular<br/>red privada Compose"]
+        api_prod["ASP.NET Core 10<br/>red privada Compose"]
+        postgres_prod["PostgreSQL 18<br/>red privada Compose"]
+        exporter_prod["PostgreSQL exporter"]
+        collector["OpenTelemetry Collector"]
+        database_volume[("Volumen persistente<br/>/var/lib/postgresql")]
+        secrets["Secretos como archivos<br/>modo 0600"]
+    end
+
+    user -->|"HTTPS"| caddy
+    caddy --> web_prod
+    web_prod -->|"/api y /health"| api_prod
+    api_prod --> postgres_prod
+    api_prod -->|"OTLP"| collector
+    exporter_prod --> postgres_prod
+    collector -->|"scrape"| exporter_prod
+    collector -->|"OTLP HTTPS"| grafana
+    postgres_prod --> database_volume
+    secrets -.-> api_prod
+    secrets -.-> postgres_prod
+    secrets -.-> collector
+    github -->|"SSH · docker compose"| oci
+```
+
+Solo Caddy publica puertos. API, PostgreSQL, exporter y Collector permanecen en la red interna. Caddy obtiene y renueva TLS automáticamente para `APP_HOST`; mientras no exista dominio propio puede utilizarse un hostname gratuito basado en la IP pública mediante `sslip.io`.
+
+La infraestructura se describe en `infra/oci` y crea VCN, subnet pública, reglas de red, una VM `VM.Standard.A1.Flex` y un volumen de arranque dentro de los límites configurados de Always Free. SSH queda restringido al CIDR indicado por el operador.

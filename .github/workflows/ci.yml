@@ -40,8 +40,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker compose config --quiet
-      - run: docker compose -f compose.deploy.yaml config --quiet
+      - name: Validate production Compose
+        run: |
+          install -d -m 0700 deploy/secrets
+          printf 'test-only' > deploy/secrets/postgres_password
+          printf 'Basic dGVzdDp0ZXN0' > deploy/secrets/grafana_cloud_otlp_authorization
+          APP_HOST=example.com \
+            ACME_EMAIL=operator@example.com \
+            API_IMAGE=example.invalid/api:test \
+            WEB_IMAGE=example.invalid/web:test \
+            GRAFANA_CLOUD_OTLP_ENDPOINT=https://example.invalid/otlp \
+            docker compose -f compose.deploy.yaml config --quiet
+      - name: Validate production component configuration
+        run: |
+          docker run --rm \
+            -e APP_HOST=example.com \
+            -e ACME_EMAIL=operator@example.com \
+            -v "$PWD/deploy/oci/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            caddy:2.10.2-alpine \
+            caddy validate --config /etc/caddy/Caddyfile
+          docker run --rm \
+            -e GRAFANA_CLOUD_OTLP_ENDPOINT=https://example.invalid/otlp \
+            -v "$PWD/deploy/oci/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro" \
+            -v "$PWD/deploy/secrets/grafana_cloud_otlp_authorization:/run/secrets/grafana_cloud_otlp_authorization:ro" \
+            otel/opentelemetry-collector-contrib:0.159.0 \
+            validate --config=/etc/otelcol-contrib/config.yaml
       - run: |
           for dashboard in infra/observability/grafana/dashboards/*.json; do
             jq empty "$dashboard"
           done
+      - run: sh -n scripts/deploy-oci.sh scripts/publish-grafana-dashboards.sh scripts/smoke-test.sh
+
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.8
+      - run: terraform -chdir=infra/oci fmt -check
+      - run: terraform -chdir=infra/oci init -backend=false
+      - run: terraform -chdir=infra/oci validate

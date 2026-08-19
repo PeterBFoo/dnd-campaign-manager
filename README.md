@@ -27,6 +27,7 @@ La arquitectura resultante se representa, de lo lógico a lo físico, en:
 
 La preparación operativa de credenciales está en [Secretos de despliegue](docs/operations/secretos-de-despliegue.md).
 La selección, contenido y uso de los paneles está en [Dashboards de observabilidad](docs/operations/dashboards-de-observabilidad.md).
+El procedimiento productivo gratuito está en [Despliegue en Oracle Cloud](docs/operations/despliegue-oci.md).
 
 ## Requisitos
 
@@ -96,6 +97,12 @@ BASE_URL=https://app.example.com sh scripts/smoke-test.sh
 ```
 
 Si Grafana es accesible desde el ejecutor de la prueba, añade `GRAFANA_URL`.
+
+## Producción gratuita
+
+La topología de referencia utiliza una VM ARM Ampere A1 de Oracle Cloud Always Free, Caddy como entrada HTTPS, PostgreSQL en volumen persistente y Grafana Cloud Free como backend de telemetría. Las imágenes ARM64 se publican en GHCR y el workflow `deploy-oci` despliega únicamente tags inmutables asociados al commit.
+
+GitHub Pages queda reservado para documentación pública: puede servir el build estático de Angular, pero no la API ASP.NET Core, PostgreSQL ni el proxy same-origin requerido por la aplicación.
 
 ## Tratamiento de fuentes
 

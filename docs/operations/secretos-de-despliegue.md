@@ -1,44 +1,53 @@
 # Secretos de despliegue
 
-- Estado: preparado para integración con el gestor de secretos del entorno
+- Estado: preparado para Oracle Cloud y GitHub Environments
 - Alcance: credenciales de infraestructura del ADR-0001
 
-Los valores de `.env` son únicamente para desarrollo local. Un despliegue no debe copiar ese archivo ni proporcionar secretos como argumentos de build, variables del frontend o valores versionados.
+Los valores de `.env` son únicamente para desarrollo local. Producción no copia ese archivo ni proporciona secretos como argumentos de build, variables Angular o valores versionados.
 
-PostgreSQL utiliza la contraseña de entorno solo durante la primera inicialización del volumen. Modificar `POSTGRES_PASSWORD` con un volumen ya existente no rota la credencial de la base de datos y hará fallar el readiness de la API; la rotación debe ejecutarse explícitamente dentro de PostgreSQL antes de actualizar sus consumidores.
+PostgreSQL utiliza la contraseña de entorno solo durante la primera inicialización del volumen. Modificar el secreto con un volumen existente no rota la credencial de la base de datos; la rotación debe ejecutarse explícitamente dentro de PostgreSQL antes de actualizar sus consumidores.
 
-## Contrato de configuración
+## Secretos del host OCI
 
-| Consumidor | Configuración no secreta | Secreto montado |
+Se almacenan bajo `/opt/dnd-campaign-manager/secrets`, propiedad del usuario de despliegue, directorio `0700` y archivos `0600`:
+
+| Archivo | Consumidor | Origen |
 |---|---|---|
-| PostgreSQL | `POSTGRES_DB`, `POSTGRES_USER` | `POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password` |
-| API ASP.NET Core | `Database__Host`, `Database__Port`, `Database__Name`, `Database__User` | `Database__Password_FILE=/run/secrets/postgres_password` |
-| PostgreSQL exporter | `DATA_SOURCE_URI`, `DATA_SOURCE_USER` | `DATA_SOURCE_PASS_FILE=/run/secrets/postgres_password` |
-| Grafana | `GF_SECURITY_ADMIN_USER` | `GF_SECURITY_ADMIN_PASSWORD__FILE=/run/secrets/grafana_admin_password` |
+| `postgres_password` | PostgreSQL, API y exporter | generado en la VM por cloud-init |
+| `grafana_cloud_otlp_authorization` | OpenTelemetry Collector | instalado desde el environment protegido de GitHub |
 
-La API mantiene `ConnectionStrings__Campaigns` para desarrollo local y acepta el secreto por archivo en despliegue. El contenido de los archivos se lee al arrancar, se elimina el salto de línea final y nunca se devuelve en endpoints ni se registra.
+`grafana_cloud_otlp_authorization` contiene el valor completo del header: `Basic ` seguido del base64 de `instance-id:token`. El Collector lo resuelve desde el archivo mediante su provider de configuración y no lo incorpora a `compose.deploy.yaml`.
 
-## Secretos externos requeridos
+## Secretos y variables de GitHub
 
-`compose.deploy.yaml` espera dos secretos administrados fuera del repositorio:
+El environment `production` conserva únicamente:
 
-- `dnd-postgres-password`: contraseña aleatoria y exclusiva de PostgreSQL, compartida con la API y el exporter dentro de la red privada.
-- `dnd-grafana-admin-password`: contraseña aleatoria y exclusiva del administrador local de Grafana.
+- acceso SSH a la VM y su `known_hosts` verificado;
+- credencial de solo lectura para descargar imágenes privadas de GHCR;
+- autorización de escritura OTLP en Grafana Cloud;
+- token de cuenta de servicio para publicar dashboards.
 
-Los nombres pueden cambiarse mediante `POSTGRES_PASSWORD_SECRET_NAME` y `GRAFANA_ADMIN_PASSWORD_SECRET_NAME`. El procedimiento exacto de alta depende del orquestador o gestor elegido. Deben crearse antes del despliegue y montarse como archivos legibles solo por el proceso correspondiente.
+Host, hostname público, correo ACME y URLs de Grafana son configuración, no secretos. La contraseña de PostgreSQL nunca sale de OCI.
 
-## Despliegue
+Los permisos deben ser mínimos:
 
-1. Publicar las imágenes `web` y `api` con tags inmutables o digest.
-2. Crear los dos secretos externos en el entorno de destino.
-3. Definir `WEB_IMAGE`, `API_IMAGE`, nombres de base de datos y nombres de secretos como configuración no sensible.
-4. Validar la configuración con `docker compose -f compose.deploy.yaml config` sin imprimir el contenido de los secretos.
-5. Desplegar y comprobar `/health/live`, `/health/ready` y la recepción de telemetría.
+- `GHCR_PULL_TOKEN`: solo `read:packages`;
+- Cloud Access Policy: escritura de métricas, logs y trazas del stack seleccionado;
+- cuenta de servicio Grafana: escritura de carpetas y dashboards, sin administración de usuarios;
+- clave SSH exclusiva para despliegue, sin reutilizar la clave personal del operador.
 
-La plantilla de despliegue solo publica el puerto web. PostgreSQL, la API y los puertos OTLP permanecen en la red interna; Grafana se enlaza a loopback para requerir un túnel o proxy administrativo.
+## Invariantes
+
+- No se registran valores de secretos en Actions, Compose, Terraform o logs de aplicación.
+- No se guardan secretos en `terraform.tfvars` ni en el estado Terraform.
+- Las imágenes se construyen sin secretos y solo reciben configuración al arrancar.
+- El frontend no recibe tokens, credenciales de base de datos ni endpoints administrativos.
+- `deploy/secrets/`, `*.tfvars`, estados Terraform y claves están ignorados por Git y Docker.
 
 ## Rotación
 
-La contraseña de PostgreSQL exige coordinar el cambio en la base de datos con la actualización del secreto montado. Después se reinicia la API y se verifica readiness. La contraseña de Grafana puede rotarse de forma independiente. Las versiones antiguas deben revocarse después de validar las nuevas.
+La contraseña de PostgreSQL exige coordinar `ALTER ROLE` con la actualización atómica del archivo y el reinicio de API/exporter. La autorización OTLP y el token de dashboards pueden rotarse de manera independiente desde Grafana Cloud y GitHub.
 
-Cuando se implemente autenticación de usuarios habrá que añadir, como mínimo, secretos independientes para firma o cifrado de sesión. Esa decisión no forma parte de la infraestructura actual y no debe reutilizar ninguna de las credenciales anteriores.
+Después de cada rotación se ejecutan readiness, smoke test y una comprobación de recepción de telemetría. Las credenciales anteriores se revocan solo después de validar las nuevas.
+
+Cuando se implemente autenticación de usuarios se añadirán secretos independientes para firma o cifrado de sesión. No se reutilizará ninguna credencial de infraestructura.

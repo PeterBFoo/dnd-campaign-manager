@@ -1,7 +1,7 @@
 # Dashboards de observabilidad
 
 - Estado: implementados y aprovisionados como código
-- ADR relacionado: [ADR-0001: plataforma y observabilidad](../adr/ADR-0001-plataforma-y-observabilidad.md)
+- ADR relacionado: [ADR-0001: plataforma y observabilidad](../adr/0001-monorepositorio-y-monolito-modular.md)
 - Carpeta de Grafana: `D&D Campaign Companion`
 
 Los dashboards cubren las señales necesarias para detectar indisponibilidad, degradación, saturación y problemas de persistencia sin registrar información narrativa ni datos de campaña.
@@ -64,6 +64,8 @@ Referencias externas:
 ## Aprovisionamiento
 
 Los archivos se encuentran en `infra/observability/grafana/dashboards`. Grafana los carga mediante `infra/observability/grafana/dashboards.yaml` cada 30 segundos y no permite guardarlos desde la interfaz. Cualquier cambio debe hacerse en el repositorio y pasar revisión.
+
+En producción, OpenTelemetry Collector envía las tres señales al endpoint OTLP de Grafana Cloud. Los mismos JSON se publican mediante `scripts/publish-grafana-dashboards.sh` usando un token de cuenta de servicio leído desde archivo; el token nunca forma parte del dashboard ni del repositorio.
 
 Prometheus recibe las métricas OpenTelemetry de la API y consulta `postgres-exporter:9187` según `infra/observability/prometheus.yaml`. El exporter no publica ningún puerto al host.
 
