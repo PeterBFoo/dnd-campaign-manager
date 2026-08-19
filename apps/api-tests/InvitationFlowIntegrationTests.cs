@@ -42,6 +42,31 @@ public sealed class InvitationFlowIntegrationTests
 
         try
         {
+            client.DefaultRequestHeaders.TryAddWithoutValidation("X-Forwarded-For", "203.0.113.10");
+            for (var attempt = 0; attempt < 10; attempt++)
+            {
+                using var invalidBootstrap = await client.PostAsJsonAsync("/api/v1/identity/bootstrap", new
+                {
+                    token = "invalid-bootstrap-token",
+                    email = "admin@example.com",
+                    displayName = "Platform Admin",
+                    password = "A-valid-admin-password-123!",
+                }, cancellationToken);
+                Assert.Equal(HttpStatusCode.Unauthorized, invalidBootstrap.StatusCode);
+            }
+
+            using var throttledBootstrap = await client.PostAsJsonAsync("/api/v1/identity/bootstrap", new
+            {
+                token = "invalid-bootstrap-token",
+                email = "admin@example.com",
+                displayName = "Platform Admin",
+                password = "A-valid-admin-password-123!",
+            }, cancellationToken);
+            Assert.Equal(HttpStatusCode.TooManyRequests, throttledBootstrap.StatusCode);
+            Assert.True(throttledBootstrap.Headers.RetryAfter?.Delta > TimeSpan.Zero);
+
+            client.DefaultRequestHeaders.Remove("X-Forwarded-For");
+            client.DefaultRequestHeaders.TryAddWithoutValidation("X-Forwarded-For", "198.51.100.20");
             using var bootstrap = await client.PostAsJsonAsync("/api/v1/identity/bootstrap", new
             {
                 token = bootstrapToken,
