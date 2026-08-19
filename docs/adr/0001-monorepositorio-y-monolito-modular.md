@@ -1,108 +1,220 @@
-# ADR-0001: Monorepositorio y monolito modular
+# ADR-0001: Monorepositorio, plataforma web y observabilidad
 
 - Estado: Aceptado
 - Fecha: 2026-08-19
-- Responsables: propietario del proyecto
-- Ámbito: estructura del repositorio y arquitectura de despliegue
+- Decisores: equipo del proyecto
+- Alcance: estructura del repositorio, frontend, backend, datos, ejecución y operación
 
 ## Contexto
 
-El proyecto es una aplicación web privada para un grupo de juego, aunque su código residirá en un repositorio público de GitHub. Incluye un frontend Angular, un backend en C#, PostgreSQL y componentes de observabilidad y despliegue administrados mediante Docker Compose.
+El producto debe servir a dos experiencias estrechamente relacionadas: una consola de dirección para el DM y una vista segura para jugadores. Ambas necesitan una API común, persistencia transaccional, control de acceso y una forma reproducible de ejecutar y diagnosticar el sistema desde el inicio.
 
-Los requisitos se agrupan en varios dominios: identidad e invitaciones, campañas, personajes, contenido de módulos, capítulos, biblioteca, bitácora, misiones e iniciativa. Estos dominios necesitan límites claros, pero el volumen previsto de usuarios, el equipo de desarrollo y el despliegue en una sola instalación no justifican servicios distribuidos independientes.
+El repositorio parte de documentación arquitectónica, especificaciones y análisis privados, sin una plataforma de aplicación previa. Su código residirá en un repositorio público, mientras que módulos editoriales, recursos de campaña, credenciales, datos persistentes y copias de seguridad permanecerán fuera. Antes de profundizar en los dominios funcionales necesitamos fijar una base que permita construir flujos verticales, comprobarlos en integración y observar su comportamiento.
 
-El proyecto seguirá un flujo Spec-Driven Development. Las especificaciones, planes, tareas, decisiones arquitectónicas, código, pruebas y configuración de despliegue deben evolucionar de forma coordinada.
+Las restricciones acordadas son:
+
+- el frontend se implementará con Angular;
+- el backend se implementará en C# con ASP.NET Core;
+- los secretos del DM deben filtrarse antes de llegar al navegador;
+- las fuentes editoriales protegidas no se publicarán ni se incluirán en imágenes desplegables;
+- el entorno local debe ser reproducible y aproximarse a producción sin exigir servicios SaaS.
+
+El proyecto seguirá un flujo Spec-Driven Development. Especificaciones, planes, tareas, decisiones, implementación, pruebas y configuración operativa deberán evolucionar de forma coordinada.
 
 ## Decisión
 
-Se utilizará un único repositorio público de GitHub organizado como monorepositorio.
+### 1. Monorepo y monolito modular
 
-El backend se implementará como un monolito modular:
-
-- Existirá un único proceso y artefacto desplegable para la API.
-- Cada dominio funcional tendrá un límite explícito y será dueño de su lógica y modelo.
-- Las dependencias entre módulos serán explícitas y se dirigirán hacia contratos internos, no hacia detalles de infraestructura.
-- Un módulo no accederá directamente a las tablas o clases internas de otro módulo.
-- La separación inicial será lógica y dentro del proceso; no se introducirán llamadas de red entre dominios.
-
-El frontend, el backend, las pruebas, la infraestructura, la observabilidad y la documentación residirán en el mismo repositorio. Los componentes de infraestructura seguirán ejecutándose en contenedores independientes porque tienen ciclos de ejecución y almacenamiento propios; esto no convierte el backend en una arquitectura de microservicios.
-
-La estructura objetivo será:
+Mantendremos frontend, backend, pruebas, documentación e infraestructura en un único repositorio:
 
 ```text
-/
-├── apps/
-│   ├── frontend/
-│   └── backend/
-├── tests/
-├── deploy/
-├── observability/
-├── docs/
-│   ├── architecture/
-│   ├── adr/
-│   ├── specs/
-│   └── runbooks/
-├── samples/
-├── compose.yaml
-└── README.md
+apps/
+  web/                  Angular
+  api/                  ASP.NET Core
+  api-tests/            pruebas del backend
+docs/
+  adr/                  decisiones arquitectónicas
+infra/                  configuración operativa adicional
+sources/                fuentes internas excluidas del despliegue
 ```
 
-Las carpetas se incorporarán de manera incremental cuando una especificación aprobada las necesite.
+El backend comienza como monolito modular. Los límites entre dominio, aplicación, infraestructura y endpoints se conservarán dentro de la solución, pero no se desplegarán microservicios hasta que exista una necesidad medible de escalado, aislamiento o propiedad independiente.
 
-## Reglas del repositorio
+### 2. Frontend Angular 22
+
+La aplicación web utilizará Angular 22 en modo estricto, componentes standalone, routing, signals para estado local y `HttpClient` para hablar con la API.
+
+Principios iniciales:
+
+- dos áreas de navegación: DM y jugadores;
+- guards y permisos en cliente solo como ayuda de UX, nunca como frontera de seguridad;
+- configuración mediante archivos de entorno y ruta relativa `/api`;
+- accesibilidad y diseño responsive como requisitos de los componentes;
+- pruebas unitarias con el runner integrado del workspace Angular;
+- build estático servido por Nginx en la imagen local integrada.
+
+### 3. Backend ASP.NET Core 10 LTS
+
+La API utilizará .NET 10 LTS y C# con nullable reference types habilitado. ASP.NET Core expondrá endpoints versionados bajo `/api/v1` y health checks separados:
+
+- `/health/live`: el proceso puede atender peticiones;
+- `/health/ready`: las dependencias necesarias están disponibles.
+
+Las capas son:
+
+- **Domain**: agregados, eventos, invariantes y proyecciones, sin dependencias de ASP.NET o EF Core;
+- **Application**: casos de uso, autorización y puertos;
+- **Infrastructure**: PostgreSQL, telemetría y adaptadores;
+- **Endpoints**: contratos HTTP y composición de la aplicación.
+
+El contrato HTTP será JSON y se versionará desde el principio. Los errores públicos seguirán `ProblemDetails` y nunca incluirán excepciones o datos secretos.
+
+### 4. PostgreSQL como persistencia primaria
+
+PostgreSQL será la fuente de persistencia del producto y Entity Framework Core el mecanismo de acceso. Este ADR establece la conexión, el health check y la capacidad transaccional, pero no anticipa el modelo de dominio ni su forma concreta de almacenamiento.
+
+Los tests de integración que dependan de persistencia usarán PostgreSQL real en contenedor. Las decisiones posteriores de dominio deberán conservar las garantías transaccionales que requieran sus invariantes.
+
+### 5. Seguridad y autenticación
+
+La arquitectura será same-origin en el despliegue integrado: Nginx servirá Angular y redirigirá `/api` al backend. Esto permite usar cookies seguras y evita entregar tokens persistentes al código del navegador.
+
+ASP.NET Core será la autoridad para sesiones, roles y políticas. Los roles iniciales son `dm` y `player`, siempre limitados a una campaña. La implementación completa de identidad se hará en un incremento específico antes de publicar endpoints con información de campaña; hasta entonces solo se expondrán estado de plataforma y health checks sin datos sensibles.
+
+Los secretos se inyectarán por variables o un gestor externo. Los valores locales de Compose son solo de desarrollo y nunca se reutilizarán en producción.
+
+### 6. Observabilidad con OpenTelemetry
+
+El backend emitirá las tres señales correlacionadas:
+
+- trazas de ASP.NET Core y clientes HTTP;
+- métricas de runtime, proceso y peticiones;
+- logs estructurados con `trace_id`, `span_id`, nivel y propiedades, sin contenido narrativo sensible.
+
+Las señales se exportarán mediante OTLP a un collector, evitando acoplar la aplicación a un proveedor. El entorno local utilizará la imagen oficial de desarrollo `grafana/otel-lgtm`, que integra OpenTelemetry Collector, Prometheus, Tempo, Loki y Grafana. Esta imagen no se considera una topología de producción.
+
+Reglas operativas iniciales:
+
+- cada petición tendrá identificador de correlación;
+- no se registrarán cuerpos, cookies, tokens, nombres secretos ni valores de banderas narrativas;
+- liveness y readiness serán observables de forma independiente;
+- la ausencia temporal del collector no impedirá que la API atienda tráfico;
+- producción podrá sustituir el backend de observabilidad conservando OTLP.
+
+### 7. Ejecución reproducible con Docker Compose
+
+El entorno integrado local se levantará con Docker Compose y contendrá:
+
+- `web`: build Angular servido por Nginx;
+- `api`: ASP.NET Core;
+- `postgres`: base de datos con volumen persistente;
+- `observability`: collector y stack Grafana LGTM con volumen persistente.
+
+El desarrollo rápido permite ejecutar Angular en el host con proxy a la API, mientras PostgreSQL y observabilidad permanecen en contenedores.
+
+Las imágenes usarán builds multi-stage y no copiarán `sources/` al contexto final. `.dockerignore` excluirá expresamente las fuentes editoriales y artefactos locales.
+
+### 8. Integración continua
+
+Cada cambio deberá ejecutar como mínimo:
+
+- instalación reproducible de dependencias frontend;
+- pruebas y build de Angular;
+- restore, build y pruebas de .NET;
+- validación de Docker Compose;
+- revisión de formato y ausencia de secretos cuando se incorpore la herramienta correspondiente.
+
+### 9. Gobierno del repositorio
 
 - La rama principal será `main`.
-- Cada cambio funcional comenzará con una especificación aprobada.
-- Cada especificación tendrá `spec.md`, `plan.md` y `tasks.md`.
-- Las decisiones transversales se documentarán mediante ADR antes de implementarlas.
-- Código y documentación afectados se modificarán dentro del mismo cambio.
+- Cada incremento funcional comenzará con una especificación y criterios de aceptación.
+- Las decisiones transversales se documentarán mediante ADR antes de implementarse.
+- Código, pruebas, documentación e infraestructura afectados se publicarán en el mismo cambio.
+- Un módulo no accederá directamente a las tablas o clases internas de otro módulo.
 - El repositorio público solo incluirá datos ficticios y configuración sin secretos.
-- Los recursos privados de campaña, secretos y datos persistentes se inyectarán durante el despliegue y nunca se confirmarán en Git.
+- Recursos privados, secretos y datos persistentes se inyectarán durante el despliegue y nunca se confirmarán en Git.
+
+## Versiones base
+
+- Angular `22.x`, actualmente en soporte activo.
+- Node.js `24.x`, compatible con Angular 22.
+- .NET y ASP.NET Core `10.0`, LTS hasta noviembre de 2028.
+- PostgreSQL `18.x` para desarrollo local.
+- OpenTelemetry .NET `1.17.x`.
+- Grafana OpenTelemetry LGTM `0.30.x`, solo para desarrollo, demo y pruebas.
+
+Las versiones patch se actualizarán de forma regular. Las versiones major requieren comprobar compatibilidad y, si alteran esta decisión, un ADR nuevo.
 
 ## Alternativas consideradas
 
-### Repositorios separados
+### React o Vue para el frontend
 
-Rechazada porque aumenta la coordinación entre versiones, revisiones y despliegues. Para un único equipo y una única aplicación no aporta aislamiento suficiente para compensar esa complejidad.
+Son opciones válidas, pero contradicen la decisión explícita de usar Angular y no aportan una ventaja que justifique mantener dos stacks. Se descartan.
 
-### Microservicios por dominio
+### Node.js o Python para el backend
 
-Rechazada porque introduciría descubrimiento de servicios, contratos remotos, tolerancia a fallos distribuida, observabilidad entre procesos y consistencia eventual sin que exista una necesidad actual de escalado independiente.
+Reducirían la diversidad de lenguajes si el frontend compartiera TypeScript, pero el backend está fijado en C# ASP.NET Core. Además, .NET ofrece una base sólida para contratos, políticas, telemetría y trabajo transaccional. Se descartan.
 
-### Aplicación sin límites modulares
+### Microservicios desde el inicio
 
-Rechazada porque simplificaría el arranque, pero aumentaría el acoplamiento entre campañas, personajes, contenido y combate. La modularidad interna permite mantener esos límites sin el coste operativo de los microservicios.
+Aumentarían despliegues, consistencia distribuida, trazabilidad y superficie operativa antes de conocer los límites reales. Se descartan por ahora.
+
+### SQLite como persistencia principal
+
+Simplificaría la ejecución de un solo proceso, pero se aleja de las necesidades de concurrencia, transacciones y colaboración futura. Se conserva únicamente como posible herramienta efímera, no como persistencia canónica.
+
+### Stack de observabilidad separado desde el inicio
+
+Levantar Collector, Prometheus/Mimir, Tempo, Loki y Grafana como contenedores independientes permite configurarlos con más precisión, pero incrementa mucho el coste local. La imagen LGTM ofrece las mismas fronteras y protocolos para desarrollo; producción deberá diseñarse aparte.
 
 ## Consecuencias
 
 ### Positivas
 
-- Un único cambio puede actualizar código, migraciones, infraestructura y documentación de forma atómica.
-- El desarrollo local y el despliegue se realizan desde una sola revisión del repositorio.
-- Las pruebas end-to-end pueden validar el sistema completo.
-- La operación es apropiada para una única instalación privada.
-- Los límites modulares facilitan extraer un servicio en el futuro si aparece una necesidad demostrable.
+- Existe una ruta vertical clara desde Angular hasta PostgreSQL.
+- Las reglas sensibles permanecen en el backend.
+- El desarrollo y la integración son reproducibles en cualquier máquina con Docker.
+- Logs, métricas y trazas se incorporan antes de que aparezcan incidentes difíciles de diagnosticar.
+- El monolito modular conserva una vía de extracción futura sin pagar hoy el coste de microservicios.
 
-### Negativas
+### Costes y riesgos
 
-- El pipeline puede crecer y deberá ejecutar únicamente las comprobaciones necesarias cuando sea posible.
-- Un error del backend puede afectar a todos los dominios funcionales.
-- Los límites entre módulos dependen de convenciones y pruebas de arquitectura, no de aislamiento de red.
+- El equipo mantiene dos ecosistemas: TypeScript/Angular y C#/.NET.
+- El stack LGTM consume memoria y disco; se podrá levantar de forma opcional en equipos limitados.
+- PostgreSQL y Docker son requisitos para integración completa.
+- La autenticación same-origin requiere diseñar correctamente cookies, CSRF y proxy antes de exponer datos reales.
+- La instrumentación puede filtrar secretos si se añaden tags o logs sin revisión.
+- Los límites del monolito modular dependen de convenciones y pruebas de arquitectura, no de aislamiento de red.
 - Todos los componentes de aplicación comparten un ciclo de publicación coordinado.
 
-## Criterios para revisar la decisión
+## Documentación arquitectónica
 
-La decisión se revisará si aparece alguna de estas condiciones:
+Esta decisión se concreta en dos vistas complementarias, que deben leerse en este orden:
 
-- Un módulo necesita escalar o desplegarse de forma independiente.
-- Diferentes equipos necesitan ciclos de entrega autónomos.
-- Un requisito exige aislamiento de fallos o seguridad a nivel de proceso.
-- El tiempo de compilación o pruebas del monorepositorio se vuelve un impedimento medible.
-- Docker Compose deja de ser adecuado para el entorno de despliegue.
+1. [Diagrama de componentes](../architecture/diagrama-de-componentes.md): responsabilidades y dependencias lógicas.
+2. [Diagrama de despliegue](../architecture/diagrama-de-despliegue.md): distribución de esos componentes en el entorno local integrado.
+3. [Dashboards de observabilidad](../operations/dashboards-de-observabilidad.md): vistas operativas aprovisionadas y criterios de interpretación.
 
-## Acciones derivadas
+## Primer incremento autorizado
 
-- Crear ADR específicos para stack tecnológico, autenticación, correo, observabilidad, secretos y despliegue.
-- Definir la primera especificación de fundación técnica.
-- Incorporar pruebas que impidan dependencias no autorizadas entre módulos del backend.
-- Mantener actualizados los índices de documentación y ADR.
+La implementación inicial de este ADR debe entregar:
+
+- workspace Angular compilable con una pantalla de estado de plataforma;
+- API ASP.NET Core compilable con endpoints de estado, liveness y readiness;
+- conexión y health check de PostgreSQL;
+- exportación OTLP de logs, métricas y trazas;
+- Dockerfiles y Docker Compose para el recorrido completo;
+- prueba mínima de frontend y backend;
+- documentación de arranque y verificación.
+
+Después de validar esta base, las decisiones de dominio podrán incorporarse de forma incremental tras su revisión y aceptación.
+
+## Criterios de revisión
+
+Revisaremos esta decisión si:
+
+- un módulo necesita escalar o desplegarse de forma independiente;
+- los requisitos offline hacen inviable la dependencia normal de la API;
+- PostgreSQL no satisface una carga medida;
+- la solución de identidad requiere una topología distinta;
+- el backend de observabilidad deja de aceptar OTLP o la operación local resulta desproporcionada.

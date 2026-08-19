@@ -1,0 +1,56 @@
+:host { display: block; min-height: 100vh; }
+
+.topbar, main, footer { width: min(1180px, calc(100% - 40px)); margin-inline: auto; }
+.topbar { min-height: 92px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
+.brand { display: inline-flex; align-items: center; gap: 14px; color: var(--ink); text-decoration: none; }
+.brand-mark { width: 45px; height: 45px; display: grid; place-items: center; border: 1px solid var(--gold); border-radius: 50%; color: var(--gold); font: 700 .72rem/1 var(--sans); letter-spacing: .08em; }
+.brand strong, .brand small { display: block; }
+.brand strong { font: 600 1rem/1.2 var(--serif); letter-spacing: .02em; }
+.brand small, .phase { margin-top: 4px; color: var(--muted); font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; }
+
+.hero { min-height: 560px; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(340px, .7fr); align-items: center; gap: clamp(56px, 9vw, 120px); padding-block: 88px; }
+.eyebrow, .label { margin: 0 0 18px; color: var(--rust); font: 700 .72rem/1.2 var(--sans); letter-spacing: .18em; text-transform: uppercase; }
+h1, h2, h3, p { margin-top: 0; }
+h1 { max-width: 760px; margin-bottom: 28px; font: 500 clamp(3.7rem, 7vw, 7rem)/.92 var(--serif); letter-spacing: -.055em; }
+.intro { max-width: 670px; margin-bottom: 0; color: var(--muted); font-size: clamp(1rem, 2vw, 1.2rem); line-height: 1.75; }
+
+.status-card { position: relative; padding: 30px; overflow: hidden; border: 1px solid var(--line-strong); border-radius: 4px; background: linear-gradient(145deg, rgba(48,39,31,.96), rgba(30,25,20,.98)); box-shadow: 0 24px 80px rgba(0,0,0,.26); }
+.status-card::before { content: ''; position: absolute; inset: 0 0 auto; height: 3px; background: linear-gradient(90deg, var(--rust), var(--gold), transparent); }
+.card-heading { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 26px; }
+.card-heading .label { margin-bottom: 8px; }
+.card-heading h2 { margin-bottom: 0; font: 500 1.55rem/1.2 var(--serif); }
+.status-dot { width: 11px; height: 11px; flex: 0 0 auto; margin-top: 8px; border-radius: 50%; background: var(--rust); box-shadow: 0 0 0 6px rgba(176,77,50,.12); }
+.status-dot.connected { background: var(--green); box-shadow: 0 0 0 6px rgba(116,151,105,.12); }
+dl { margin: 0; }
+dl div { display: flex; justify-content: space-between; gap: 20px; padding: 13px 0; border-top: 1px solid var(--line); }
+dt, dd { font-size: .88rem; }
+dt { color: var(--muted); }
+dd { margin: 0; color: var(--ink); text-align: right; }
+.timestamp, .muted, .warning { margin: 22px 0 0; color: var(--muted); font-size: .78rem; line-height: 1.6; }
+.warning { color: #e3ad99; }
+button { margin-top: 18px; padding: 10px 15px; border: 1px solid var(--gold); border-radius: 2px; color: var(--ink); background: transparent; font: 700 .75rem/1 var(--sans); letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
+button:hover, button:focus-visible { color: var(--surface); background: var(--gold); }
+
+.capabilities { padding: 88px 0 108px; border-top: 1px solid var(--line); }
+.section-heading { max-width: 600px; margin-bottom: 50px; }
+.section-heading h2 { font: 500 clamp(2rem, 4vw, 3.6rem)/1.04 var(--serif); letter-spacing: -.035em; }
+.capability-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+.capability-grid article { min-height: 220px; padding: 30px; background: var(--surface); }
+.capability-grid span { color: var(--gold); font: 700 .72rem/1 var(--sans); letter-spacing: .1em; }
+.capability-grid h3 { margin: 55px 0 12px; font: 500 1.4rem/1.2 var(--serif); }
+.capability-grid p { margin: 0; color: var(--muted); font-size: .9rem; line-height: 1.65; }
+footer { min-height: 100px; display: flex; align-items: center; justify-content: space-between; gap: 30px; border-top: 1px solid var(--line); color: var(--muted); font-size: .72rem; letter-spacing: .04em; }
+
+@media (max-width: 800px) {
+  .phase { display: none; }
+  .hero { grid-template-columns: 1fr; min-height: auto; padding-block: 68px; }
+  .capability-grid { grid-template-columns: 1fr; }
+  footer { align-items: flex-start; flex-direction: column; justify-content: center; }
+}
+
+@media (max-width: 480px) {
+  .topbar, main, footer { width: min(100% - 24px, 1180px); }
+  .brand small { display: none; }
+  h1 { font-size: 3.35rem; }
+  .status-card { padding: 24px; }
+}

@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="apps/api/DndCampaign.Api.csproj" />
+  <Project Path="apps/api-tests/DndCampaign.Api.Tests.csproj" />
+</Solution>
