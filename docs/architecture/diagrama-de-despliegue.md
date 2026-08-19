@@ -95,11 +95,11 @@ flowchart TB
     subgraph azure["Azure · Spain Central"]
         environment["Container Apps Environment<br/>Consumption"]
         api_prod["ASP.NET Core 10<br/>0.25 vCPU · 0.5 GiB<br/>0–1 réplicas"]
-        secrets["Container Apps secrets<br/>cadena DB · headers OTLP<br/>API key y remitente Brevo"]
+        secrets["Container Apps secrets<br/>DB · OTLP · Brevo<br/>bootstrap · cifrado outbox"]
     end
 
     user -->|"HTTPS"| pages
-    pages -->|"HTTPS · CORS restringido"| api_prod
+    pages -->|"HTTPS · CORS exacto<br/>bearer opaco"| api_prod
     environment --> api_prod
     api_prod -->|"Npgsql + TLS"| neon
     api_prod -->|"OTLP HTTPS"| grafana
@@ -110,6 +110,6 @@ flowchart TB
     entra -.->|"OIDC sin client secret"| github
 ```
 
-GitHub Pages contiene únicamente HTML, CSS, JavaScript y `config.js` con la URL pública de la API. La API admite CORS exclusivamente desde `https://peterbfoo.github.io`; PostgreSQL y credenciales no llegan al navegador. Azure y GitHub proporcionan TLS administrado.
+GitHub Pages contiene únicamente HTML, CSS, JavaScript y `config.js` con la URL pública de la API. La API admite CORS exclusivamente desde `https://peterbfoo.github.io`. La sesión opaca vive en `sessionStorage` y PostgreSQL conserva solo su resumen; los secretos de bootstrap, outbox, Brevo y base de datos no llegan al navegador. Azure y GitHub proporcionan TLS administrado.
 
 La infraestructura se describe en `infra/azure`. Terraform crea el grupo de recursos, el entorno Consumption y la Container App, pero no recibe secretos. GitHub Actions configura cada revisión mediante OIDC y secrets del environment `production`. Al escalar a cero no existe una VM reservada ni una dependencia de capacidad Always Free concreta.

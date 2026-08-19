@@ -26,6 +26,22 @@ jobs:
 
   api:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: dnd_identity_test
+          POSTGRES_USER: dnd_test
+          POSTGRES_PASSWORD: test-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dnd_test -d dnd_identity_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      IDENTITY_TEST_DATABASE: Host=localhost;Port=5432;Database=dnd_identity_test;Username=dnd_test;Password=test-only-password
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4

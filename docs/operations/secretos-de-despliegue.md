@@ -14,6 +14,7 @@ PostgreSQL utiliza la contraseña de entorno solo durante la primera inicializac
 | PostgreSQL | `POSTGRES_DB`, `POSTGRES_USER` | `POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password` |
 | API ASP.NET Core | `Database__Host`, `Database__Port`, `Database__Name`, `Database__User` | `Database__Password_FILE=/run/secrets/postgres_password` |
 | API / Brevo | `Email__Brevo__SenderName` | `Email__Brevo__ApiKeyFile=/run/secrets/brevo_api_key`, `Email__Brevo__SenderEmailFile=/run/secrets/brevo_sender_email` |
+| API / identidad | `Frontend__BaseUrl` | `Identity__BootstrapTokenFile=/run/secrets/identity_bootstrap_token`, `Identity__OutboxEncryptionKeyFile=/run/secrets/outbox_encryption_key` |
 | PostgreSQL exporter | `DATA_SOURCE_URI`, `DATA_SOURCE_USER` | `DATA_SOURCE_PASS_FILE=/run/secrets/postgres_password` |
 | Grafana | `GF_SECURITY_ADMIN_USER` | `GF_SECURITY_ADMIN_PASSWORD__FILE=/run/secrets/grafana_admin_password` |
 
@@ -21,19 +22,21 @@ La API mantiene `ConnectionStrings__Campaigns` para desarrollo local y acepta el
 
 ## Secretos externos requeridos
 
-`compose.deploy.yaml` espera cuatro secretos administrados fuera del repositorio:
+`compose.deploy.yaml` espera seis secretos administrados fuera del repositorio:
 
 - `dnd-postgres-password`: contraseña aleatoria y exclusiva de PostgreSQL, compartida con la API y el exporter dentro de la red privada.
 - `dnd-grafana-admin-password`: contraseña aleatoria y exclusiva del administrador local de Grafana.
 - `dnd-brevo-api-key`: clave restringida al envío transaccional mediante Brevo. Solo será necesaria al habilitar los flujos de invitación.
 - `dnd-brevo-sender-email`: dirección remitente verificada en Brevo, almacenada por separado de la API key.
+- `dnd-identity-bootstrap-token`: secreto aleatorio de al menos 32 caracteres para crear la primera administración; deja de ser utilizable al existir una cuenta.
+- `dnd-outbox-encryption-key`: clave aleatoria de 32 bytes codificada en Base64 que protege los tokens pendientes de envío.
 
-Los nombres pueden cambiarse mediante `POSTGRES_PASSWORD_SECRET_NAME`, `GRAFANA_ADMIN_PASSWORD_SECRET_NAME`, `BREVO_API_KEY_SECRET_NAME` y `BREVO_SENDER_EMAIL_SECRET_NAME`. El procedimiento exacto de alta depende del orquestador o gestor elegido. Deben crearse antes del despliegue y montarse como archivos legibles solo por el proceso correspondiente.
+Los nombres pueden cambiarse mediante las variables `*_SECRET_NAME` declaradas en `compose.deploy.yaml`. El procedimiento exacto de alta depende del orquestador o gestor elegido. Deben crearse antes del despliegue y montarse como archivos legibles solo por el proceso correspondiente.
 
 ## Despliegue
 
 1. Publicar las imágenes `web` y `api` con tags inmutables o digest.
-2. Crear los dos secretos externos en el entorno de destino.
+2. Crear los seis secretos externos en el entorno de destino.
 3. Definir `WEB_IMAGE`, `API_IMAGE`, nombres de base de datos y nombres de secretos como configuración no sensible.
 4. Validar la configuración con `docker compose -f compose.deploy.yaml config` sin imprimir el contenido de los secretos.
 5. Desplegar y comprobar `/health/live`, `/health/ready` y la recepción de telemetría.
@@ -46,7 +49,7 @@ La contraseña de PostgreSQL exige coordinar el cambio en la base de datos con l
 
 La API key inicial de Brevo caduca el 19 de agosto de 2027 y Brevo también la invalida después de 90 días sin uso. Debe rotarse antes de cualquiera de esos límites: crear una clave nueva, actualizar `BREVO_API_KEY`, validar un envío transaccional y revocar la anterior. La dirección remitente se mantiene en `BREVO_SENDER_EMAIL` y solo se modifica después de verificar el nuevo remitente en Brevo.
 
-Cuando se implemente autenticación de usuarios habrá que añadir, como mínimo, secretos independientes para firma o cifrado de sesión. Esa decisión no forma parte de la infraestructura actual y no debe reutilizar ninguna de las credenciales anteriores.
+Las sesiones opacas no requieren una clave de firma: solo se almacena su resumen en PostgreSQL. La clave del outbox no se reutiliza para sesiones ni para ningún otro cifrado.
 
 ## Producción serverless
 
@@ -59,6 +62,8 @@ La topología Azure, Neon, Grafana Cloud y GitHub Pages añade estas fronteras s
 | `GRAFANA_SERVICE_ACCOUNT_TOKEN` | GitHub environment `production` | publicación de dashboards desde Actions |
 | `BREVO_API_KEY` | GitHub environment `production` y secret de Container Apps, cuando se activen invitaciones | adaptador transaccional de la API |
 | `BREVO_SENDER_EMAIL` | GitHub environment `production` y secret de Container Apps | remitente verificado usado por la API |
+| `IDENTITY_BOOTSTRAP_TOKEN` | GitHub environment `production` y secret de Container Apps | alta única de la primera administración |
+| `OUTBOX_ENCRYPTION_KEY` | GitHub environment `production` y secret de Container Apps | cifrado AES-256-GCM del token mientras espera su envío |
 | identidad de despliegue Azure | Microsoft Entra federado con GitHub OIDC | workflow `deploy-azure` |
 | `API_BASE_URL` | variable pública de GitHub | build Angular |
 | `GRAFANA_URL` | variable pública de GitHub | publicación de dashboards |

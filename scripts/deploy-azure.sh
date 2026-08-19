@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-required_variables="AZURE_RESOURCE_GROUP AZURE_CONTAINER_APP API_IMAGE DATABASE_CONNECTION_STRING BREVO_API_KEY BREVO_SENDER_EMAIL FRONTEND_ORIGIN GRAFANA_CLOUD_OTLP_ENDPOINT GRAFANA_CLOUD_OTLP_HEADERS"
+required_variables="AZURE_RESOURCE_GROUP AZURE_CONTAINER_APP API_IMAGE DATABASE_CONNECTION_STRING BREVO_API_KEY BREVO_SENDER_EMAIL IDENTITY_BOOTSTRAP_TOKEN OUTBOX_ENCRYPTION_KEY FRONTEND_ORIGIN FRONTEND_BASE_URL GRAFANA_CLOUD_OTLP_ENDPOINT GRAFANA_CLOUD_OTLP_HEADERS"
 for variable_name in $required_variables; do
   eval "variable_value=\${$variable_name:-}"
   if [ -z "$variable_value" ]; then
@@ -17,6 +17,8 @@ az containerapp secret set \
     "database-connection-string=$DATABASE_CONNECTION_STRING" \
     "brevo-api-key=$BREVO_API_KEY" \
     "brevo-sender-email=$BREVO_SENDER_EMAIL" \
+    "identity-bootstrap-token=$IDENTITY_BOOTSTRAP_TOKEN" \
+    "outbox-encryption-key=$OUTBOX_ENCRYPTION_KEY" \
     "grafana-cloud-otlp-headers=$GRAFANA_CLOUD_OTLP_HEADERS" \
   --output none
 
@@ -34,6 +36,11 @@ az containerapp update \
     ConnectionStrings__Campaigns=secretref:database-connection-string \
     Email__Brevo__ApiKey=secretref:brevo-api-key \
     Email__Brevo__SenderEmail=secretref:brevo-sender-email \
+    Email__OutboxWorkerEnabled=true \
+    Identity__BootstrapToken=secretref:identity-bootstrap-token \
+    Identity__OutboxEncryptionKey=secretref:outbox-encryption-key \
+    Database__ApplyMigrations=true \
+    "Frontend__BaseUrl=$FRONTEND_BASE_URL" \
     "Email__Brevo__SenderName=${BREVO_SENDER_NAME:-D&D Campaign Manager}" \
     "Cors__AllowedOrigins__0=$FRONTEND_ORIGIN" \
     "OTEL_EXPORTER_OTLP_ENDPOINT=$GRAFANA_CLOUD_OTLP_ENDPOINT" \

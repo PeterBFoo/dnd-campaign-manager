@@ -1,10 +1,19 @@
 using System.Diagnostics;
+using System.Threading.RateLimiting;
 using System.Text.Json;
+using DndCampaign.Api.Api;
 using DndCampaign.Api.Application.Email;
+using DndCampaign.Api.Application.Identity;
+using DndCampaign.Api.Application.Invitations;
+using DndCampaign.Api.Domain.Identity;
 using DndCampaign.Api.Infrastructure.Email;
+using DndCampaign.Api.Infrastructure.Identity;
 using DndCampaign.Api.Infrastructure.Observability;
 using DndCampaign.Api.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Npgsql;
@@ -20,12 +29,61 @@ Activity.ForceDefaultIdFormat = true;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = ResolveDatabaseConnectionString(builder.Configuration);
+var identitySecurity = IdentitySecurityOptions.FromConfiguration(
+    builder.Configuration,
+    builder.Environment);
 var allowedOrigins = builder.Configuration
     .GetSection("Cors:AllowedOrigins")
     .Get<string[]>() ?? [];
 
 builder.Services.AddProblemDetails();
 builder.Services.AddDbContext<CampaignDbContext>(options => options.UseNpgsql(connectionString));
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton(identitySecurity);
+builder.Services.AddSingleton<InvitationTokenProtector>();
+builder.Services.AddSingleton<InvitationEmailComposer>();
+builder.Services.AddScoped<InvitationService>();
+builder.Services.AddSingleton<IPasswordHasher<UserAccount>, PasswordHasher<UserAccount>>();
+if (builder.Configuration.GetValue("Email:OutboxWorkerEnabled", false))
+{
+    builder.Services.AddHostedService<InvitationOutboxWorker>();
+}
+builder.Services
+    .AddAuthentication(SessionAuthenticationHandler.AuthenticationScheme)
+    .AddScheme<AuthenticationSchemeOptions, SessionAuthenticationHandler>(
+        SessionAuthenticationHandler.AuthenticationScheme,
+        _ => { });
+builder.Services.AddAuthorization(options => options.AddPolicy(
+    "platform-admin",
+    policy => policy.RequireClaim("platform_admin", "true")));
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("bootstrap", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5,
+            Window = TimeSpan.FromHours(1),
+            QueueLimit = 0,
+        }));
+    options.AddPolicy("login", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        }));
+    options.AddPolicy("invitation-acceptance", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 20,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        }));
+});
 builder.Services.Configure<BrevoOptions>(builder.Configuration.GetSection(BrevoOptions.SectionName));
 builder.Services.AddHttpClient<ITransactionalEmailSender, BrevoEmailSender>(client =>
 {
@@ -36,8 +94,8 @@ if (allowedOrigins.Length > 0)
 {
     builder.Services.AddCors(options => options.AddPolicy("frontend", policy => policy
         .WithOrigins(allowedOrigins)
-        .WithMethods("GET")
-        .WithHeaders("Accept", "Content-Type")
+        .WithMethods("GET", "POST", "DELETE")
+        .WithHeaders("Accept", "Content-Type", "Authorization")
         .WithExposedHeaders("X-Correlation-Id")));
 }
 builder.Services
@@ -63,6 +121,7 @@ builder.Services
         .AddRuntimeInstrumentation()
         .AddMeter(ApiTelemetry.MeterName)
         .AddMeter("DndCampaign.Api.Email")
+        .AddMeter(IdentityTelemetry.MeterName)
         .AddOtlpExporter());
 
 builder.Logging.AddOpenTelemetry(options =>
@@ -79,6 +138,9 @@ if (allowedOrigins.Length > 0)
 {
     app.UseCors("frontend");
 }
+app.UseRateLimiter();
+app.UseAuthentication();
+app.UseAuthorization();
 app.Use(async (context, next) =>
 {
     var correlationId = Activity.Current?.TraceId.ToString() ?? context.TraceIdentifier;
@@ -125,6 +187,15 @@ app.MapGet("/api/v1/platform/status", async (
         },
     });
 });
+
+app.MapIdentityInvitationEndpoints();
+
+if (builder.Configuration.GetValue("Database:ApplyMigrations", false))
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    var database = scope.ServiceProvider.GetRequiredService<CampaignDbContext>();
+    await database.Database.MigrateAsync();
+}
 
 app.Run();
 

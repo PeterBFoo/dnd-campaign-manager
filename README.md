@@ -4,7 +4,7 @@ Aplicación web para preparar y dirigir campañas con estado narrativo persisten
 
 ## Estado
 
-La fundación técnica definida por el ADR-0001 está implementada. Los incrementos funcionales posteriores seguirán el flujo Spec-Driven Development descrito en [la guía de especificaciones](docs/specs/README.md).
+La fundación técnica y el primer flujo de identidad están implementados: bootstrap del administrador, acceso con credenciales e invitaciones de plataforma y campaña. Los incrementos posteriores seguirán el flujo Spec-Driven Development descrito en [la guía de especificaciones](docs/specs/README.md).
 
 ## Arquitectura actual
 
@@ -19,6 +19,8 @@ La fundación técnica definida por el ADR-0001 está implementada. Los incremen
 La decisión de plataforma está documentada en:
 
 - [ADR-0001: monorepositorio, plataforma y observabilidad](docs/adr/0001-monorepositorio-y-monolito-modular.md)
+- [ADR-0002: identidad, invitaciones y correo transaccional](docs/adr/0002-identidad-invitaciones-y-correo-transaccional.md)
+- [ADR-0003: bootstrap, sesiones y flujo funcional](docs/adr/0003-bootstrap-sesiones-y-flujo-de-invitaciones.md)
 
 La arquitectura resultante se representa, de lo lógico a lo físico, en:
 
@@ -45,6 +47,8 @@ docker compose up --build
 ```
 
 `.env` está ignorado por Git y contiene únicamente credenciales locales. Sustituye los valores de ejemplo antes del primer arranque; nunca reutilices ese archivo en un despliegue.
+
+En el primer acceso, Angular mostrará el alta inicial. Utiliza el valor local de `IDENTITY_BOOTSTRAP_TOKEN`; después de crear la primera cuenta, el endpoint queda cerrado y el acceso continúa mediante credenciales e invitaciones.
 
 PostgreSQL aplica `POSTGRES_PASSWORD` solo al inicializar un volumen vacío. Cambiar después el `.env` no modifica la contraseña almacenada: rota la credencial dentro de PostgreSQL o, únicamente si los datos locales son prescindibles, recrea el volumen de desarrollo.
 
@@ -102,7 +106,7 @@ Si Grafana es accesible desde el ejecutor de la prueba, añade `GRAFANA_URL`.
 
 La topología de referencia utiliza GitHub Pages para Angular, Azure Container Apps Consumption con escala a cero para ASP.NET Core, Neon Free para PostgreSQL y Grafana Cloud Free para telemetría. Las imágenes AMD64 se publican en GHCR y el workflow manual `deploy-azure` despliega únicamente tags inmutables asociados al commit. `deploy-pages` publica el frontend cuando cambia `main`.
 
-La validación productiva inicial solo expone endpoints públicos de plataforma. Antes de publicar autenticación o información de campaña se recuperará una entrada same-origin o se documentará expresamente una alternativa segura.
+El ADR-0003 autoriza temporalmente la autenticación entre orígenes mediante sesiones bearer opacas, `sessionStorage` y una política CORS exacta. Recuperar una entrada same-origin continúa siendo la evolución preferente antes de ampliar el volumen de información privada.
 
 ## Tratamiento de fuentes
 

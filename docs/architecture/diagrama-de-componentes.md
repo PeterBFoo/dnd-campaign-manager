@@ -2,7 +2,7 @@
 
 - Estado: vigente
 - ADR relacionados: [ADR-0001: plataforma y observabilidad](../adr/0001-monorepositorio-y-monolito-modular.md) y [ADR-0002: identidad e invitaciones](../adr/0002-identidad-invitaciones-y-correo-transaccional.md)
-- Alcance: componentes lógicos de la plataforma e inicio del flujo de invitaciones
+- Alcance: componentes lógicos de la plataforma y flujo funcional de identidad e invitaciones
 
 Esta vista describe las responsabilidades y dependencias de la plataforma. No define todavía componentes de dominio ni incorpora información específica de ninguna campaña.
 
@@ -14,9 +14,13 @@ flowchart LR
         shell["Aplicación y routing"]
         status_ui["Pantalla de estado"]
         status_client["PlatformStatusService<br/>HttpClient"]
+        identity_ui["Login · bootstrap<br/>aceptación · panel de invitaciones"]
+        identity_client["Auth e Invitation services<br/>interceptor bearer"]
 
         shell --> status_ui
         status_ui --> status_client
+        shell --> identity_ui
+        identity_ui --> identity_client
     end
 
     subgraph edge["Entrada web"]
@@ -29,6 +33,9 @@ flowchart LR
         health["Health checks<br/>/health/live · /health/ready"]
         persistence["Persistencia<br/>EF Core y Npgsql"]
         invitations["Dominio de invitaciones<br/>tipos · estados · token hash"]
+        identity["Identidad y sesiones<br/>password hash · sesión opaca"]
+        identity_endpoints["Endpoints de identidad<br/>bootstrap · login · invitaciones"]
+        outbox["Worker de outbox<br/>token cifrado · reintentos"]
         email_port["Puerto de correo transaccional"]
         brevo_adapter["Adaptador HTTP de Brevo"]
         telemetry["Instrumentación<br/>OpenTelemetry"]
@@ -38,6 +45,12 @@ flowchart LR
         status_endpoint --> persistence
         health --> persistence
         invitations --> email_port
+        middleware --> identity_endpoints
+        identity_endpoints --> identity
+        identity_endpoints --> invitations
+        identity_endpoints --> persistence
+        invitations --> outbox
+        outbox --> email_port
         email_port --> brevo_adapter
         middleware --> telemetry
         status_endpoint --> telemetry
@@ -52,6 +65,7 @@ flowchart LR
     user -->|"HTTP"| nginx
     nginx -->|"recursos estáticos"| frontend
     status_client -->|"GET /api/v1/platform/status"| nginx
+    identity_client -->|"JSON · Authorization Bearer"| nginx
     nginx -->|"proxy /api y /health"| middleware
     persistence -->|"conexión SQL"| database
     database -->|"estadísticas operativas"| postgres_exporter
@@ -68,6 +82,8 @@ flowchart LR
 | Nginx | Servir el build y mantener `/api` y `/health` bajo el mismo origen | Reglas de dominio |
 | ASP.NET Core | Contratos HTTP, autorización futura, coordinación y diagnóstico | Renderizado del frontend |
 | Dominio de invitaciones | Estados, caducidad de siete días y validación del token de un solo uso | Enviar correo o exponer el token persistido |
+| Identidad y sesiones | Validar credenciales, emitir y revocar sesiones opacas | Permitir autorregistro o guardar tokens de sesión en claro |
+| Worker de outbox | Entregar invitaciones con reintentos y eliminar el ciphertext tras procesarlo | Conceder permisos o registrar destinatarios y tokens |
 | Puerto y adaptador Brevo | Aislar el proveedor y enviar correo transaccional por HTTPS | Decidir si una invitación concede acceso |
 | EF Core/Npgsql | Acceso transaccional a PostgreSQL | Definir por adelantado el modelo de dominio |
 | PostgreSQL | Persistencia primaria | Exposición directa al navegador |

@@ -1,0 +1,50 @@
+<main class="page-shell">
+  <section class="page-heading split-heading">
+    <div>
+      <p class="eyebrow">Administración de plataforma</p>
+      <h1>Invitaciones al ecosistema</h1>
+      <p>Cada enlace permite crear una única cuenta y caduca exactamente a los siete días.</p>
+    </div>
+    <form class="panel inline-form" [formGroup]="form" (ngSubmit)="issue()">
+      <label>Correo del destinatario<input type="email" formControlName="email" autocomplete="off" /></label>
+      <button type="submit" [disabled]="submitting()">{{ submitting() ? 'Creando…' : 'Enviar invitación' }}</button>
+    </form>
+  </section>
+
+  @if (error()) { <p class="form-error message" role="alert">{{ error() }}</p> }
+  @if (notice()) { <p class="success-message message" role="status">{{ notice() }}</p> }
+
+  <section class="table-section" aria-labelledby="invitation-list-title">
+    <div class="section-title">
+      <h2 id="invitation-list-title">Historial reciente</h2>
+      <span>{{ invitations().length }} invitaciones</span>
+    </div>
+    @if (loading()) {
+      <p class="muted">Cargando invitaciones…</p>
+    } @else if (invitations().length === 0) {
+      <div class="empty-state"><h3>Todavía no hay invitaciones</h3><p>Utiliza el formulario superior para abrir el acceso a la primera persona.</p></div>
+    } @else {
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Destinatario</th><th>Estado</th><th>Entrega</th><th>Caducidad</th><th><span class="sr-only">Acciones</span></th></tr></thead>
+          <tbody>
+            @for (invitation of invitations(); track invitation.id) {
+              <tr>
+                <td><strong>{{ invitation.recipientEmail }}</strong><small>Emitida {{ invitation.issuedAt | date: 'short' }}</small></td>
+                <td><span class="badge" [attr.data-state]="invitation.status">{{ invitation.status }}</span></td>
+                <td><span class="delivery" [attr.data-state]="invitation.deliveryStatus">{{ invitation.deliveryStatus }}</span></td>
+                <td>{{ invitation.expiresAt | date: 'short' }}</td>
+                <td class="row-actions">
+                  @if (invitation.status === 'pending') {
+                    <button class="text-button" type="button" (click)="resend(invitation)">Reenviar</button>
+                    <button class="text-button danger" type="button" (click)="revoke(invitation)">Revocar</button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</main>

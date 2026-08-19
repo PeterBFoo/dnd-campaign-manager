@@ -1,82 +1,22 @@
 <header class="topbar">
-  <a class="brand" href="/" aria-label="D&D Campaign Companion, inicio">
+  <a class="brand" routerLink="/" aria-label="Campaign Companion, inicio">
     <span class="brand-mark" aria-hidden="true">D20</span>
-    <span>
-      <strong>Campaign Companion</strong>
-      <small>Una mesa. Dos perspectivas.</small>
-    </span>
+    <span><strong>Campaign Companion</strong><small>Una mesa. Dos perspectivas.</small></span>
   </a>
-  <span class="phase">Infraestructura · ADR-0001</span>
+  <nav aria-label="Navegación principal">
+    @if (auth.user(); as user) {
+      @if (user.isPlatformAdmin) { <a routerLink="/admin/invitations">Invitaciones</a> }
+      <span>{{ user.displayName }}</span>
+      <button type="button" (click)="logout()">Cerrar sesión</button>
+    } @else {
+      <span class="phase">Acceso por invitación</span>
+    }
+  </nav>
 </header>
 
-<main>
-  <section class="hero" aria-labelledby="hero-title">
-    <div>
-      <p class="eyebrow">Centro de mando de campaña</p>
-      <h1 id="hero-title">La memoria de la aventura, bajo control.</h1>
-      <p class="intro">
-        La base operativa ya separa la experiencia del DM y de los jugadores, con una API
-        observable preparada para convertir cada decisión en historia persistente.
-      </p>
-    </div>
-
-    <article class="status-card" aria-live="polite">
-      <div class="card-heading">
-        <div>
-          <p class="label">Estado de plataforma</p>
-          <h2>Recorrido vertical</h2>
-        </div>
-        <span
-          class="status-dot"
-          [class.connected]="platform.status()?.status === 'operational'"
-          aria-hidden="true"
-        ></span>
-      </div>
-
-      @if (platform.loading()) {
-        <p class="muted">Consultando la API…</p>
-      } @else if (platform.status(); as status) {
-        <dl>
-          <div><dt>Angular</dt><dd>Operativo</dd></div>
-          <div><dt>ASP.NET Core</dt><dd>{{ status.status }}</dd></div>
-          <div><dt>PostgreSQL</dt><dd>{{ status.dependencies.database }}</dd></div>
-          <div><dt>OpenTelemetry</dt><dd>{{ status.dependencies.telemetry }}</dd></div>
-        </dl>
-        <p class="timestamp">Última lectura: {{ status.generatedAt | date: 'medium' }}</p>
-      } @else {
-        <p class="warning">{{ platform.error() }}</p>
-        <button type="button" (click)="platform.load()">Reintentar conexión</button>
-      }
-    </article>
-  </section>
-
-  <section class="capabilities" aria-labelledby="capabilities-title">
-    <div class="section-heading">
-      <p class="eyebrow">Cimientos</p>
-      <h2 id="capabilities-title">Preparado para crecer sin perder secretos</h2>
-    </div>
-
-    <div class="capability-grid">
-      <article>
-        <span>01</span>
-        <h3>Vista del DM</h3>
-        <p>Estado, consecuencias y material privado permanecen detrás de la API.</p>
-      </article>
-      <article>
-        <span>02</span>
-        <h3>Portal de jugadores</h3>
-        <p>Solo recibirá información revelada mediante proyecciones del servidor.</p>
-      </article>
-      <article>
-        <span>03</span>
-        <h3>Operación observable</h3>
-        <p>Logs, métricas y trazas comparten contexto desde la primera petición.</p>
-      </article>
-    </div>
-  </section>
-</main>
+<router-outlet />
 
 <footer>
   <span>Angular 22 · ASP.NET Core 10 · PostgreSQL · OpenTelemetry</span>
-  <span>Contenido de campaña protegido fuera del despliegue</span>
+  <span>Acceso privado y auditable</span>
 </footer>

@@ -1,0 +1,48 @@
+<main class="page-shell narrow-page invitation-page">
+  <a class="back-link" routerLink="/">← Volver</a>
+  @if (loading()) {
+    <section class="page-heading"><p class="eyebrow">Invitación</p><h1>Comprobando el enlace…</h1></section>
+  } @else if (accepted()) {
+    <section class="panel result-card">
+      <p class="eyebrow">Acceso confirmado</p>
+      <h1>Ya formas parte del ecosistema.</h1>
+      <p>Tu cuenta y, cuando corresponda, tu acceso como jugador han quedado activados.</p>
+      <button type="button" (click)="finish()">Continuar</button>
+    </section>
+  } @else if (preview(); as invitation) {
+    @if (invitation.state === 'valid') {
+      <section class="page-heading">
+        <p class="eyebrow">Invitación {{ invitation.kind === 'campaign' ? 'de campaña' : 'de plataforma' }}</p>
+        <h1>Tu lugar en la mesa está reservado.</h1>
+        <p>Destinatario: {{ invitation.recipientEmail }} · Caduca {{ invitation.expiresAt | date: 'medium' }}</p>
+      </section>
+      @if (invitation.requiresAuthentication) {
+        <form class="panel stacked-form" [formGroup]="loginForm" (ngSubmit)="loginAndAccept()">
+          <h2>Confirma tu cuenta existente</h2>
+          <p class="form-hint">Inicia sesión con la misma dirección a la que se envió la invitación.</p>
+          <label>Correo electrónico<input type="email" formControlName="email" autocomplete="email" /></label>
+          <label>Contraseña<input type="password" formControlName="password" autocomplete="current-password" /></label>
+          @if (error()) { <p class="form-error" role="alert">{{ error() }}</p> }
+          <button type="submit" [disabled]="submitting()">{{ submitting() ? 'Validando…' : 'Iniciar sesión y aceptar' }}</button>
+        </form>
+      } @else {
+        <form class="panel stacked-form" [formGroup]="accountForm" (ngSubmit)="createAccountAndAccept()">
+          <h2>Crea tus credenciales</h2>
+          <label>Nombre visible<input type="text" formControlName="displayName" autocomplete="name" /></label>
+          <label>Contraseña<input type="password" formControlName="password" autocomplete="new-password" /></label>
+          <p class="form-hint">Mínimo 12 caracteres, con mayúscula, minúscula, número y símbolo.</p>
+          @if (error()) { <p class="form-error" role="alert">{{ error() }}</p> }
+          <button type="submit" [disabled]="submitting()">{{ submitting() ? 'Creando cuenta…' : 'Crear cuenta y aceptar' }}</button>
+        </form>
+      }
+    } @else {
+      <section class="panel result-card invalid-result">
+        <p class="eyebrow">Invitación no disponible</p>
+        <h1>Este enlace ya no puede utilizarse.</h1>
+        <p>Puede haber caducado, haberse revocado o haberse aceptado anteriormente.</p>
+      </section>
+    }
+  } @else {
+    <section class="panel result-card invalid-result"><h1>No hemos podido abrir la invitación.</h1><p class="form-error">{{ error() }}</p></section>
+  }
+</main>

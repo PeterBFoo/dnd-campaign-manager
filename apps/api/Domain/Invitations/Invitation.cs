@@ -138,8 +138,14 @@ public sealed class Invitation
     public bool MatchesToken(string token)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(token);
-        var candidateHash = SHA256.HashData(Encoding.UTF8.GetBytes(token));
+        var candidateHash = HashToken(token);
         return CryptographicOperations.FixedTimeEquals(tokenHash, candidateHash);
+    }
+
+    public static byte[] HashToken(string token)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(token);
+        return SHA256.HashData(Encoding.UTF8.GetBytes(token));
     }
 
     private static IssuedInvitation Issue(

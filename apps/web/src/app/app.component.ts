@@ -1,19 +1,23 @@
-import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { Router, RouterLink, RouterOutlet } from '@angular/router';
 
-import { PlatformStatusService } from './platform-status.service';
+import { AuthService } from './auth.service';
 
 @Component({
   selector: 'dnd-root',
-  imports: [DatePipe],
+  imports: [RouterLink, RouterOutlet],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AppComponent implements OnInit {
-  readonly platform = inject(PlatformStatusService);
+export class AppComponent {
+  readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
 
-  ngOnInit(): void {
-    this.platform.load();
+  logout(): void {
+    this.auth.logout().subscribe({
+      next: () => void this.router.navigate(['/']),
+      error: () => void this.router.navigate(['/']),
+    });
   }
 }

@@ -3,7 +3,7 @@
 - Estado: Borrador para validación
 - Fecha: 2026-08-19
 - Alcance: identidad, alta por invitación, campañas, módulos de aventura y herramientas comunes de juego
-- ADR relacionados: [ADR-0002](../../adr/0002-identidad-invitaciones-y-correo-transaccional.md), limitado a las decisiones de identidad e invitaciones ya confirmadas
+- ADR relacionados: [ADR-0002](../../adr/0002-identidad-invitaciones-y-correo-transaccional.md) y [ADR-0003](../../adr/0003-bootstrap-sesiones-y-flujo-de-invitaciones.md), limitados a las decisiones de identidad e invitaciones ya confirmadas
 
 ## Objetivo
 
@@ -206,9 +206,9 @@ La referencia de cumplimiento será la [Política de contenido de fans de Wizard
 
 Estas preguntas deben resolverse antes de aceptar la especificación y redactar el siguiente ADR:
 
-1. ¿Cómo se crea de forma segura la primera cuenta de administrador de plataforma?
-2. ¿Cuándo se permitirá reenviar una invitación y qué límites se aplicarán al reenvío?
-3. ¿Qué requisitos tendrán activación, verificación de correo, recuperación y cambio de credenciales?
+1. **Resuelto en ADR-0003.** La primera administración utiliza un secreto de bootstrap de un solo uso funcional y el endpoint se cierra cuando existe cualquier cuenta.
+2. **Resuelto en ADR-0003.** El reenvío rota la invitación, exige 15 minutos entre emisiones y admite como máximo cinco en 24 horas para una misma dirección y contexto.
+3. **Resuelto parcialmente en ADR-0003.** La invitación válida acredita inicialmente el control del correo y la contraseña sigue la política definida; recuperación y cambio de credenciales quedan pendientes.
 4. ¿Cómo se transfiere el rol de DM único o se archiva una campaña sin dejarla en un estado inválido?
 5. ¿Puede un usuario controlar varios personajes dentro de la misma campaña?
 6. ¿Quién crea y asocia el primer personaje después de aceptar una invitación de campaña: el DM o el jugador?
