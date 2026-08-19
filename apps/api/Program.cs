@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Threading.RateLimiting;
 using System.Text.Json;
 using DndCampaign.Api.Api;
@@ -13,6 +14,7 @@ using DndCampaign.Api.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -56,15 +58,33 @@ builder.Services
 builder.Services.AddAuthorization(options => options.AddPolicy(
     "platform-admin",
     policy => policy.RequireClaim("platform_admin", "true")));
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.ForwardLimit = 1;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = (context, _) =>
+    {
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            context.HttpContext.Response.Headers.RetryAfter = Math.Max(
+                1,
+                (int)Math.Ceiling(retryAfter.TotalSeconds)).ToString(CultureInfo.InvariantCulture);
+        }
+
+        return ValueTask.CompletedTask;
+    };
     options.AddPolicy("bootstrap", context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 5,
-            Window = TimeSpan.FromHours(1),
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(5),
             QueueLimit = 0,
         }));
     options.AddPolicy("login", context => RateLimitPartition.GetFixedWindowLimiter(
@@ -133,6 +153,7 @@ builder.Logging.AddOpenTelemetry(options =>
 
 var app = builder.Build();
 
+app.UseForwardedHeaders();
 app.UseExceptionHandler();
 if (allowedOrigins.Length > 0)
 {
