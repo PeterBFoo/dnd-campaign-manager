@@ -1,28 +1,31 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { of } from 'rxjs';
 
 import { AppComponent } from './app.component';
-import { PlatformStatusService } from './platform-status.service';
+import { AuthService } from './auth.service';
 
 describe('AppComponent', () => {
-  it('renders the platform foundation', async () => {
-    const platformStub = {
-      status: signal(null),
-      loading: signal(false),
-      error: signal('API unavailable'),
-      load: vi.fn(),
+  it('renders the application shell', async () => {
+    const authStub = {
+      user: signal(null),
+      logout: vi.fn(() => of(undefined)),
     };
 
     await TestBed.configureTestingModule({
       imports: [AppComponent],
-      providers: [{ provide: PlatformStatusService, useValue: platformStub }],
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: authStub },
+      ],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('La memoria de la aventura');
+    expect(fixture.nativeElement.textContent).toContain('Campaign Companion');
     expect(fixture.nativeElement.textContent).toContain('ASP.NET Core 10');
-    expect(platformStub.load).toHaveBeenCalledOnce();
+    expect(fixture.nativeElement.textContent).toContain('Acceso por invitación');
   });
 });

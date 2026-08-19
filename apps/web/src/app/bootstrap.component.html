@@ -1,0 +1,18 @@
+<main class="page-shell narrow-page">
+  <a class="back-link" routerLink="/">← Volver</a>
+  <section class="page-heading">
+    <p class="eyebrow">Alta inicial de plataforma</p>
+    <h1>Una única llave para abrir el ecosistema.</h1>
+    <p>Este formulario deja de estar disponible en cuanto se crea la primera cuenta.</p>
+  </section>
+
+  <form class="panel stacked-form" [formGroup]="form" (ngSubmit)="submit()">
+    <label>Secreto de bootstrap<input type="password" formControlName="token" autocomplete="off" /></label>
+    <label>Nombre visible<input type="text" formControlName="displayName" autocomplete="name" /></label>
+    <label>Correo electrónico<input type="email" formControlName="email" autocomplete="email" /></label>
+    <label>Contraseña<input type="password" formControlName="password" autocomplete="new-password" /></label>
+    <p class="form-hint">Mínimo 12 caracteres, con mayúscula, minúscula, número y símbolo.</p>
+    @if (error()) { <p class="form-error" role="alert">{{ error() }}</p> }
+    <button type="submit" [disabled]="submitting()">{{ submitting() ? 'Creando…' : 'Crear administración' }}</button>
+  </form>
+</main>

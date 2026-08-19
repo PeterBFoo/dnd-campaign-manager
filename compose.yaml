@@ -66,6 +66,11 @@ services:
       Email__Brevo__ApiKey: ${BREVO_API_KEY:-}
       Email__Brevo__SenderEmail: ${BREVO_SENDER_EMAIL:-}
       Email__Brevo__SenderName: ${BREVO_SENDER_NAME:-D&D Campaign Manager}
+      Email__OutboxWorkerEnabled: "true"
+      Identity__BootstrapToken: ${IDENTITY_BOOTSTRAP_TOKEN:-local-bootstrap-only-change-before-use}
+      Identity__OutboxEncryptionKey: ${OUTBOX_ENCRYPTION_KEY:-}
+      Frontend__BaseUrl: http://localhost:4200/
+      Database__ApplyMigrations: "true"
     ports:
       - "8080:8080"
     depends_on:
@@ -103,11 +108,27 @@ services:
       dockerfile: apps/api/Dockerfile
       target: tests
     environment:
-      ConnectionStrings__Campaigns: Host=postgres;Port=5432;Database=${POSTGRES_DB:-dnd_campaigns};Username=${POSTGRES_USER:-dnd_app};Password=${POSTGRES_PASSWORD:-local-development-only}
+      ConnectionStrings__Campaigns: Host=postgres-tests;Port=5432;Database=dnd_identity_test;Username=${POSTGRES_USER:-dnd_app};Password=${POSTGRES_PASSWORD:-local-development-only}
+      IDENTITY_TEST_DATABASE: Host=postgres-tests;Port=5432;Database=dnd_identity_test;Username=${POSTGRES_USER:-dnd_app};Password=${POSTGRES_PASSWORD:-local-development-only}
       OTEL_SDK_DISABLED: "true"
     depends_on:
-      postgres:
+      postgres-tests:
         condition: service_healthy
+
+  postgres-tests:
+    profiles: ["test"]
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: dnd_identity_test
+      POSTGRES_USER: ${POSTGRES_USER:-dnd_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-development-only}
+    tmpfs:
+      - /var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
 
 volumes:
   postgres18-data:

@@ -1,0 +1,18 @@
+<main class="page-shell">
+  <section class="page-heading split-heading">
+    <div><p class="eyebrow">Gestión del DM</p><h1>Invitaciones de campaña</h1><p>Las personas aceptadas se incorporarán exclusivamente con rol de jugador.</p></div>
+    <form class="panel inline-form" [formGroup]="form" (ngSubmit)="issue()"><label>Correo del jugador<input type="email" formControlName="email" /></label><button type="submit" [disabled]="busy()">Invitar</button></form>
+  </section>
+  @if (error()) { <p class="form-error message" role="alert">{{ error() }}</p> }
+  @if (message()) { <p class="success-message message">{{ message() }}</p> }
+  <section class="table-section">
+    <div class="section-title"><h2>Invitaciones</h2><span>{{ invitations().length }}</span></div>
+    @if (loading()) { <p class="muted">Cargando…</p> }
+    @else if (invitations().length === 0) { <div class="empty-state"><h3>No hay invitaciones</h3><p>Invita al primer jugador cuando estés preparado.</p></div> }
+    @else {
+      <div class="table-wrap"><table><thead><tr><th>Destinatario</th><th>Estado</th><th>Entrega</th><th>Caducidad</th><th></th></tr></thead><tbody>
+        @for (invitation of invitations(); track invitation.id) { <tr><td><strong>{{ invitation.recipientEmail }}</strong></td><td><span class="badge" [attr.data-state]="invitation.status">{{ invitation.status }}</span></td><td>{{ invitation.deliveryStatus }}</td><td>{{ invitation.expiresAt | date: 'short' }}</td><td class="row-actions">@if (invitation.status === 'pending') { <button class="text-button" type="button" (click)="resend(invitation)">Reenviar</button><button class="text-button danger" type="button" (click)="revoke(invitation)">Revocar</button> }</td></tr> }
+      </tbody></table></div>
+    }
+  </section>
+</main>

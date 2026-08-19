@@ -66,6 +66,11 @@ services:
       Email__Brevo__ApiKeyFile: /run/secrets/brevo_api_key
       Email__Brevo__SenderEmailFile: /run/secrets/brevo_sender_email
       Email__Brevo__SenderName: ${BREVO_SENDER_NAME:-D&D Campaign Manager}
+      Email__OutboxWorkerEnabled: "true"
+      Identity__BootstrapTokenFile: /run/secrets/identity_bootstrap_token
+      Identity__OutboxEncryptionKeyFile: /run/secrets/outbox_encryption_key
+      Frontend__BaseUrl: ${FRONTEND_BASE_URL:-http://localhost/}
+      Database__ApplyMigrations: "true"
       OTEL_EXPORTER_OTLP_ENDPOINT: http://observability:4317
       OTEL_EXPORTER_OTLP_PROTOCOL: grpc
       OTEL_RESOURCE_ATTRIBUTES: deployment.environment=production
@@ -73,6 +78,8 @@ services:
       - postgres_password
       - brevo_api_key
       - brevo_sender_email
+      - identity_bootstrap_token
+      - outbox_encryption_key
     depends_on:
       postgres:
         condition: service_healthy
@@ -112,6 +119,12 @@ secrets:
   brevo_sender_email:
     external: true
     name: ${BREVO_SENDER_EMAIL_SECRET_NAME:-dnd-brevo-sender-email}
+  identity_bootstrap_token:
+    external: true
+    name: ${IDENTITY_BOOTSTRAP_TOKEN_SECRET_NAME:-dnd-identity-bootstrap-token}
+  outbox_encryption_key:
+    external: true
+    name: ${OUTBOX_ENCRYPTION_KEY_SECRET_NAME:-dnd-outbox-encryption-key}
 
 volumes:
   postgres18-data:

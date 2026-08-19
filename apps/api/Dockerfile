@@ -14,6 +14,7 @@ FROM build AS tests
 ENTRYPOINT ["dotnet", "test", "apps/api-tests/DndCampaign.Api.Tests.csproj", "-c", "Release", "--no-restore"]
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime
+RUN apk add --no-cache krb5-libs
 WORKDIR /app
 LABEL org.opencontainers.image.source="https://github.com/PeterBFoo/dnd-campaign-manager"
 COPY --from=build /app/publish .

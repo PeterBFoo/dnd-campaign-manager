@@ -15,3 +15,4 @@ Los ADR registran decisiones que afectan a la estructura, tecnología, seguridad
 |---|---|---|
 | [ADR-0001](0001-monorepositorio-y-monolito-modular.md) | Aceptado | Monorepositorio, Angular, ASP.NET Core, PostgreSQL y observabilidad |
 | [ADR-0002](0002-identidad-invitaciones-y-correo-transaccional.md) | Aceptado | Alta exclusivamente por invitación, caducidad de siete días y correo transaccional con Brevo |
+| [ADR-0003](0003-bootstrap-sesiones-y-flujo-de-invitaciones.md) | Aceptado | Bootstrap único, sesiones opacas y flujo funcional de invitaciones |
