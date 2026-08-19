@@ -1,7 +1,7 @@
 # Diagrama de despliegue
 
 - Estado: vigente
-- ADR relacionado: [ADR-0001: plataforma y observabilidad](../adr/0001-monorepositorio-y-monolito-modular.md)
+- ADR relacionados: [ADR-0001: plataforma y observabilidad](../adr/0001-monorepositorio-y-monolito-modular.md) y [ADR-0002: identidad e invitaciones](../adr/0002-identidad-invitaciones-y-correo-transaccional.md)
 - Vista lógica relacionada: [diagrama de componentes](diagrama-de-componentes.md)
 - Alcance: entorno local integrado y topología productiva serverless
 
@@ -11,6 +11,7 @@ La primera vista muestra la distribución física del entorno local. La segunda 
 flowchart TB
     browser["Navegador del usuario"]
     developer["Desarrollador"]
+    brevo["Brevo<br/>API transaccional v3"]
 
     subgraph host["Equipo local"]
         compose["Docker Compose"]
@@ -32,6 +33,7 @@ flowchart TB
     web -->|"proxy HTTP /api y /health"| api
     api -->|"TCP 5432"| postgres
     api -->|"OTLP gRPC 4317"| lgtm
+    api -.->|"HTTPS cuando se prueba el envío"| brevo
     postgres_exporter -->|"consultas de monitorización"| postgres
     lgtm -->|"scrape 9187"| postgres_exporter
 
@@ -76,6 +78,7 @@ flowchart TB
 - Las credenciales por defecto solo son válidas para desarrollo local.
 - Las fuentes privadas y la documentación excluida por Git no forman parte del contexto de las imágenes.
 - La imagen LGTM local no se utiliza como backend productivo.
+- La API key de Brevo se carga desde el `.env` local ignorado por Git y nunca llega al contenedor web.
 
 ## Producción serverless gratuita
 
@@ -87,11 +90,12 @@ flowchart TB
     entra["Microsoft Entra ID<br/>federación OIDC"]
     neon[("Neon Free<br/>PostgreSQL con TLS")]
     grafana["Grafana Cloud Free<br/>métricas · logs · trazas · dashboards"]
+    brevo["Brevo Free<br/>correo transaccional"]
 
     subgraph azure["Azure · Spain Central"]
         environment["Container Apps Environment<br/>Consumption"]
         api_prod["ASP.NET Core 10<br/>0.25 vCPU · 0.5 GiB<br/>0–1 réplicas"]
-        secrets["Container Apps secrets<br/>cadena DB · headers OTLP"]
+        secrets["Container Apps secrets<br/>cadena DB · headers OTLP<br/>API key y remitente Brevo"]
     end
 
     user -->|"HTTPS"| pages
@@ -99,6 +103,7 @@ flowchart TB
     environment --> api_prod
     api_prod -->|"Npgsql + TLS"| neon
     api_prod -->|"OTLP HTTPS"| grafana
+    api_prod -->|"HTTPS · correo transaccional"| brevo
     secrets -.-> api_prod
     github -->|"publica Angular"| pages
     github -->|"revisión inmutable"| api_prod

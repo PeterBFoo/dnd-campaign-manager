@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
+using DndCampaign.Api.Application.Email;
+using DndCampaign.Api.Infrastructure.Email;
 using DndCampaign.Api.Infrastructure.Observability;
 using DndCampaign.Api.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -24,6 +26,12 @@ var allowedOrigins = builder.Configuration
 
 builder.Services.AddProblemDetails();
 builder.Services.AddDbContext<CampaignDbContext>(options => options.UseNpgsql(connectionString));
+builder.Services.Configure<BrevoOptions>(builder.Configuration.GetSection(BrevoOptions.SectionName));
+builder.Services.AddHttpClient<ITransactionalEmailSender, BrevoEmailSender>(client =>
+{
+    client.BaseAddress = new Uri("https://api.brevo.com/v3/");
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
 if (allowedOrigins.Length > 0)
 {
     builder.Services.AddCors(options => options.AddPolicy("frontend", policy => policy
@@ -54,6 +62,7 @@ builder.Services
         .AddHttpClientInstrumentation()
         .AddRuntimeInstrumentation()
         .AddMeter(ApiTelemetry.MeterName)
+        .AddMeter("DndCampaign.Api.Email")
         .AddOtlpExporter());
 
 builder.Logging.AddOpenTelemetry(options =>

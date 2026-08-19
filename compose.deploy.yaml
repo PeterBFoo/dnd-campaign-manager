@@ -63,11 +63,16 @@ services:
       Database__Name: ${POSTGRES_DB:-dnd_campaigns}
       Database__User: ${POSTGRES_USER:-dnd_app}
       Database__Password_FILE: /run/secrets/postgres_password
+      Email__Brevo__ApiKeyFile: /run/secrets/brevo_api_key
+      Email__Brevo__SenderEmailFile: /run/secrets/brevo_sender_email
+      Email__Brevo__SenderName: ${BREVO_SENDER_NAME:-D&D Campaign Manager}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://observability:4317
       OTEL_EXPORTER_OTLP_PROTOCOL: grpc
       OTEL_RESOURCE_ATTRIBUTES: deployment.environment=production
     secrets:
       - postgres_password
+      - brevo_api_key
+      - brevo_sender_email
     depends_on:
       postgres:
         condition: service_healthy
@@ -101,6 +106,12 @@ secrets:
   grafana_admin_password:
     external: true
     name: ${GRAFANA_ADMIN_PASSWORD_SECRET_NAME:-dnd-grafana-admin-password}
+  brevo_api_key:
+    external: true
+    name: ${BREVO_API_KEY_SECRET_NAME:-dnd-brevo-api-key}
+  brevo_sender_email:
+    external: true
+    name: ${BREVO_SENDER_EMAIL_SECRET_NAME:-dnd-brevo-sender-email}
 
 volumes:
   postgres18-data:

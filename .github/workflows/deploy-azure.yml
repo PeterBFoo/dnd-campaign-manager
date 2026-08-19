@@ -56,6 +56,9 @@ jobs:
           AZURE_CONTAINER_APP: ${{ vars.AZURE_CONTAINER_APP }}
           API_IMAGE: ghcr.io/peterbfoo/dnd-campaign-api:${{ github.sha }}
           DATABASE_CONNECTION_STRING: ${{ secrets.DATABASE_CONNECTION_STRING }}
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          BREVO_SENDER_EMAIL: ${{ secrets.BREVO_SENDER_EMAIL }}
+          BREVO_SENDER_NAME: ${{ vars.BREVO_SENDER_NAME }}
           FRONTEND_ORIGIN: https://peterbfoo.github.io
           GRAFANA_CLOUD_OTLP_ENDPOINT: ${{ vars.GRAFANA_CLOUD_OTLP_ENDPOINT }}
           GRAFANA_CLOUD_OTLP_HEADERS: ${{ secrets.GRAFANA_CLOUD_OTLP_HEADERS }}

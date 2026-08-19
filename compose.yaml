@@ -63,6 +63,9 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://observability:4317
       OTEL_EXPORTER_OTLP_PROTOCOL: grpc
       OTEL_RESOURCE_ATTRIBUTES: deployment.environment=local
+      Email__Brevo__ApiKey: ${BREVO_API_KEY:-}
+      Email__Brevo__SenderEmail: ${BREVO_SENDER_EMAIL:-}
+      Email__Brevo__SenderName: ${BREVO_SENDER_NAME:-D&D Campaign Manager}
     ports:
       - "8080:8080"
     depends_on:

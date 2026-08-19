@@ -13,6 +13,7 @@ PostgreSQL utiliza la contraseña de entorno solo durante la primera inicializac
 |---|---|---|
 | PostgreSQL | `POSTGRES_DB`, `POSTGRES_USER` | `POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password` |
 | API ASP.NET Core | `Database__Host`, `Database__Port`, `Database__Name`, `Database__User` | `Database__Password_FILE=/run/secrets/postgres_password` |
+| API / Brevo | `Email__Brevo__SenderName` | `Email__Brevo__ApiKeyFile=/run/secrets/brevo_api_key`, `Email__Brevo__SenderEmailFile=/run/secrets/brevo_sender_email` |
 | PostgreSQL exporter | `DATA_SOURCE_URI`, `DATA_SOURCE_USER` | `DATA_SOURCE_PASS_FILE=/run/secrets/postgres_password` |
 | Grafana | `GF_SECURITY_ADMIN_USER` | `GF_SECURITY_ADMIN_PASSWORD__FILE=/run/secrets/grafana_admin_password` |
 
@@ -20,12 +21,14 @@ La API mantiene `ConnectionStrings__Campaigns` para desarrollo local y acepta el
 
 ## Secretos externos requeridos
 
-`compose.deploy.yaml` espera dos secretos administrados fuera del repositorio:
+`compose.deploy.yaml` espera cuatro secretos administrados fuera del repositorio:
 
 - `dnd-postgres-password`: contraseña aleatoria y exclusiva de PostgreSQL, compartida con la API y el exporter dentro de la red privada.
 - `dnd-grafana-admin-password`: contraseña aleatoria y exclusiva del administrador local de Grafana.
+- `dnd-brevo-api-key`: clave restringida al envío transaccional mediante Brevo. Solo será necesaria al habilitar los flujos de invitación.
+- `dnd-brevo-sender-email`: dirección remitente verificada en Brevo, almacenada por separado de la API key.
 
-Los nombres pueden cambiarse mediante `POSTGRES_PASSWORD_SECRET_NAME` y `GRAFANA_ADMIN_PASSWORD_SECRET_NAME`. El procedimiento exacto de alta depende del orquestador o gestor elegido. Deben crearse antes del despliegue y montarse como archivos legibles solo por el proceso correspondiente.
+Los nombres pueden cambiarse mediante `POSTGRES_PASSWORD_SECRET_NAME`, `GRAFANA_ADMIN_PASSWORD_SECRET_NAME`, `BREVO_API_KEY_SECRET_NAME` y `BREVO_SENDER_EMAIL_SECRET_NAME`. El procedimiento exacto de alta depende del orquestador o gestor elegido. Deben crearse antes del despliegue y montarse como archivos legibles solo por el proceso correspondiente.
 
 ## Despliegue
 
@@ -41,6 +44,8 @@ La plantilla de despliegue solo publica el puerto web. PostgreSQL, la API y los 
 
 La contraseña de PostgreSQL exige coordinar el cambio en la base de datos con la actualización del secreto montado. Después se reinicia la API y se verifica readiness. La contraseña de Grafana puede rotarse de forma independiente. Las versiones antiguas deben revocarse después de validar las nuevas.
 
+La API key inicial de Brevo caduca el 19 de agosto de 2027 y Brevo también la invalida después de 90 días sin uso. Debe rotarse antes de cualquiera de esos límites: crear una clave nueva, actualizar `BREVO_API_KEY`, validar un envío transaccional y revocar la anterior. La dirección remitente se mantiene en `BREVO_SENDER_EMAIL` y solo se modifica después de verificar el nuevo remitente en Brevo.
+
 Cuando se implemente autenticación de usuarios habrá que añadir, como mínimo, secretos independientes para firma o cifrado de sesión. Esa decisión no forma parte de la infraestructura actual y no debe reutilizar ninguna de las credenciales anteriores.
 
 ## Producción serverless
@@ -52,6 +57,8 @@ La topología Azure, Neon, Grafana Cloud y GitHub Pages añade estas fronteras s
 | `DATABASE_CONNECTION_STRING` | GitHub environment `production` y secret de Container Apps | API ASP.NET Core |
 | `GRAFANA_CLOUD_OTLP_HEADERS` | GitHub environment `production` y secret de Container Apps | exportador OpenTelemetry de la API |
 | `GRAFANA_SERVICE_ACCOUNT_TOKEN` | GitHub environment `production` | publicación de dashboards desde Actions |
+| `BREVO_API_KEY` | GitHub environment `production` y secret de Container Apps, cuando se activen invitaciones | adaptador transaccional de la API |
+| `BREVO_SENDER_EMAIL` | GitHub environment `production` y secret de Container Apps | remitente verificado usado por la API |
 | identidad de despliegue Azure | Microsoft Entra federado con GitHub OIDC | workflow `deploy-azure` |
 | `API_BASE_URL` | variable pública de GitHub | build Angular |
 | `GRAFANA_URL` | variable pública de GitHub | publicación de dashboards |
