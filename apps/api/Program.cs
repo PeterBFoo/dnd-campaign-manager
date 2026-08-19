@@ -18,9 +18,20 @@ Activity.ForceDefaultIdFormat = true;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = ResolveDatabaseConnectionString(builder.Configuration);
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? [];
 
 builder.Services.AddProblemDetails();
 builder.Services.AddDbContext<CampaignDbContext>(options => options.UseNpgsql(connectionString));
+if (allowedOrigins.Length > 0)
+{
+    builder.Services.AddCors(options => options.AddPolicy("frontend", policy => policy
+        .WithOrigins(allowedOrigins)
+        .WithMethods("GET")
+        .WithHeaders("Accept", "Content-Type")
+        .WithExposedHeaders("X-Correlation-Id")));
+}
 builder.Services
     .AddHealthChecks()
     .AddCheck<PostgresHealthCheck>("postgres", tags: ["ready"]);
@@ -55,6 +66,10 @@ builder.Logging.AddOpenTelemetry(options =>
 var app = builder.Build();
 
 app.UseExceptionHandler();
+if (allowedOrigins.Length > 0)
+{
+    app.UseCors("frontend");
+}
 app.Use(async (context, next) =>
 {
     var correlationId = Activity.Current?.TraceId.ToString() ?? context.TraceIdentifier;
@@ -109,7 +124,7 @@ static string ResolveDatabaseConnectionString(IConfiguration configuration)
     var configuredConnectionString = configuration.GetConnectionString("Campaigns");
     if (!string.IsNullOrWhiteSpace(configuredConnectionString))
     {
-        return configuredConnectionString;
+        return NormalizeDatabaseConnectionString(configuredConnectionString);
     }
 
     return new NpgsqlConnectionStringBuilder
@@ -120,6 +135,51 @@ static string ResolveDatabaseConnectionString(IConfiguration configuration)
         Username = GetRequiredConfiguration(configuration, "Database:User"),
         Password = ReadRequiredSecret(configuration, "Database:Password"),
     }.ConnectionString;
+}
+
+static string NormalizeDatabaseConnectionString(string connectionString)
+{
+    if (!Uri.TryCreate(connectionString, UriKind.Absolute, out var databaseUri)
+        || (databaseUri.Scheme != "postgres" && databaseUri.Scheme != "postgresql"))
+    {
+        return connectionString;
+    }
+
+    var userInfoSeparator = databaseUri.UserInfo.IndexOf(':', StringComparison.Ordinal);
+    if (userInfoSeparator <= 0)
+    {
+        throw new InvalidOperationException("The PostgreSQL URI must include username and password.");
+    }
+
+    var databaseName = Uri.UnescapeDataString(databaseUri.AbsolutePath.TrimStart('/'));
+    if (string.IsNullOrWhiteSpace(databaseName))
+    {
+        throw new InvalidOperationException("The PostgreSQL URI must include a database name.");
+    }
+
+    var builder = new NpgsqlConnectionStringBuilder
+    {
+        Host = databaseUri.Host,
+        Port = databaseUri.IsDefaultPort ? 5432 : databaseUri.Port,
+        Database = databaseName,
+        Username = Uri.UnescapeDataString(databaseUri.UserInfo[..userInfoSeparator]),
+        Password = Uri.UnescapeDataString(databaseUri.UserInfo[(userInfoSeparator + 1)..]),
+    };
+
+    foreach (var queryParameter in databaseUri.Query.TrimStart('?').Split(
+        '&',
+        StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+    {
+        var keyValue = queryParameter.Split('=', 2);
+        if (keyValue.Length == 2
+            && keyValue[0].Equals("sslmode", StringComparison.OrdinalIgnoreCase)
+            && Enum.TryParse<SslMode>(Uri.UnescapeDataString(keyValue[1]), true, out var sslMode))
+        {
+            builder.SslMode = sslMode;
+        }
+    }
+
+    return builder.ConnectionString;
 }
 
 static string GetRequiredConfiguration(IConfiguration configuration, string key)

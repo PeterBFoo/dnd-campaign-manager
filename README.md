@@ -27,6 +27,7 @@ La arquitectura resultante se representa, de lo lógico a lo físico, en:
 
 La preparación operativa de credenciales está en [Secretos de despliegue](docs/operations/secretos-de-despliegue.md).
 La selección, contenido y uso de los paneles está en [Dashboards de observabilidad](docs/operations/dashboards-de-observabilidad.md).
+El procedimiento productivo gratuito está en [Despliegue en Azure](docs/operations/despliegue-azure.md).
 
 ## Requisitos
 
@@ -96,6 +97,12 @@ BASE_URL=https://app.example.com sh scripts/smoke-test.sh
 ```
 
 Si Grafana es accesible desde el ejecutor de la prueba, añade `GRAFANA_URL`.
+
+## Producción gratuita
+
+La topología de referencia utiliza GitHub Pages para Angular, Azure Container Apps Consumption con escala a cero para ASP.NET Core, Neon Free para PostgreSQL y Grafana Cloud Free para telemetría. Las imágenes AMD64 se publican en GHCR y el workflow manual `deploy-azure` despliega únicamente tags inmutables asociados al commit. `deploy-pages` publica el frontend cuando cambia `main`.
+
+La validación productiva inicial solo expone endpoints públicos de plataforma. Antes de publicar autenticación o información de campaña se recuperará una entrada same-origin o se documentará expresamente una alternativa segura.
 
 ## Tratamiento de fuentes
 

@@ -2,6 +2,8 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { finalize } from 'rxjs';
 
+import { apiBaseUrl } from './runtime-config';
+
 export interface PlatformStatus {
   service: string;
   status: 'operational' | 'degraded';
@@ -27,7 +29,7 @@ export class PlatformStatusService {
     this.error.set(null);
 
     this.http
-      .get<PlatformStatus>('/api/v1/platform/status')
+      .get<PlatformStatus>(`${apiBaseUrl()}/api/v1/platform/status`)
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: (status) => this.status.set(status),

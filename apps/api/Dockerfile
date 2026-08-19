@@ -15,6 +15,7 @@ ENTRYPOINT ["dotnet", "test", "apps/api-tests/DndCampaign.Api.Tests.csproj", "-c
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime
 WORKDIR /app
+LABEL org.opencontainers.image.source="https://github.com/PeterBFoo/dnd-campaign-manager"
 COPY --from=build /app/publish .
 USER app
 ENV ASPNETCORE_URLS=http://+:8080

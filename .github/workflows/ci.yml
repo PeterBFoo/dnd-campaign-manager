@@ -45,3 +45,14 @@ jobs:
           for dashboard in infra/observability/grafana/dashboards/*.json; do
             jq empty "$dashboard"
           done
+
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.8
+      - run: terraform -chdir=infra/azure fmt -check
+      - run: terraform -chdir=infra/azure init -backend=false
+      - run: terraform -chdir=infra/azure validate

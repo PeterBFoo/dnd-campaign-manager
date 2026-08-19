@@ -42,3 +42,26 @@ La plantilla de despliegue solo publica el puerto web. PostgreSQL, la API y los 
 La contraseña de PostgreSQL exige coordinar el cambio en la base de datos con la actualización del secreto montado. Después se reinicia la API y se verifica readiness. La contraseña de Grafana puede rotarse de forma independiente. Las versiones antiguas deben revocarse después de validar las nuevas.
 
 Cuando se implemente autenticación de usuarios habrá que añadir, como mínimo, secretos independientes para firma o cifrado de sesión. Esa decisión no forma parte de la infraestructura actual y no debe reutilizar ninguna de las credenciales anteriores.
+
+## Producción serverless
+
+La topología Azure, Neon, Grafana Cloud y GitHub Pages añade estas fronteras sin reutilizar las credenciales locales:
+
+| Valor | Almacenamiento | Consumidor |
+|---|---|---|
+| `DATABASE_CONNECTION_STRING` | GitHub environment `production` y secret de Container Apps | API ASP.NET Core |
+| `GRAFANA_CLOUD_OTLP_HEADERS` | GitHub environment `production` y secret de Container Apps | exportador OpenTelemetry de la API |
+| `GRAFANA_SERVICE_ACCOUNT_TOKEN` | GitHub environment `production` | publicación de dashboards desde Actions |
+| identidad de despliegue Azure | Microsoft Entra federado con GitHub OIDC | workflow `deploy-azure` |
+| `API_BASE_URL` | variable pública de GitHub | build Angular |
+| `GRAFANA_URL` | variable pública de GitHub | publicación de dashboards |
+
+La identidad federada elimina el secreto de cliente Azure. Su sujeto queda limitado a `repo:PeterBFoo/dnd-campaign-manager:environment:production`, y su rol `Contributor` se limita al grupo de recursos productivo.
+
+Neon entrega una URI PostgreSQL con host, base de datos, usuario, contraseña y TLS. La API la normaliza internamente al formato de Npgsql. Rotar la contraseña exige actualizar `DATABASE_CONNECTION_STRING`, ejecutar de nuevo `deploy-azure` y revocar la anterior después de superar readiness y las pruebas de humo.
+
+`GRAFANA_CLOUD_OTLP_HEADERS` utiliza el formato `Authorization=Basic%20<credencial-base64>`. La política asociada concede solamente escritura de métricas, logs y trazas. Su token productivo se ha emitido sin fecha de expiración, por lo que requiere rotación manual y revocación inmediata ante una posible exposición.
+
+El token de cuenta de servicio de dashboards es independiente, se limita al rol `Editor`, se almacena únicamente en GitHub y nunca se proporciona a la aplicación. Ningún secreto productivo forma parte del frontend, las imágenes, Terraform, sus planes o su estado.
+
+Las fuentes editoriales y las decisiones aún no autorizadas permanecen fuera del repositorio y de todos los artefactos de despliegue.

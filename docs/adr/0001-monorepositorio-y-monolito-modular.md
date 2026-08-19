@@ -48,7 +48,7 @@ Principios iniciales:
 
 - dos áreas de navegación: DM y jugadores;
 - guards y permisos en cliente solo como ayuda de UX, nunca como frontera de seguridad;
-- configuración mediante archivos de entorno y ruta relativa `/api`;
+- configuración pública del endpoint de API en tiempo de ejecución y ruta relativa `/api` por defecto;
 - accesibilidad y diseño responsive como requisitos de los componentes;
 - pruebas unitarias con el runner integrado del workspace Angular;
 - build estático servido por Nginx en la imagen local integrada.
@@ -77,7 +77,7 @@ Los tests de integración que dependan de persistencia usarán PostgreSQL real e
 
 ### 5. Seguridad y autenticación
 
-La arquitectura será same-origin en el despliegue integrado: Nginx servirá Angular y redirigirá `/api` al backend. Esto permite usar cookies seguras y evita entregar tokens persistentes al código del navegador.
+La arquitectura será same-origin en el despliegue local integrado: Nginx servirá Angular y redirigirá `/api` al backend. La validación productiva inicial separa el origen estático de GitHub Pages y la API serverless, con una lista CORS exacta y únicamente endpoints públicos de plataforma. Antes de publicar identidad o datos de campaña se deberá recuperar same-origin mediante un dominio y proxy controlados, o aceptar expresamente mediante otro ADR un diseño de autenticación entre orígenes.
 
 ASP.NET Core será la autoridad para sesiones, roles y políticas. Los roles iniciales son `dm` y `player`, siempre limitados a una campaña. La implementación completa de identidad se hará en un incremento específico antes de publicar endpoints con información de campaña; hasta entonces solo se expondrán estado de plataforma y health checks sin datos sensibles.
 
@@ -91,7 +91,7 @@ El backend emitirá las tres señales correlacionadas:
 - métricas de runtime, proceso y peticiones;
 - logs estructurados con `trace_id`, `span_id`, nivel y propiedades, sin contenido narrativo sensible.
 
-Las señales se exportarán mediante OTLP a un collector, evitando acoplar la aplicación a un proveedor. El entorno local utilizará la imagen oficial de desarrollo `grafana/otel-lgtm`, que integra OpenTelemetry Collector, Prometheus, Tempo, Loki y Grafana. Esta imagen no se considera una topología de producción.
+Las señales se exportarán mediante OTLP, evitando instrumentación específica de proveedor. El entorno local utilizará la imagen oficial de desarrollo `grafana/otel-lgtm`, que integra OpenTelemetry Collector, Prometheus, Tempo, Loki y Grafana. Producción utilizará el gateway OTLP de Grafana Cloud. La imagen LGTM no se considera una topología de producción.
 
 Reglas operativas iniciales:
 
@@ -208,6 +208,21 @@ La implementación inicial de este ADR debe entregar:
 - documentación de arranque y verificación.
 
 Después de validar esta base, las decisiones de dominio podrán incorporarse de forma incremental tras su revisión y aceptación.
+
+## Addendum: topología productiva gratuita
+
+La primera opción evaluada fue Oracle Cloud Infrastructure Always Free con una VM Ampere A1. Los intentos de creación en Madrid fallaron de forma repetida por falta de capacidad tanto desde Terraform como desde la consola. Para no depender de reservar un host concreto se sustituye por una topología serverless:
+
+- GitHub Pages sirve el build estático de Angular;
+- Azure Container Apps Consumption ejecuta la API ASP.NET Core con `0.25` vCPU, `0.5 GiB`, mínimo cero y máximo una réplica;
+- Neon Free proporciona PostgreSQL externo con suspensión por inactividad;
+- Grafana Cloud Free recibe logs, métricas y trazas directamente mediante OTLP.
+
+GitHub Actions construye la imagen Linux AMD64 con un tag inmutable de commit, la publica en GHCR y crea una nueva revisión de Container Apps mediante federación OIDC con Azure. No existe secreto de cliente Azure. La cadena de PostgreSQL y la autorización OTLP se mantienen en GitHub Environments y se instalan como secretos de Container Apps; Terraform no recibe sus valores.
+
+La separación de orígenes se limita al incremento de plataforma, cuyos endpoints no contienen información de campaña. ASP.NET restringe CORS a `https://peterbfoo.github.io`, y el frontend recibe únicamente la URL pública de la API en `config.js`. GitHub Pages no almacena credenciales.
+
+Esta elección prioriza coste cero, escala a cero y ausencia de una reserva de VM. Los planes gratuitos no ofrecen SLA, pueden introducir arranques en frío y tienen cuotas. Se configurarán alertas de presupuesto antes de activar cualquier servicio facturable. Antes de almacenar datos reales se deberá definir copia cifrada y restauración de PostgreSQL, además de resolver la autenticación same-origin.
 
 ## Criterios de revisión
 

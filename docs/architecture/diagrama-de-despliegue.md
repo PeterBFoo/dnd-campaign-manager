@@ -1,11 +1,11 @@
 # Diagrama de despliegue
 
 - Estado: vigente
-- ADR relacionado: [ADR-0001: plataforma y observabilidad](../adr/ADR-0001-plataforma-y-observabilidad.md)
+- ADR relacionado: [ADR-0001: plataforma y observabilidad](../adr/0001-monorepositorio-y-monolito-modular.md)
 - Vista lógica relacionada: [diagrama de componentes](diagrama-de-componentes.md)
-- Alcance: entorno local integrado definido en `compose.yaml`
+- Alcance: entorno local integrado y topología productiva serverless
 
-Esta vista muestra la distribución física de los componentes del primer incremento. Es una topología de desarrollo e integración local, no un diseño de producción.
+La primera vista muestra la distribución física del entorno local. La segunda concreta su despliegue productivo gratuito sin trasladar al navegador secretos ni responsabilidades del backend.
 
 ```mermaid
 flowchart TB
@@ -75,4 +75,36 @@ flowchart TB
 - Los puertos publicados son conveniencias del entorno local y deben revisarse para otros entornos.
 - Las credenciales por defecto solo son válidas para desarrollo local.
 - Las fuentes privadas y la documentación excluida por Git no forman parte del contexto de las imágenes.
-- Una topología de producción deberá concretar red, TLS, identidad, secretos, alta disponibilidad, copias de seguridad y retención de telemetría antes de desplegarse.
+- La imagen LGTM local no se utiliza como backend productivo.
+
+## Producción serverless gratuita
+
+```mermaid
+flowchart TB
+    user["Navegador del usuario"]
+    github["GitHub Actions + GHCR<br/>imagen AMD64 inmutable"]
+    pages["GitHub Pages<br/>build estático Angular"]
+    entra["Microsoft Entra ID<br/>federación OIDC"]
+    neon[("Neon Free<br/>PostgreSQL con TLS")]
+    grafana["Grafana Cloud Free<br/>métricas · logs · trazas · dashboards"]
+
+    subgraph azure["Azure · Spain Central"]
+        environment["Container Apps Environment<br/>Consumption"]
+        api_prod["ASP.NET Core 10<br/>0.25 vCPU · 0.5 GiB<br/>0–1 réplicas"]
+        secrets["Container Apps secrets<br/>cadena DB · headers OTLP"]
+    end
+
+    user -->|"HTTPS"| pages
+    pages -->|"HTTPS · CORS restringido"| api_prod
+    environment --> api_prod
+    api_prod -->|"Npgsql + TLS"| neon
+    api_prod -->|"OTLP HTTPS"| grafana
+    secrets -.-> api_prod
+    github -->|"publica Angular"| pages
+    github -->|"revisión inmutable"| api_prod
+    entra -.->|"OIDC sin client secret"| github
+```
+
+GitHub Pages contiene únicamente HTML, CSS, JavaScript y `config.js` con la URL pública de la API. La API admite CORS exclusivamente desde `https://peterbfoo.github.io`; PostgreSQL y credenciales no llegan al navegador. Azure y GitHub proporcionan TLS administrado.
+
+La infraestructura se describe en `infra/azure`. Terraform crea el grupo de recursos, el entorno Consumption y la Container App, pero no recibe secretos. GitHub Actions configura cada revisión mediante OIDC y secrets del environment `production`. Al escalar a cero no existe una VM reservada ni una dependencia de capacidad Always Free concreta.
