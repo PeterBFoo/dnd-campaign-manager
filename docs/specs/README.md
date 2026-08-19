@@ -34,6 +34,12 @@ Descompone el plan aprobado en tareas pequeñas, ordenadas y verificables. Cada 
 7. Verificar los criterios de aceptación.
 8. Actualizar documentación, ADR y runbooks afectados.
 
+## Especificaciones
+
+| Especificación | Estado | Alcance |
+|---|---|---|
+| [001: requisitos funcionales base](001-requisitos-funcionales-base/spec.md) | Borrador para validación | Identidad, campañas, módulos de aventura y herramientas comunes de juego |
+
 ## Definición de terminado
 
 Una especificación está terminada cuando:

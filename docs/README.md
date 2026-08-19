@@ -12,3 +12,5 @@ La documentación del proyecto forma parte del mismo repositorio que el código 
 ## Regla de mantenimiento
 
 Una tarea no se considera terminada si cambia el comportamiento, la arquitectura, la operación o el despliegue y no actualiza la documentación correspondiente.
+
+La documentación será independiente del contenido editorial: no incluirá nombres ni información propia de campañas o módulos de aventura concretos. Los ejemplos deberán ser genéricos.
