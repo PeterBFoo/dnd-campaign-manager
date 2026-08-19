@@ -1,0 +1,23 @@
+:root {
+  color-scheme: dark;
+  --surface: #17130f;
+  --ink: #eee5d5;
+  --muted: #a69b8b;
+  --line: rgba(238, 229, 213, .12);
+  --line-strong: rgba(238, 229, 213, .22);
+  --gold: #c6a15b;
+  --rust: #c66746;
+  --green: #749769;
+  --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  --sans: Avenir, 'Avenir Next', Inter, system-ui, sans-serif;
+  font-family: var(--sans);
+  background: var(--surface);
+  color: var(--ink);
+  font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+html { min-width: 320px; background: radial-gradient(circle at 20% -10%, rgba(198,161,91,.09), transparent 32%), var(--surface); }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+button, a { -webkit-tap-highlight-color: transparent; }
+::selection { color: var(--surface); background: var(--gold); }

@@ -13,4 +13,4 @@ Los ADR registran decisiones que afectan a la estructura, tecnología, seguridad
 
 | ADR | Estado | Decisión |
 |---|---|---|
-| [ADR-0001](0001-monorepositorio-y-monolito-modular.md) | Aceptado | Monorepositorio y monolito modular |
+| [ADR-0001](0001-monorepositorio-y-monolito-modular.md) | Aceptado | Monorepositorio, Angular, ASP.NET Core, PostgreSQL y observabilidad |

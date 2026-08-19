@@ -1,63 +1,105 @@
 # D&D Campaign Manager
 
-Aplicación web privada para gestionar campañas de D&D: participantes, personajes minimalistas, capítulos, NPC, localizaciones, bitácora, misiones e iniciativa.
-
-El código se mantiene en un repositorio público, pero los módulos, recursos de campaña, credenciales, datos de usuarios y copias de seguridad son privados y no forman parte del repositorio.
+Aplicación web para preparar y dirigir campañas con estado narrativo persistente y separación estricta entre la información del DM y de los jugadores.
 
 ## Estado
 
-Proyecto en fase de diseño mediante Spec-Driven Development (SDD). La primera decisión arquitectónica está documentada en [ADR-0001](docs/adr/0001-monorepositorio-y-monolito-modular.md).
+La fundación técnica definida por el ADR-0001 está implementada. Los incrementos funcionales posteriores seguirán el flujo Spec-Driven Development descrito en [la guía de especificaciones](docs/specs/README.md).
 
-## Arquitectura aprobada
+## Arquitectura actual
 
-- Monorepositorio.
-- Frontend Angular.
-- Backend modular en ASP.NET Core.
-- PostgreSQL como base de datos.
-- Docker Compose para desarrollo y despliegue.
-- Grafana, Prometheus, Loki y Tempo para observabilidad.
+- `apps/web`: Angular 22, componentes standalone y modo estricto.
+- `apps/api`: C# y ASP.NET Core 10 LTS.
+- `apps/api-tests`: pruebas de integración del backend.
+- PostgreSQL 18 como persistencia primaria.
+- OpenTelemetry para logs, métricas y trazas.
+- Grafana LGTM local: Collector, Prometheus, Tempo, Loki y Grafana.
+- Nginx como servidor del build Angular y proxy same-origin de `/api`.
 
-La selección y las versiones concretas de tecnologías se formalizarán en ADR posteriores.
+La decisión de plataforma está documentada en:
 
-## Estructura prevista
+- [ADR-0001: monorepositorio, plataforma y observabilidad](docs/adr/0001-monorepositorio-y-monolito-modular.md)
 
-```text
-apps/               Aplicaciones frontend y backend
-tests/              Pruebas unitarias, de integración y end-to-end
-deploy/             Despliegue y configuración de Docker Compose
-observability/      Configuración de telemetría y dashboards
-docs/adr/           Decisiones arquitectónicas
-docs/specs/         Especificaciones, planes y tareas
-docs/runbooks/      Procedimientos de operación
-samples/            Datos ficticios y seguros para publicar
+La arquitectura resultante se representa, de lo lógico a lo físico, en:
+
+1. [Diagrama de componentes](docs/architecture/diagrama-de-componentes.md)
+2. [Diagrama de despliegue](docs/architecture/diagrama-de-despliegue.md)
+
+La preparación operativa de credenciales está en [Secretos de despliegue](docs/operations/secretos-de-despliegue.md).
+La selección, contenido y uso de los paneles está en [Dashboards de observabilidad](docs/operations/dashboards-de-observabilidad.md).
+
+## Requisitos
+
+- Node.js 24.15 o posterior.
+- pnpm 11.19.
+- Docker con Docker Compose.
+- Opcional: SDK de .NET 10 para ejecutar el backend fuera de Docker.
+
+## Arranque integrado
+
+```sh
+cp .env.example .env
+pnpm install
+docker compose up --build
 ```
 
-Las carpetas se crearán cuando una especificación aprobada las necesite; no se mantienen directorios vacíos.
+`.env` está ignorado por Git y contiene únicamente credenciales locales. Sustituye los valores de ejemplo antes del primer arranque; nunca reutilices ese archivo en un despliegue.
 
-## Flujo SDD
+PostgreSQL aplica `POSTGRES_PASSWORD` solo al inicializar un volumen vacío. Cambiar después el `.env` no modifica la contraseña almacenada: rota la credencial dentro de PostgreSQL o, únicamente si los datos locales son prescindibles, recrea el volumen de desarrollo.
 
-Cada incremento sigue este orden:
+Servicios locales:
 
-1. Especificación y criterios de aceptación.
-2. ADR necesarios.
-3. Plan de implementación.
-4. Tareas atómicas.
-5. Implementación y pruebas.
-6. Validación y actualización documental.
+| Servicio | Dirección |
+|---|---|
+| Aplicación Angular | http://localhost:4200 |
+| API ASP.NET Core | http://localhost:8080/api/v1/platform/status |
+| Liveness | http://localhost:8080/health/live |
+| Readiness | http://localhost:8080/health/ready |
+| Grafana | http://localhost:3000 |
+| PostgreSQL | localhost:5432 |
+| OTLP gRPC / HTTP | localhost:4317 / localhost:4318 |
 
-Consulta [la guía de especificaciones](docs/specs/README.md) y [el índice de ADR](docs/adr/README.md).
+Las credenciales locales de Grafana se leen desde `.env`; los valores de ejemplo no deben reutilizarse en un entorno compartido o desplegado.
 
-## Información privada
+Los dashboards del proyecto se aprovisionan automáticamente en la carpeta **D&D Campaign Companion** de Grafana.
 
-No se deben confirmar en Git:
+Accesos directos:
 
-- Archivos `.env` o secretos.
-- Contraseñas, tokens o cadenas de conexión.
-- PDFs, mapas, imágenes o recursos privados de módulos.
-- Datos persistentes de PostgreSQL o Grafana.
-- Copias de seguridad.
+- [Disponibilidad y rendimiento](http://localhost:3000/d/dnd-platform-overview)
+- [ASP.NET Core y runtime](http://localhost:3000/d/dnd-dotnet-runtime)
+- [PostgreSQL](http://localhost:3000/d/dnd-postgresql)
 
-El archivo `.gitignore` protege las ubicaciones previstas, pero cada cambio debe revisarse antes de confirmarlo.
+## Desarrollo rápido del frontend
+
+Con la API disponible en el puerto 8080:
+
+```sh
+pnpm dev:web
+```
+
+Angular redirige `/api` y `/health` mediante `apps/web/proxy.conf.json`.
+
+## Verificación
+
+```sh
+pnpm test:web
+pnpm build
+docker compose build api
+docker compose run --rm api-tests
+docker compose config --quiet
+```
+
+Para verificar un entorno desplegado a través de su entrada web:
+
+```sh
+BASE_URL=https://app.example.com sh scripts/smoke-test.sh
+```
+
+Si Grafana es accesible desde el ejecutor de la prueba, añade `GRAFANA_URL`.
+
+## Tratamiento de fuentes
+
+Las fuentes y análisis privados se conservan solo para consulta interna. `sources/`, `docs/analysis/` y las decisiones todavía no autorizadas se excluyen de Git y del contexto Docker; no deben publicarse, copiarse al frontend ni servirse como recursos estáticos.
 
 ## Licencia
 

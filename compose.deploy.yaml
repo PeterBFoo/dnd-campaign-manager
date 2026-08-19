@@ -1,0 +1,107 @@
+name: dnd-campaign-companion
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-dnd_campaigns}
+      POSTGRES_USER: ${POSTGRES_USER:-dnd_app}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      - postgres18-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  observability:
+    image: grafana/otel-lgtm:0.30.0
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
+    secrets:
+      - grafana_admin_password
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - observability-data:/data
+      - ./infra/observability/prometheus.yaml:/otel-lgtm/prometheus.yaml:ro
+      - ./infra/observability/grafana/dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/dnd-campaign.yaml:ro
+      - ./infra/observability/grafana/dashboards:/otel-lgtm/grafana/conf/provisioning/dashboards/dnd-campaign:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+    restart: unless-stopped
+
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.20.1
+    environment:
+      DATA_SOURCE_URI: postgres:5432/${POSTGRES_DB:-dnd_campaigns}?sslmode=disable
+      DATA_SOURCE_USER: ${POSTGRES_USER:-dnd_app}
+      DATA_SOURCE_PASS_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      - ./infra/observability/postgres-exporter.yaml:/postgres_exporter.yml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  api:
+    image: ${API_IMAGE:-dnd-campaign-api:latest}
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Database__Host: postgres
+      Database__Port: 5432
+      Database__Name: ${POSTGRES_DB:-dnd_campaigns}
+      Database__User: ${POSTGRES_USER:-dnd_app}
+      Database__Password_FILE: /run/secrets/postgres_password
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://observability:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=production
+    secrets:
+      - postgres_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+      observability:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/health/live"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  web:
+    image: ${WEB_IMAGE:-dnd-campaign-web:latest}
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+secrets:
+  postgres_password:
+    external: true
+    name: ${POSTGRES_PASSWORD_SECRET_NAME:-dnd-postgres-password}
+  grafana_admin_password:
+    external: true
+    name: ${GRAFANA_ADMIN_PASSWORD_SECRET_NAME:-dnd-grafana-admin-password}
+
+volumes:
+  postgres18-data:
+  observability-data:

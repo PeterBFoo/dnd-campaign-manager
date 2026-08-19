@@ -1,0 +1,84 @@
+# Dashboards de observabilidad
+
+- Estado: implementados y aprovisionados como código
+- ADR relacionado: [ADR-0001: plataforma y observabilidad](../adr/ADR-0001-plataforma-y-observabilidad.md)
+- Carpeta de Grafana: `D&D Campaign Companion`
+
+Los dashboards cubren las señales necesarias para detectar indisponibilidad, degradación, saturación y problemas de persistencia sin registrar información narrativa ni datos de campaña.
+
+## Selección
+
+### Plataforma · Disponibilidad y rendimiento
+
+Vista principal para operación y guardias. Aplica el enfoque RED a la API:
+
+- disponibilidad derivada de respuestas sin errores 5xx;
+- tasa de errores 5xx;
+- peticiones por segundo;
+- latencia p50, p95 y p99;
+- tráfico y errores por endpoint;
+- peticiones y conexiones activas o en cola;
+- disponibilidad inmediata de PostgreSQL.
+
+UID estable: `dnd-platform-overview`.
+
+### ASP.NET Core · Runtime y saturación
+
+Vista para investigar degradaciones del proceso:
+
+- memoria de trabajo, heap y memoria comprometida;
+- CPU utilizada;
+- velocidad de asignación y colecciones del GC;
+- tiempo relativo en pausas del GC;
+- excepciones por segundo;
+- hilos, trabajo en cola y conexiones en espera.
+
+UID estable: `dnd-dotnet-runtime`.
+
+### PostgreSQL · Salud y rendimiento
+
+Vista de infraestructura de datos:
+
+- disponibilidad del servidor;
+- conexiones y porcentaje respecto al máximo;
+- commits, rollbacks y transacciones por segundo;
+- proporción de aciertos de caché;
+- tamaño por base de datos;
+- deadlocks, bloqueos y escrituras temporales;
+- actividad de filas.
+
+UID estable: `dnd-postgresql`.
+
+## Referencias utilizadas
+
+La selección toma como base los dashboards de ASP.NET Core y endpoint publicados por el equipo .NET en Grafana, las métricas integradas de ASP.NET Core y la integración oficial de PostgreSQL de Grafana. Los JSON del proyecto son propios porque fijan el datasource `prometheus`, los nombres de servicio y las etiquetas que realmente produce este repositorio.
+
+No se importan dashboards remotos durante el arranque. Esto evita cambios no revisados y permite reproducir exactamente las mismas vistas en cada entorno.
+
+Referencias externas:
+
+- Dashboard Grafana `19924`, **ASP.NET Core**.
+- Dashboard Grafana `19925`, **ASP.NET Core Endpoint**.
+- Dashboard Grafana `24919`, **PostgreSQL monitoring dashboard**.
+
+## Aprovisionamiento
+
+Los archivos se encuentran en `infra/observability/grafana/dashboards`. Grafana los carga mediante `infra/observability/grafana/dashboards.yaml` cada 30 segundos y no permite guardarlos desde la interfaz. Cualquier cambio debe hacerse en el repositorio y pasar revisión.
+
+Prometheus recibe las métricas OpenTelemetry de la API y consulta `postgres-exporter:9187` según `infra/observability/prometheus.yaml`. El exporter no publica ningún puerto al host.
+
+## Interpretación operativa
+
+1. Empezar en **Plataforma · Disponibilidad y rendimiento** para determinar alcance y momento de la degradación.
+2. Si aumentan latencia o colas, abrir **ASP.NET Core · Runtime y saturación** para diferenciar presión de CPU, memoria, GC o thread pool.
+3. Si readiness falla o la latencia coincide con presión de datos, abrir **PostgreSQL · Salud y rendimiento** y revisar conexiones, caché, bloqueos y rollbacks.
+4. Usar las trazas de Tempo y los logs correlacionados en Loki para investigar peticiones concretas sin añadir datos sensibles a los dashboards.
+
+## Límites y producción
+
+- La disponibilidad calculada desde tráfico real no sustituye una sonda sintética externa.
+- Los umbrales visuales son valores iniciales; deben revisarse con carga real y objetivos SLO aceptados.
+- El exporter usa el usuario configurado para PostgreSQL en el entorno actual. Antes de un despliegue compartido debe provisionarse un usuario de monitorización con privilegios mínimos.
+- `grafana/otel-lgtm` continúa siendo una solución local, de demostración y pruebas. En producción, los mismos dashboards requieren datasources compatibles con Prometheus, Tempo y Loki, pero la topología y retención deben definirse para el proveedor de destino.
+
+La comprobación posterior al despliegue se automatiza con `scripts/smoke-test.sh`. Exige `BASE_URL` y admite `GRAFANA_URL` cuando Grafana sea accesible desde el ejecutor.

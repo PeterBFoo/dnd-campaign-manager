@@ -1,0 +1,11 @@
+.git
+.github
+.angular
+**/bin
+**/obj
+**/node_modules
+**/dist
+**/coverage
+sources
+*.md
+!README.md

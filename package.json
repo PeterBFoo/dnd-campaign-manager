@@ -1,0 +1,21 @@
+{
+  "name": "dnd-campaign-companion",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=24.15.0"
+  },
+  "scripts": {
+    "build": "pnpm --filter @dnd/web build",
+    "dev:web": "pnpm --filter @dnd/web start",
+    "test": "pnpm --filter @dnd/web test --watch=false",
+    "test:web": "pnpm --filter @dnd/web test --watch=false",
+    "build:api": "docker compose build api",
+    "test:api": "docker compose run --rm api-tests",
+    "infra:up": "docker compose up -d postgres observability",
+    "infra:down": "docker compose down",
+    "stack:up": "docker compose up --build",
+    "verify:compose": "docker compose config --quiet"
+  }
+}
