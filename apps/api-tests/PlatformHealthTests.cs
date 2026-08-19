@@ -31,4 +31,48 @@ public sealed class PlatformHealthTests : IClassFixture<WebApplicationFactory<Pr
         var payload = await response.Content.ReadAsStringAsync(cancellationToken);
         Assert.Contains("healthy", payload, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public async Task Cors_allows_the_configured_frontend_only()
+    {
+        const string frontendOrigin = "https://peterbfoo.github.io";
+        using var factory = new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(builder =>
+            {
+                builder.UseSetting("OTEL_SDK_DISABLED", "true");
+                builder.UseSetting(
+                    "ConnectionStrings:Campaigns",
+                    "Host=localhost;Port=5432;Database=test;Username=test;Password=test-only");
+                builder.UseSetting("Cors:AllowedOrigins:0", frontendOrigin);
+            });
+        using var corsClient = factory.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/health/live");
+        request.Headers.Add("Origin", frontendOrigin);
+
+        using var response = await corsClient.SendAsync(
+            request,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(frontendOrigin, response.Headers.GetValues("Access-Control-Allow-Origin").Single());
+    }
+
+    [Fact]
+    public async Task PostgreSql_uri_is_accepted_as_a_connection_string()
+    {
+        using var factory = new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(builder =>
+            {
+                builder.UseSetting("OTEL_SDK_DISABLED", "true");
+                builder.UseSetting(
+                    "ConnectionStrings:Campaigns",
+                    "postgresql://test-user:test%3Apassword@localhost:5432/test-db?sslmode=require");
+            });
+        using var uriClient = factory.CreateClient();
+
+        using var response = await uriClient.GetAsync(
+            "/health/live",
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
 }

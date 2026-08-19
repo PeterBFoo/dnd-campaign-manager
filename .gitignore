@@ -60,6 +60,14 @@ Thumbs.db
 *.log
 .cache/
 
+# Terraform local
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfplan
+crash.log
+
 # Material de trabajo privado pendiente de publicación explícita
 docs/analysis/
 docs/adr/ADR-0002-estado-narrativo-y-visibilidad.md
