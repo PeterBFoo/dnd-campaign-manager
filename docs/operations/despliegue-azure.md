@@ -48,8 +48,10 @@ Se crea una aplicación de Microsoft Entra con credencial federada limitada al e
 La configuración federada utiliza el sujeto:
 
 ```text
-repo:PeterBFoo/dnd-campaign-manager:environment:production
+repo:PeterBFoo@91556382/dnd-campaign-manager@1339476932:environment:production
 ```
+
+GitHub emite el sujeto con los identificadores inmutables del propietario y del repositorio. Esto evita que un cambio de nombre altere la identidad y debe coincidir exactamente con la credencial federada de Entra.
 
 ## 4. Secretos de producción
 

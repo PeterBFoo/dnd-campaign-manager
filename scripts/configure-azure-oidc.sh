@@ -36,13 +36,13 @@ fi
 
 federated_credential_id=$($azure_cli ad app federated-credential list \
   --id "$application_object_id" \
-  --query "[?name=='github-production'].id | [0]" \
+  --query "[?name=='github-production-immutable'].id | [0]" \
   --output tsv)
 
 if [ -z "$federated_credential_id" ]; then
   $azure_cli ad app federated-credential create \
     --id "$application_object_id" \
-    --parameters '{"name":"github-production","issuer":"https://token.actions.githubusercontent.com","subject":"repo:PeterBFoo/dnd-campaign-manager:environment:production","description":"GitHub Actions production environment","audiences":["api://AzureADTokenExchange"]}' \
+    --parameters '{"name":"github-production-immutable","issuer":"https://token.actions.githubusercontent.com","subject":"repo:PeterBFoo@91556382/dnd-campaign-manager@1339476932:environment:production","description":"GitHub Actions production environment using immutable repository and owner IDs","audiences":["api://AzureADTokenExchange"]}' \
     --output none
 fi
 
