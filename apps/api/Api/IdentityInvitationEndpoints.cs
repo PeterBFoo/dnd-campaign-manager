@@ -17,14 +17,12 @@ public static class IdentityInvitationEndpoints
     public static IEndpointRouteBuilder MapIdentityInvitationEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var identity = endpoints.MapGroup("/api/v1/identity").WithTags("Identity");
-        identity.MapPost("/bootstrap", BootstrapAsync).RequireRateLimiting("bootstrap");
         identity.MapPost("/login", LoginAsync).RequireRateLimiting("login");
         identity.MapPost("/logout", LogoutAsync).RequireAuthorization();
         identity.MapGet("/me", Me).RequireAuthorization();
 
         var acceptance = endpoints.MapGroup("/api/v1/invitations").WithTags("Invitations");
         acceptance.MapPost("/preview", PreviewInvitationAsync).RequireRateLimiting("invitation-acceptance");
-        acceptance.MapPost("/accept", AcceptInvitationAsync).RequireRateLimiting("invitation-acceptance");
 
         var platform = endpoints.MapGroup("/api/v1/platform/invitations")
             .WithTags("Platform invitations")
@@ -42,59 +40,6 @@ public static class IdentityInvitationEndpoints
         campaign.MapPost("/{invitationId:guid}/resend", ResendCampaignInvitationAsync);
         campaign.MapDelete("/{invitationId:guid}", RevokeCampaignInvitationAsync);
         return endpoints;
-    }
-
-    private static async Task<IResult> GetBootstrapStatusAsync(
-        CampaignDbContext database,
-        CancellationToken cancellationToken)
-    {
-        var hasUsers = await database.Users.AnyAsync(cancellationToken);
-        return Results.Ok(new { state = hasUsers ? "completed" : "required" });
-    }
-
-    private static async Task<IResult> BootstrapAsync(
-        BootstrapRequest request,
-        CampaignDbContext database,
-        IdentitySecurityOptions options,
-        IPasswordHasher<UserAccount> passwordHasher,
-        TimeProvider timeProvider,
-        CancellationToken cancellationToken)
-    {
-        if (!SecretComparer.Equals(options.BootstrapToken, request.Token ?? string.Empty))
-        {
-            return InvalidCredentials();
-        }
-
-        var validation = ValidateNewAccount(request.Email, request.DisplayName, request.Password);
-        if (validation is not null)
-        {
-            return validation;
-        }
-
-        await using var transaction = await database.Database.BeginTransactionAsync(
-            IsolationLevel.Serializable,
-            cancellationToken);
-        if (await database.Users.AnyAsync(cancellationToken))
-        {
-            return Results.Conflict(new ProblemDetails
-            {
-                Status = StatusCodes.Status409Conflict,
-                Title = "El alta inicial ya está cerrada.",
-                Detail = "La primera cuenta de administración ya fue creada.",
-            });
-        }
-
-        var user = UserAccount.Create(
-            request.Email!,
-            request.DisplayName!,
-            isPlatformAdmin: true,
-            timeProvider.GetUtcNow());
-        user.SetPasswordHash(passwordHasher.HashPassword(user, request.Password!));
-        database.Users.Add(user);
-        await database.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-        IdentityTelemetry.BootstrapCompletions.Add(1);
-        return Results.Created("/api/v1/identity/me", ToUserResponse(user));
     }
 
     private static async Task<IResult> LoginAsync(
@@ -207,99 +152,6 @@ public static class IdentityInvitationEndpoints
             MaskEmail(invitation.RecipientEmail),
             invitation.ExpiresAt,
             requiresAuthentication));
-    }
-
-    private static async Task<IResult> AcceptInvitationAsync(
-        AcceptInvitationRequest request,
-        ClaimsPrincipal principal,
-        CampaignDbContext database,
-        IPasswordHasher<UserAccount> passwordHasher,
-        TimeProvider timeProvider,
-        CancellationToken cancellationToken)
-    {
-        await using var transaction = await database.Database.BeginTransactionAsync(
-            IsolationLevel.Serializable,
-            cancellationToken);
-        var invitation = await FindInvitationAsync(request.Token, database, cancellationToken);
-        if (invitation is null)
-        {
-            return InvalidInvitation();
-        }
-
-        var now = timeProvider.GetUtcNow();
-        invitation.MarkExpired(now);
-        if (!invitation.IsPending(now))
-        {
-            await database.SaveChangesAsync(cancellationToken);
-            return InvalidInvitation();
-        }
-
-        var user = await database.Users.SingleOrDefaultAsync(
-            candidate => candidate.Email == invitation.RecipientEmail,
-            cancellationToken);
-        IssuedUserSession? issuedSession = null;
-        if (user is not null)
-        {
-            if (principal.Identity?.IsAuthenticated != true)
-            {
-                return Results.Unauthorized();
-            }
-
-            if (principal.GetUserId() != user.Id)
-            {
-                return Results.Forbid();
-            }
-        }
-        else
-        {
-            var validation = ValidateNewAccount(
-                invitation.RecipientEmail,
-                request.DisplayName,
-                request.Password);
-            if (validation is not null)
-            {
-                return validation;
-            }
-
-            user = UserAccount.Create(
-                invitation.RecipientEmail,
-                request.DisplayName!,
-                isPlatformAdmin: false,
-                now);
-            user.SetPasswordHash(passwordHasher.HashPassword(user, request.Password!));
-            database.Users.Add(user);
-            issuedSession = UserSession.Issue(user.Id, now);
-            database.UserSessions.Add(issuedSession.Session);
-        }
-
-        if (invitation.Kind == InvitationKind.Campaign && invitation.CampaignId.HasValue)
-        {
-            var isMember = await database.CampaignMemberships.AnyAsync(membership =>
-                membership.CampaignId == invitation.CampaignId.Value
-                && membership.UserId == user.Id,
-                cancellationToken);
-            if (!isMember)
-            {
-                database.CampaignMemberships.Add(CampaignMembership.JoinAsPlayer(
-                    invitation.CampaignId.Value,
-                    user.Id,
-                    now));
-            }
-        }
-
-        invitation.MarkAccepted(user.Id, now);
-        await database.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-        IdentityTelemetry.InvitationsAccepted.Add(
-            1,
-            new KeyValuePair<string, object?>(
-                "invitation.kind",
-                invitation.Kind.ToString().ToLowerInvariant()));
-        return Results.Ok(new InvitationAcceptanceResponse(
-            ToUserResponse(user),
-            issuedSession?.Token,
-            issuedSession?.Session.ExpiresAt,
-            invitation.Kind.ToString().ToLowerInvariant()));
     }
 
     private static async Task<IResult> ListPlatformInvitationsAsync(
@@ -593,26 +445,6 @@ public static class IdentityInvitationEndpoints
             && membership.Role == CampaignRole.Dm,
             cancellationToken);
 
-    private static IResult? ValidateNewAccount(string? email, string? displayName, string? password)
-    {
-        var errors = PasswordPolicy.Validate(password).ToDictionary(entry => entry.Key, entry => entry.Value);
-        try
-        {
-            _ = UserAccount.NormalizeEmail(email ?? string.Empty);
-        }
-        catch (ArgumentException)
-        {
-            errors["email"] = ["Introduce una dirección de correo válida."];
-        }
-
-        if (string.IsNullOrWhiteSpace(displayName) || displayName.Trim().Length is < 2 or > 80)
-        {
-            errors["displayName"] = ["El nombre debe contener entre 2 y 80 caracteres."];
-        }
-
-        return errors.Count == 0 ? null : Results.ValidationProblem(errors);
-    }
-
     private static IResult InvalidCredentials() => Results.Json(
         new ProblemDetails
         {
@@ -620,15 +452,6 @@ public static class IdentityInvitationEndpoints
             Title = "No se han podido validar las credenciales.",
         },
         statusCode: StatusCodes.Status401Unauthorized);
-
-    private static IResult InvalidInvitation() => Results.Json(
-        new ProblemDetails
-        {
-            Status = StatusCodes.Status410Gone,
-            Title = "La invitación no está disponible.",
-            Detail = "Puede haber caducado, haber sido revocada o haberse utilizado anteriormente.",
-        },
-        statusCode: StatusCodes.Status410Gone);
 
     private static UserResponse ToUserResponse(UserAccount user) =>
         new(user.Id, user.Email, user.DisplayName, user.IsPlatformAdmin);

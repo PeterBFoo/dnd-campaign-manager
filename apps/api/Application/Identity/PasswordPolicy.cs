@@ -2,38 +2,23 @@ namespace DndCampaign.Api.Application.Identity;
 
 public static class PasswordPolicy
 {
-    public static IReadOnlyDictionary<string, string[]> Validate(string? password)
+    public static IEnumerable<IdentityAccountValidationErrors> Validate(string? password)
     {
-        var errors = new List<string>();
+        var errors = new List<IdentityAccountValidationErrors>();
         if (string.IsNullOrEmpty(password) || password.Length is < 12 or > 128)
         {
-            errors.Add("La contraseña debe contener entre 12 y 128 caracteres.");
+            errors.Add(IdentityAccountValidationErrors.PasswordTooShortOrTooLong);
+            return errors;
         }
-        else
-        {
-            if (!password.Any(char.IsUpper))
-            {
-                errors.Add("La contraseña debe incluir una letra mayúscula.");
-            }
+        if (!password.Any(char.IsUpper))
+            errors.Add(IdentityAccountValidationErrors.PasswordRequiresUpperCase);
+        if (!password.Any(char.IsLower))
+            errors.Add(IdentityAccountValidationErrors.PasswordRequiresLowerCase);
+        if (!password.Any(char.IsDigit))
+            errors.Add(IdentityAccountValidationErrors.PasswordRequiresNumber);
+        if (password.All(char.IsLetterOrDigit))
+            errors.Add(IdentityAccountValidationErrors.PasswordRequiresSymbol);
 
-            if (!password.Any(char.IsLower))
-            {
-                errors.Add("La contraseña debe incluir una letra minúscula.");
-            }
-
-            if (!password.Any(char.IsDigit))
-            {
-                errors.Add("La contraseña debe incluir un número.");
-            }
-
-            if (!password.Any(character => !char.IsLetterOrDigit(character)))
-            {
-                errors.Add("La contraseña debe incluir un símbolo.");
-            }
-        }
-
-        return errors.Count == 0
-            ? new Dictionary<string, string[]>()
-            : new Dictionary<string, string[]> { ["password"] = [.. errors] };
+        return errors;
     }
 }
