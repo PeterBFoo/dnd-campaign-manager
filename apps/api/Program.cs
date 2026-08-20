@@ -15,7 +15,6 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Npgsql;
@@ -31,20 +30,18 @@ Activity.ForceDefaultIdFormat = true;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = ResolveDatabaseConnectionString(builder.Configuration);
-var identitySecurity = IdentitySecurityOptions.FromConfiguration(
-    builder.Configuration,
-    builder.Environment);
-var allowedOrigins = builder.Configuration
-    .GetSection("Cors:AllowedOrigins")
-    .Get<string[]>() ?? [];
+var identitySecurity = IdentitySecurityOptions.FromConfiguration(builder.Configuration, builder.Environment);
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 
 builder.Services.AddProblemDetails();
+builder.Services.AddControllers();
 builder.Services.AddDbContext<CampaignDbContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton(identitySecurity);
 builder.Services.AddSingleton<InvitationTokenProtector>();
 builder.Services.AddSingleton<InvitationEmailComposer>();
 builder.Services.AddScoped<InvitationService>();
+builder.Services.AddScoped<IdentityService>();
 builder.Services.AddSingleton<IPasswordHasher<UserAccount>, PasswordHasher<UserAccount>>();
 if (builder.Configuration.GetValue("Email:OutboxWorkerEnabled", false))
 {
@@ -153,6 +150,7 @@ builder.Logging.AddOpenTelemetry(options =>
 
 var app = builder.Build();
 
+
 app.UseForwardedHeaders();
 app.UseExceptionHandler();
 if (allowedOrigins.Length > 0)
@@ -162,6 +160,8 @@ if (allowedOrigins.Length > 0)
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapControllers();
+
 app.Use(async (context, next) =>
 {
     var correlationId = Activity.Current?.TraceId.ToString() ?? context.TraceIdentifier;

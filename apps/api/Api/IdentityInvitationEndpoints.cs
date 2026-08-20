@@ -17,7 +17,6 @@ public static class IdentityInvitationEndpoints
     public static IEndpointRouteBuilder MapIdentityInvitationEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var identity = endpoints.MapGroup("/api/v1/identity").WithTags("Identity");
-        identity.MapGet("/bootstrap", GetBootstrapStatusAsync);
         identity.MapPost("/bootstrap", BootstrapAsync).RequireRateLimiting("bootstrap");
         identity.MapPost("/login", LoginAsync).RequireRateLimiting("login");
         identity.MapPost("/logout", LogoutAsync).RequireAuthorization();

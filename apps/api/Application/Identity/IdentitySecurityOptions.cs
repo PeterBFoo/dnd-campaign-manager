@@ -5,29 +5,20 @@ namespace DndCampaign.Api.Application.Identity;
 
 public sealed class IdentitySecurityOptions
 {
+    public string BootstrapToken { get; }
+    public string OutboxEncryptionKey { get; }
+    public Uri FrontendBaseUrl { get; }
     private const string DevelopmentBootstrapToken = "local-bootstrap-only-change-before-use";
-    private static readonly string DevelopmentOutboxKey = Convert.ToBase64String(
-        SHA256.HashData(Encoding.UTF8.GetBytes("dnd-campaign-local-outbox-encryption-key")));
+    private static readonly string DevelopmentOutboxKey = Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes("dnd-campaign-local-outbox-encryption-key")));
 
-    private IdentitySecurityOptions(
-        string bootstrapToken,
-        string outboxEncryptionKey,
-        Uri frontendBaseUrl)
+    private IdentitySecurityOptions(string bootstrapToken, string outboxEncryptionKey, Uri frontendBaseUrl)
     {
         BootstrapToken = bootstrapToken;
         OutboxEncryptionKey = outboxEncryptionKey;
         FrontendBaseUrl = frontendBaseUrl;
     }
 
-    public string BootstrapToken { get; }
-
-    public string OutboxEncryptionKey { get; }
-
-    public Uri FrontendBaseUrl { get; }
-
-    public static IdentitySecurityOptions FromConfiguration(
-        IConfiguration configuration,
-        IHostEnvironment environment)
+    public static IdentitySecurityOptions FromConfiguration(IConfiguration configuration, IHostEnvironment environment)
     {
         var bootstrapToken = ReadSecret(configuration, "Identity:BootstrapToken");
         var outboxKey = ReadSecret(configuration, "Identity:OutboxEncryptionKey");
