@@ -1,6 +1,3 @@
 <Solution>
   <Project Path="apps/api/DndCampaign.Api.csproj" />
-  <Project Path="src/Modules/Access/DndCampaign.Modules.Access/DndCampaign.Modules.Access.csproj" />
-  <Project Path="tests/Modules/Access/DndCampaign.Modules.Access.Tests/DndCampaign.Modules.Access.Tests.csproj" />
-  <Project Path="tests/DndCampaign.ArchitectureTests/DndCampaign.ArchitectureTests.csproj" />
 </Solution>
