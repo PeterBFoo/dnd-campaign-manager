@@ -29,8 +29,21 @@
         <form class="panel stacked-form" [formGroup]="accountForm" (ngSubmit)="createAccountAndAccept()">
           <h2>Crea tus credenciales</h2>
           <label>Nombre visible<input type="text" formControlName="displayName" autocomplete="name" /></label>
-          <label>Contraseña<input type="password" formControlName="password" autocomplete="new-password" /></label>
-          <p class="form-hint">Mínimo 12 caracteres, con mayúscula, minúscula, número y símbolo.</p>
+          <label for="invitation-password">
+            Contraseña
+            <input
+              id="invitation-password"
+              type="password"
+              formControlName="password"
+              autocomplete="new-password"
+              aria-describedby="invitation-password-hint invitation-password-error"
+              [attr.aria-invalid]="accountForm.controls.password.touched && accountForm.controls.password.invalid ? 'true' : null"
+            />
+          </label>
+          <p id="invitation-password-hint" class="form-hint">Entre 12 y 128 caracteres, con mayúscula, minúscula, número y símbolo.</p>
+          @if (accountForm.controls.password.touched && passwordError(); as passwordError) {
+            <p id="invitation-password-error" class="form-error" role="alert">{{ passwordError }}</p>
+          }
           @if (error()) { <p class="form-error" role="alert">{{ error() }}</p> }
           <button type="submit" [disabled]="submitting()">{{ submitting() ? 'Creando cuenta…' : 'Crear cuenta y aceptar' }}</button>
         </form>
