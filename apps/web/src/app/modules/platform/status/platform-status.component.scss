@@ -1,0 +1,9 @@
+:host { display: block; }
+.status-strip { display: flex; align-items: center; justify-content: space-between; gap: 40px; padding: 38px 0 70px; border-top: 1px solid var(--line); }
+.status-strip .eyebrow { margin-bottom: 10px; }
+.operational { margin: 0 0 5px; }
+.operational span { width: 9px; height: 9px; display: inline-block; margin-right: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 5px rgba(116,151,105,.12); }
+.status-strip small { color: var(--muted); }
+.foundation { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+.foundation span { padding: 8px 11px; border: 1px solid var(--line); color: var(--muted); font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; }
+@media (max-width: 800px) { .status-strip { align-items: flex-start; flex-direction: column; } .foundation { justify-content: flex-start; } }

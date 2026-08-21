@@ -8,6 +8,8 @@ deploy/secrets/
 *.key
 *.p12
 *.pfx
+.debug/
+.vscode/
 
 # Contenido privado de campaña
 sources/

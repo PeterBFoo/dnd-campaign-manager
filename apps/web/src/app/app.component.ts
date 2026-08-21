@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Router, RouterLink, RouterOutlet } from '@angular/router';
 
-import { AuthService } from './auth.service';
+import { SessionStore } from '@modules/access';
 
 @Component({
   selector: 'dnd-root',
@@ -11,11 +11,11 @@ import { AuthService } from './auth.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppComponent {
-  readonly auth = inject(AuthService);
+  readonly session = inject(SessionStore);
   private readonly router = inject(Router);
 
   logout(): void {
-    this.auth.logout().subscribe({
+    this.session.logout().subscribe({
       next: () => void this.router.navigate(['/']),
       error: () => void this.router.navigate(['/']),
     });
