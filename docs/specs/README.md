@@ -40,6 +40,7 @@ Descompone el plan aprobado en tareas pequeñas, ordenadas y verificables. Cada 
 |---|---|---|
 | [001: requisitos funcionales base](001-requisitos-funcionales-base/spec.md) | Borrador para validación | Identidad, campañas, módulos de aventura y herramientas comunes de juego |
 | [002: modularización de Access](002-modularizacion-access/spec.md) | Aceptada | Extracción modular de la API actual, CQRS ligero y límites arquitectónicos verificables |
+| [003: modularización del frontend](003-modularizacion-frontend/spec.md) | Aceptada | Organización Angular por capacidades, APIs públicas y crecimiento alineado semánticamente con la API |
 
 ## Definición de terminado
 

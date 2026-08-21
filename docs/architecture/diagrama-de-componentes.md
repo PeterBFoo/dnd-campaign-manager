@@ -1,7 +1,7 @@
 # Diagrama de componentes
 
 - Estado: vigente
-- ADR relacionados: [ADR-0001: plataforma y observabilidad](../adr/0001-monorepositorio-y-monolito-modular.md) y [ADR-0002: identidad e invitaciones](../adr/0002-identidad-invitaciones-y-correo-transaccional.md)
+- ADR relacionados: [ADR-0001: plataforma y observabilidad](../adr/0001-monorepositorio-y-monolito-modular.md), [ADR-0002: identidad e invitaciones](../adr/0002-identidad-invitaciones-y-correo-transaccional.md), [ADR-0004: modularización backend](../adr/0004-arquitectura-modular-cqrs-y-limites-de-dependencia.md) y [ADR-0005: modularización frontend](../adr/0005-frontend-modular-por-capacidades.md)
 - Alcance: componentes lógicos de la plataforma y flujo funcional de identidad e invitaciones
 
 Esta vista describe las responsabilidades y dependencias de la plataforma. No define todavía componentes de dominio ni incorpora información específica de ninguna campaña.
@@ -11,16 +11,29 @@ flowchart LR
     user["Usuario<br/>DM o jugador"]
 
     subgraph frontend["Frontend · Angular"]
-        shell["Aplicación y routing"]
-        status_ui["Pantalla de estado"]
-        status_client["PlatformStatusService<br/>HttpClient"]
-        identity_ui["Login · bootstrap<br/>aceptación · panel de invitaciones"]
-        identity_client["Auth e Invitation services<br/>interceptor bearer"]
+        composition["Composition root<br/>config · routing"]
+        shell["Shell y home<br/>composición por API pública"]
+        shared["Shared<br/>runtime config · ProblemDetails"]
+        subgraph platform_front["Módulo Platform"]
+            status_ui["PlatformStatusComponent<br/>store de recorrido"]
+            status_client["PlatformClient<br/>contrato HTTP"]
+            status_ui --> status_client
+        end
+        subgraph access_front["Módulo Access"]
+            access_ui["Login · bootstrap · aceptación<br/>gestión de invitaciones"]
+            session["SessionStore<br/>guards · interceptor bearer"]
+            access_clients["IdentityClient · InvitationsClient<br/>contratos HTTP"]
+            access_ui --> session
+            access_ui --> access_clients
+            session --> access_clients
+        end
 
-        shell --> status_ui
-        status_ui --> status_client
-        shell --> identity_ui
-        identity_ui --> identity_client
+        composition --> shell
+        composition --> session
+        shell -->|"API pública"| status_ui
+        shell -->|"API pública"| access_ui
+        status_client --> shared
+        access_clients --> shared
     end
 
     subgraph edge["Entrada web"]
@@ -62,7 +75,7 @@ flowchart LR
     user -->|"HTTP"| nginx
     nginx -->|"recursos estáticos"| frontend
     status_client -->|"GET /api/v1/platform/status"| nginx
-    identity_client -->|"JSON · Authorization Bearer"| nginx
+    access_clients -->|"JSON · Authorization Bearer"| nginx
     nginx -->|"proxy /api y /health"| middleware
     infrastructure -->|"conexión SQL"| database
     database -->|"estadísticas operativas"| postgres_exporter
@@ -75,7 +88,10 @@ flowchart LR
 
 | Componente | Responsabilidad | No debe asumir |
 |---|---|---|
-| Angular | Presentación, navegación y consumo de la API | Autoridad de seguridad o acceso directo a datos |
+| Composition root y shell Angular | Configurar providers y routing; componer módulos mediante APIs públicas | Clientes HTTP, estado o detalles internos de módulos |
+| Módulo frontend Platform | Consultar y presentar el estado técnico con estado limitado a la home | Sesión, identidad o reglas de Access |
+| Módulo frontend Access | Login, sesión, bootstrap, invitaciones, guards, interceptor y contratos HTTP propios | Autoridad de seguridad o internals de módulos futuros |
+| Shared frontend | Runtime config y traducción genérica de `ProblemDetails` | Usuarios, sesiones, campañas, invitaciones o UI funcional |
 | Nginx | Servir el build y mantener `/api` y `/health` bajo el mismo origen | Reglas de dominio |
 | Api Host | Composición de módulos, middleware transversal, health y diagnóstico | Casos de uso, EF Core o contratos funcionales de Access |
 | Módulo Access | Propiedad de cuentas, sesiones, invitaciones y concesiones actuales de acceso | Consumir internals o tablas de futuros módulos |
@@ -93,6 +109,10 @@ flowchart LR
 
 - El navegador solo accede a la API a través de Nginx en el recorrido integrado.
 - Angular no se conecta directamente a PostgreSQL ni al collector de telemetría.
+- El shell Angular consume únicamente entrypoints públicos de Platform y Access.
+- Shared frontend no depende del shell ni de módulos funcionales.
+- Los clientes HTTP no conservan estado de pantalla; sesión y stores tienen ownership y alcance explícitos.
+- La suite Vitest verifica deep imports, dirección de dependencias y ciclos TypeScript.
 - El host solo accede a la fachada pública de cada módulo; no conoce sus capas internas.
 - Los tests globales impiden dependencias entre implementaciones de módulos y cada proyecto de tests modular protege sus propias capas.
 - Api depende de Application; Application de Domain; Infrastructure implementa los puertos de Application y persiste Domain.

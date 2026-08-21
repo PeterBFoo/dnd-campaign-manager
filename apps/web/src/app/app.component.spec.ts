@@ -3,12 +3,13 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 
+import { SessionStore } from '@modules/access';
+
 import { AppComponent } from './app.component';
-import { AuthService } from './auth.service';
 
 describe('AppComponent', () => {
   it('renders the application shell', async () => {
-    const authStub = {
+    const sessionStub = {
       user: signal(null),
       logout: vi.fn(() => of(undefined)),
     };
@@ -17,7 +18,7 @@ describe('AppComponent', () => {
       imports: [AppComponent],
       providers: [
         provideRouter([]),
-        { provide: AuthService, useValue: authStub },
+        { provide: SessionStore, useValue: sessionStub },
       ],
     }).compileComponents();
 

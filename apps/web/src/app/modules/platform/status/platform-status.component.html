@@ -1,0 +1,16 @@
+<section class="status-strip" aria-label="Estado técnico de la plataforma">
+  <div>
+    <p class="eyebrow">Estado de plataforma</p>
+    @if (store.loading()) {
+      <p class="muted">Consultando la API…</p>
+    } @else if (store.status(); as status) {
+      <p class="operational"><span aria-hidden="true"></span> Sistema {{ status.status }}</p>
+      <small>Última lectura: {{ status.generatedAt | date: 'medium' }}</small>
+    } @else {
+      <p class="form-error">{{ store.error() }}</p>
+    }
+  </div>
+  <div class="foundation">
+    <span>Angular</span><span>ASP.NET Core</span><span>PostgreSQL</span><span>OpenTelemetry</span>
+  </div>
+</section>

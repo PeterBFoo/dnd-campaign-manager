@@ -1,5 +1,10 @@
 {
   "compileOnSave": false,
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.spec.json" }
+  ],
   "compilerOptions": {
     "outDir": "./dist/out-tsc",
     "forceConsistentCasingInFileNames": true,
@@ -13,6 +18,12 @@
     "experimentalDecorators": true,
     "moduleResolution": "bundler",
     "importHelpers": true,
+    "paths": {
+      "@modules/access": ["./src/app/modules/access/public-api.ts"],
+      "@modules/access/entry": ["./src/app/modules/access/access-entry/public-api.ts"],
+      "@modules/platform": ["./src/app/modules/platform/public-api.ts"],
+      "@shared/*": ["./src/app/shared/*"]
+    },
     "target": "ES2022",
     "module": "ES2022",
     "lib": ["ESNext", "dom"]

@@ -8,7 +8,7 @@ La fundación técnica y el primer flujo de identidad están implementados: boot
 
 ## Arquitectura actual
 
-- `apps/web`: Angular 22, componentes standalone y modo estricto.
+- `apps/web`: Angular 22 modular; composition root y shell separados de los módulos frontend `Access` y `Platform`, con primitivas técnicas en `shared`.
 - `apps/api`: aplicación ASP.NET Core 10 LTS; contiene el host y sus módulos desplegados conjuntamente.
 - `apps/api/Modules/Access/DndCampaign.Modules.Access`: módulo de acceso; un único proyecto con capas internas.
 - `tests/Modules/Access/DndCampaign.Modules.Access.Tests`: tests unitarios, integración, componente y arquitectura propios de Access.
@@ -24,6 +24,7 @@ La decisión de plataforma está documentada en:
 - [ADR-0002: identidad, invitaciones y correo transaccional](docs/adr/0002-identidad-invitaciones-y-correo-transaccional.md)
 - [ADR-0003: bootstrap, sesiones y flujo funcional](docs/adr/0003-bootstrap-sesiones-y-flujo-de-invitaciones.md)
 - [ADR-0004: arquitectura modular, CQRS y límites](docs/adr/0004-arquitectura-modular-cqrs-y-limites-de-dependencia.md)
+- [ADR-0005: frontend modular por capacidades](docs/adr/0005-frontend-modular-por-capacidades.md)
 
 La arquitectura resultante se representa, de lo lógico a lo físico, en:
 
@@ -93,6 +94,7 @@ Angular redirige `/api` y `/health` mediante `apps/web/proxy.conf.json`.
 ```sh
 pnpm test:web
 pnpm build
+docker compose build web
 docker compose build api
 docker compose run --rm api-tests
 docker compose config --quiet
