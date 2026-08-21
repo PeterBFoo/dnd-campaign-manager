@@ -65,11 +65,12 @@ El workflow instala ambos como secretos de Container Apps y los referencia desde
 
 ## 5. Publicación y verificación
 
-1. Ejecutar manualmente `deploy-azure` desde GitHub Actions.
-2. Verificar que `scripts/smoke-test-api.sh` confirma liveness, readiness y conexión PostgreSQL.
-3. Ejecutar `deploy-pages`, o integrar el cambio en `main`, para publicar Angular.
-4. Abrir `https://peterbfoo.github.io/dnd-campaign-manager/` y comprobar el estado operativo.
-5. Confirmar en Grafana que llegan logs, métricas y trazas y que el mismo workflow ha actualizado los dashboards versionados.
+1. Integrar el cambio en `main` y esperar a que el workflow `ci` termine correctamente.
+2. Comprobar que la finalización satisfactoria de `ci` inicia automáticamente `deploy-azure` con el mismo commit validado. El disparo manual se conserva para recuperación operativa.
+3. Verificar que `scripts/smoke-test-api.sh` confirma liveness, readiness y conexión PostgreSQL.
+4. Esperar a que `deploy-pages`, también iniciado al integrar en `main`, publique Angular.
+5. Abrir `https://peterbfoo.github.io/dnd-campaign-manager/` y comprobar el estado operativo.
+6. Confirmar en Grafana que llegan logs, métricas y trazas y que el mismo workflow ha actualizado los dashboards versionados.
 
 La API puede tardar varios segundos en responder a la primera petición después de escalar a cero. Los smoke tests reintentan liveness para contemplar ese arranque en frío.
 
