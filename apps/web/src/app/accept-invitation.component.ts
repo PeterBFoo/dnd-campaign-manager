@@ -7,6 +7,7 @@ import { finalize, switchMap } from 'rxjs';
 import { apiErrorMessage } from './api-error';
 import { AuthService } from './auth.service';
 import { IdentityApiService, InvitationPreview } from './identity-api.service';
+import { PASSWORD_VALIDATORS, passwordValidationMessage } from './password-validation';
 
 @Component({
   selector: 'dnd-accept-invitation',
@@ -28,8 +29,12 @@ export class AcceptInvitationComponent implements OnInit {
   readonly error = signal<string | null>(null);
   readonly accountForm = new FormGroup({
     displayName: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(2)] }),
-    password: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(12)] }),
+    password: new FormControl('', { nonNullable: true, validators: PASSWORD_VALIDATORS }),
   });
+
+  passwordError(): string | null {
+    return passwordValidationMessage(this.accountForm.controls.password);
+  }
   readonly loginForm = new FormGroup({
     email: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email] }),
     password: new FormControl('', { nonNullable: true, validators: [Validators.required] }),

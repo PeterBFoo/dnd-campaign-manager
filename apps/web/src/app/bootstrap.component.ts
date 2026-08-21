@@ -5,6 +5,7 @@ import { finalize } from 'rxjs';
 
 import { apiErrorMessage } from './api-error';
 import { IdentityApiService } from './identity-api.service';
+import { PASSWORD_VALIDATORS, passwordValidationMessage } from './password-validation';
 
 @Component({
   selector: 'dnd-bootstrap',
@@ -21,8 +22,12 @@ export class BootstrapComponent {
     token: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     displayName: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(2)] }),
     email: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email] }),
-    password: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(12)] }),
+    password: new FormControl('', { nonNullable: true, validators: PASSWORD_VALIDATORS }),
   });
+
+  passwordError(): string | null {
+    return passwordValidationMessage(this.form.controls.password);
+  }
 
   submit(): void {
     if (this.form.invalid || this.submitting()) {
