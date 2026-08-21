@@ -26,7 +26,7 @@ az containerapp update \
   --resource-group "$AZURE_RESOURCE_GROUP" \
   --name "$AZURE_CONTAINER_APP" \
   --image "$API_IMAGE" \
-  --min-replicas 0 \
+  --min-replicas 1 \
   --max-replicas 1 \
   --cpu 0.25 \
   --memory 0.5Gi \
