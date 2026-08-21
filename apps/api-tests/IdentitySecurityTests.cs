@@ -1,8 +1,8 @@
 using DndCampaign.Api.Application.Identity;
 using DndCampaign.Api.Application.Invitations;
+using DndCampaign.Api.Composition;
 using DndCampaign.Api.Domain.Identity;
 using DndCampaign.Api.Domain.Invitations;
-using DndCampaign.Api.Infrastructure.Persistence;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
@@ -52,10 +52,9 @@ public sealed class IdentitySecurityTests
     [Fact]
     public void Invitation_link_uses_a_browser_fragment_instead_of_a_query_parameter()
     {
-        var issued = Invitation.IssuePlatform("player@example.com", Now);
-        var invitation = InvitationRecord.FromIssued(issued, Guid.NewGuid());
+        var issued = Invitation.IssuePlatform("player@example.com", Guid.NewGuid(), Now);
         var email = new InvitationEmailComposer(CreateOptions()).Compose(
-            invitation,
+            issued.Invitation,
             issued.Token,
             "correlation-id");
 
@@ -74,7 +73,7 @@ public sealed class IdentitySecurityTests
                 ["Frontend:BaseUrl"] = "https://example.com/application/",
             })
             .Build();
-        return IdentitySecurityOptions.FromConfiguration(configuration, new TestHostEnvironment());
+        return IdentitySecurityOptionsFactory.FromConfiguration(configuration, new TestHostEnvironment());
     }
 
     private sealed class TestHostEnvironment : IHostEnvironment

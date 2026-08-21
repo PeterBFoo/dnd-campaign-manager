@@ -1,26 +1,20 @@
 using DndCampaign.Api.Application.Identity;
 using DndCampaign.Api.Domain.Invitations;
-using DndCampaign.Api.Infrastructure.Observability;
-using DndCampaign.Api.Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
 
 namespace DndCampaign.Api.Application.Invitations;
 
-/// <summary>
-/// Platform invitation administration. Temporary debt: uses <see cref="CampaignDbContext"/> directly.
-/// </summary>
 public sealed class PlatformInvitationService(
-    CampaignDbContext database,
-    InvitationTokenProtector protector,
+    IInvitationStore invitations,
+    IInvitationOutboxStore outbox,
+    InvitationIssuanceCore issuance,
     TimeProvider timeProvider) : IPlatformInvitationService
 {
-    private readonly InvitationIssuanceCore _issuance = new(database, protector, timeProvider);
-
     public Task<IReadOnlyList<InvitationSummary>> ListAsync(
         ListPlatformInvitationsCommand command,
         CancellationToken cancellationToken) =>
         InvitationInternalOperations.ListInvitationsAsync(
-            database,
+            invitations,
+            outbox,
             InvitationKind.Platform,
             campaignId: null,
             timeProvider.GetUtcNow(),
@@ -29,7 +23,7 @@ public sealed class PlatformInvitationService(
     public Task<InvitationSummary> IssueAsync(
         IssuePlatformInvitationCommand command,
         CancellationToken cancellationToken) =>
-        _issuance.IssueAsync(
+        issuance.IssueAsync(
             InvitationKind.Platform,
             command.Email,
             campaignId: null,
@@ -40,17 +34,17 @@ public sealed class PlatformInvitationService(
         ResendInvitationCommand command,
         CancellationToken cancellationToken)
     {
-        var invitation = await database.Invitations.SingleOrDefaultAsync(
-            candidate =>
-                candidate.Id == command.InvitationId
-                && candidate.Kind == InvitationKind.Platform,
+        var invitation = await invitations.FindByIdAsync(
+            command.InvitationId,
+            InvitationKind.Platform,
+            campaignId: null,
             cancellationToken);
         if (invitation is null)
         {
             return (ResendInvitationStatus.NotFound, null);
         }
 
-        var summary = await _issuance.ResendAsync(invitation, cancellationToken);
+        var summary = await issuance.ResendAsync(invitation, cancellationToken);
         return (ResendInvitationStatus.Resent, summary);
     }
 
@@ -59,7 +53,7 @@ public sealed class PlatformInvitationService(
         CancellationToken cancellationToken)
     {
         var status = await InvitationInternalOperations.RevokeInvitationAsync(
-            database,
+            invitations,
             command.InvitationId,
             InvitationKind.Platform,
             campaignId: null,

@@ -1,9 +1,8 @@
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+using DndCampaign.Api.Application.Identity;
 using DndCampaign.Api.Domain.Identity;
-using DndCampaign.Api.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace DndCampaign.Api.Infrastructure.Identity;
@@ -12,7 +11,7 @@ public sealed class SessionAuthenticationHandler(
     IOptionsMonitor<AuthenticationSchemeOptions> options,
     ILoggerFactory logger,
     UrlEncoder encoder,
-    CampaignDbContext database,
+    IIdentityStore identity,
     TimeProvider timeProvider)
     : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
 {
@@ -34,14 +33,7 @@ public sealed class SessionAuthenticationHandler(
 
         var tokenHash = UserSession.HashToken(token);
         var now = timeProvider.GetUtcNow();
-        var result = await (
-            from session in database.UserSessions.AsNoTracking()
-            join user in database.Users.AsNoTracking() on session.UserId equals user.Id
-            where session.TokenHash == tokenHash
-                && session.RevokedAt == null
-                && session.ExpiresAt > now
-            select new { Session = session, User = user })
-            .SingleOrDefaultAsync(Context.RequestAborted);
+        var result = await identity.FindActiveByTokenHashAsync(tokenHash, now, Context.RequestAborted);
 
         if (result is null)
         {

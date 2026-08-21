@@ -57,53 +57,29 @@ public sealed class InvitationRecord
     public int SendCount { get; private set; }
 
     public static InvitationRecord FromIssued(IssuedInvitation issued, Guid issuedByUserId) =>
-        new(
-            issued.Invitation.Id,
-            issued.Invitation.Kind,
-            issued.Invitation.RecipientEmail,
-            issued.Invitation.CampaignId,
-            Convert.ToHexString(issued.Invitation.TokenHash.Span),
-            issuedByUserId,
-            issued.Invitation.IssuedAt,
-            issued.Invitation.ExpiresAt);
+        FromDomain(issued.Invitation, issuedByUserId);
 
-    public bool IsPending(DateTimeOffset now) => Status == InvitationStatus.Pending && now < ExpiresAt;
-
-    public void MarkAccepted(Guid userId, DateTimeOffset now)
+    internal static InvitationRecord FromDomain(Invitation invitation, Guid? issuedByUserId = null)
     {
-        if (!IsPending(now))
-        {
-            throw new InvalidOperationException("Only a pending invitation can be accepted.");
-        }
-
-        Status = InvitationStatus.Accepted;
-        AcceptedByUserId = userId;
-        AcceptedAt = now;
+        var record = new InvitationRecord(
+            invitation.Id,
+            invitation.Kind,
+            invitation.RecipientEmail,
+            invitation.CampaignId,
+            Convert.ToHexString(invitation.TokenHash.Span),
+            issuedByUserId ?? invitation.IssuedByUserId,
+            invitation.IssuedAt,
+            invitation.ExpiresAt);
+        record.ApplyBusinessState(invitation);
+        return record;
     }
 
-    public bool Revoke(DateTimeOffset now)
+    internal void ApplyBusinessState(Invitation invitation)
     {
-        if (!IsPending(now))
-        {
-            if (Status == InvitationStatus.Pending && now >= ExpiresAt)
-            {
-                Status = InvitationStatus.Expired;
-            }
-
-            return false;
-        }
-
-        Status = InvitationStatus.Revoked;
-        RevokedAt = now;
-        return true;
-    }
-
-    public void MarkExpired(DateTimeOffset now)
-    {
-        if (Status == InvitationStatus.Pending && now >= ExpiresAt)
-        {
-            Status = InvitationStatus.Expired;
-        }
+        Status = invitation.Status;
+        AcceptedByUserId = invitation.AcceptedByUserId;
+        AcceptedAt = invitation.AcceptedAt;
+        RevokedAt = invitation.RevokedAt;
     }
 
     public void MarkSent(DateTimeOffset now)

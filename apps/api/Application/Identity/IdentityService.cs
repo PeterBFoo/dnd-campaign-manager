@@ -1,25 +1,18 @@
-using DndCampaign.Api.Application.Identity;
 using DndCampaign.Api.Domain.Identity;
-using DndCampaign.Api.Infrastructure.Observability;
-using DndCampaign.Api.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using System.Data;
 
 namespace DndCampaign.Api.Application.Identity;
 
-/// <summary>
-/// Identity use cases. Temporary debt: uses <see cref="CampaignDbContext"/> directly until persistence is abstracted.
-/// </summary>
 public sealed class IdentityService(
-    CampaignDbContext database,
+    IIdentityStore identity,
+    ITransactionalBoundary transactions,
     IdentitySecurityOptions options,
     TimeProvider timeProvider,
     IPasswordHasher<UserAccount> passwordHasher) : IIdentityService
 {
     public async Task<BootstrapStatus> GetBootstrapStatus(CancellationToken cancellationToken)
     {
-        var hasUsers = await database.Users.AnyAsync(cancellationToken);
+        var hasUsers = await identity.HasAnyUsersAsync(cancellationToken);
         return hasUsers ? BootstrapStatus.Completed : BootstrapStatus.Required;
     }
 
@@ -37,26 +30,39 @@ public sealed class IdentityService(
             return (BootstrapCreationStatus.InvalidCredentials, validationErrors, null);
         }
 
-        await using var transaction = await database.Database.BeginTransactionAsync(
-            IsolationLevel.Serializable,
-            cancellationToken);
-        if (await database.Users.AnyAsync(cancellationToken))
+        var outcome = await transactions.ExecuteSerializableAsync<(
+            BootstrapCreationStatus Status,
+            IEnumerable<IdentityAccountValidationErrors> Errors,
+            UserProfile? User)>(async ct =>
         {
-            return (BootstrapCreationStatus.InitialRegistrationClosed, [], null);
+            if (await identity.HasAnyUsersAsync(ct))
+            {
+                return (
+                    BootstrapCreationStatus.InitialRegistrationClosed,
+                    Enumerable.Empty<IdentityAccountValidationErrors>(),
+                    null);
+            }
+
+            var user = UserAccount.Create(
+                command.Email!,
+                command.DisplayName!,
+                isPlatformAdmin: true,
+                timeProvider.GetUtcNow());
+            user.SetPasswordHash(passwordHasher.HashPassword(user, command.Password!));
+            await identity.AddUserAsync(user, ct);
+
+            return (
+                BootstrapCreationStatus.Created,
+                Enumerable.Empty<IdentityAccountValidationErrors>(),
+                ToUserProfile(user));
+        }, cancellationToken);
+
+        if (outcome.Status == BootstrapCreationStatus.Created)
+        {
+            IdentityTelemetry.BootstrapCompletions.Add(1);
         }
 
-        var user = UserAccount.Create(
-            command.Email!,
-            command.DisplayName!,
-            isPlatformAdmin: true,
-            timeProvider.GetUtcNow());
-        user.SetPasswordHash(passwordHasher.HashPassword(user, command.Password!));
-        database.Users.Add(user);
-        await database.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-
-        IdentityTelemetry.BootstrapCompletions.Add(1);
-        return (BootstrapCreationStatus.Created, [], ToUserProfile(user));
+        return outcome;
     }
 
     public async Task<LoginOutcome?> LoginAsync(LoginCommand command, CancellationToken cancellationToken)
@@ -73,9 +79,7 @@ public sealed class IdentityService(
             return null;
         }
 
-        var user = await database.Users.SingleOrDefaultAsync(
-            candidate => candidate.Email == email,
-            cancellationToken);
+        var user = await identity.FindByEmailAsync(email, cancellationToken);
         if (user is null || string.IsNullOrEmpty(command.Password))
         {
             IdentityTelemetry.LoginFailures.Add(1);
@@ -89,26 +93,24 @@ public sealed class IdentityService(
             return null;
         }
 
+        string? rehashedPasswordHash = null;
         if (verification == PasswordVerificationResult.SuccessRehashNeeded)
         {
-            user.SetPasswordHash(passwordHasher.HashPassword(user, command.Password));
+            rehashedPasswordHash = passwordHasher.HashPassword(user, command.Password);
         }
 
         var issued = UserSession.Issue(user.Id, timeProvider.GetUtcNow());
-        database.UserSessions.Add(issued.Session);
-        await database.SaveChangesAsync(cancellationToken);
+        await identity.PersistLoginAsync(user.Id, rehashedPasswordHash, issued.Session, cancellationToken);
         return new LoginOutcome(issued.Token, issued.Session.ExpiresAt, ToUserProfile(user));
     }
 
     public async Task LogoutAsync(LogoutCommand command, CancellationToken cancellationToken)
     {
-        var session = await database.UserSessions.SingleOrDefaultAsync(
-            candidate => candidate.Id == command.SessionId,
-            cancellationToken);
+        var session = await identity.FindSessionByIdAsync(command.SessionId, cancellationToken);
         if (session is not null)
         {
             session.Revoke(timeProvider.GetUtcNow());
-            await database.SaveChangesAsync(cancellationToken);
+            await identity.SaveSessionAsync(session, cancellationToken);
         }
     }
 

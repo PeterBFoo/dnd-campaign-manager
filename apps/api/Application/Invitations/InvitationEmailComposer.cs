@@ -2,14 +2,13 @@ using System.Text.Encodings.Web;
 using DndCampaign.Api.Application.Email;
 using DndCampaign.Api.Application.Identity;
 using DndCampaign.Api.Domain.Invitations;
-using DndCampaign.Api.Infrastructure.Persistence;
 
 namespace DndCampaign.Api.Application.Invitations;
 
 public sealed class InvitationEmailComposer(IdentitySecurityOptions options)
 {
     public TransactionalEmail Compose(
-        InvitationRecord invitation,
+        Invitation invitation,
         string token,
         string correlationId)
     {

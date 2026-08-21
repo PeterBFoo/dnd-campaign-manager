@@ -1,6 +1,6 @@
 using System.Diagnostics.Metrics;
 
-namespace DndCampaign.Api.Infrastructure.Observability;
+namespace DndCampaign.Api.Application.Identity;
 
 public static class IdentityTelemetry
 {

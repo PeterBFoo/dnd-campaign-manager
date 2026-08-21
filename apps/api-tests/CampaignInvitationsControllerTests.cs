@@ -35,7 +35,7 @@ public sealed class CampaignInvitationsControllerTests
             .Setup(s => s.IssueAsync(It.IsAny<IssueCampaignInvitationCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((CampaignAccessStatus.Allowed, new InvitationSummary(
                 Guid.NewGuid(), "campaign", "player@example.com", Guid.NewGuid(),
-                "pending", "pending", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(7), null)));
+                "pending", InvitationDeliveryStatus.Pending, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(7), null)));
         var controller = CreateController(service);
 
         var result = await controller.Issue(
@@ -132,7 +132,7 @@ public sealed class CampaignInvitationsControllerTests
             .Setup(s => s.ResendAsync(It.IsAny<ResendCampaignInvitationCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((CampaignAccessStatus.Allowed, ResendInvitationStatus.Resent, new InvitationSummary(
                 Guid.NewGuid(), "campaign", "player@example.com", Guid.NewGuid(),
-                "pending", "pending", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(7), DateTimeOffset.UtcNow)));
+                "pending", InvitationDeliveryStatus.Pending, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(7), DateTimeOffset.UtcNow)));
         var controller = CreateController(service);
 
         var result = await controller.Resend(
@@ -200,7 +200,7 @@ public sealed class CampaignInvitationsControllerTests
             .ReturnsAsync((CampaignAccessStatus.Allowed, new List<InvitationSummary>
             {
                 new(Guid.NewGuid(), "campaign", "player@example.com", Guid.NewGuid(),
-                    "pending", "pending", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(7), null),
+                    "pending", InvitationDeliveryStatus.Pending, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(7), null),
             }));
         var controller = CreateController(service);
 

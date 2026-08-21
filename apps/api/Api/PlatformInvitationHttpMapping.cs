@@ -15,7 +15,7 @@ internal static class PlatformInvitationHttpMapping
             summary.RecipientEmail,
             summary.CampaignId,
             summary.Status,
-            summary.DeliveryStatus,
+            ToDeliveryStatus(summary.DeliveryStatus),
             summary.IssuedAt,
             summary.ExpiresAt,
             summary.LastSentAt);
@@ -30,4 +30,14 @@ internal static class PlatformInvitationHttpMapping
 
         return responses;
     }
+
+    internal static string ToDeliveryStatus(InvitationDeliveryStatus status) =>
+        status switch
+        {
+            InvitationDeliveryStatus.Pending => "pending",
+            InvitationDeliveryStatus.Sent => "sent",
+            InvitationDeliveryStatus.Discarded => "discarded",
+            InvitationDeliveryStatus.Failed => "failed",
+            _ => throw new InvalidOperationException("The invitation delivery status is not supported."),
+        };
 }

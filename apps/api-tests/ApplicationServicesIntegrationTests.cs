@@ -1,5 +1,7 @@
+using DndCampaign.Api.Application;
 using DndCampaign.Api.Application.Identity;
 using DndCampaign.Api.Application.Invitations;
+using DndCampaign.Api.Composition;
 using DndCampaign.Api.Domain.Identity;
 using DndCampaign.Api.Domain.Invitations;
 using DndCampaign.Api.Infrastructure.Persistence;
@@ -104,6 +106,188 @@ public sealed class ApplicationServicesIntegrationTests
                 new RevokeInvitationCommand(Guid.NewGuid()),
                 cancellationToken);
             Assert.Equal(RevokeInvitationStatus.NotFound, missingRevoke);
+        }
+        finally
+        {
+            await PostgreSqlIntegrationTestHelper.ResetDatabaseAsync(provider, cancellationToken);
+        }
+    }
+
+    [Fact]
+    public async Task PlatformInvitationService_issue_persists_invitation_and_outbox_together()
+    {
+        var connectionString = PostgreSqlIntegrationTestHelper.RequireTestConnectionString();
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        await using var provider = BuildServiceProvider(connectionString!);
+        await PostgreSqlIntegrationTestHelper.ResetDatabaseAsync(provider, cancellationToken);
+
+        try
+        {
+            var user = await BootstrapAdminAsync(provider, cancellationToken);
+            var platformService = provider.GetRequiredService<IPlatformInvitationService>();
+            var issued = await platformService.IssueAsync(
+                new IssuePlatformInvitationCommand("player@example.com", user.Id),
+                cancellationToken);
+
+            var database = provider.GetRequiredService<CampaignDbContext>();
+            Assert.Equal(1, await database.Invitations.CountAsync(cancellationToken));
+            Assert.Equal(1, await database.InvitationOutbox.CountAsync(cancellationToken));
+            Assert.Equal(
+                issued.Id,
+                (await database.InvitationOutbox.SingleAsync(cancellationToken)).InvitationId);
+        }
+        finally
+        {
+            await PostgreSqlIntegrationTestHelper.ResetDatabaseAsync(provider, cancellationToken);
+        }
+    }
+
+    [Fact]
+    public async Task PlatformInvitationService_issue_rolls_back_both_when_enqueue_fails()
+    {
+        var connectionString = PostgreSqlIntegrationTestHelper.RequireTestConnectionString();
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        await using var provider = BuildServiceProvider(connectionString!, throwOnEnqueue: true);
+        await PostgreSqlIntegrationTestHelper.ResetDatabaseAsync(provider, cancellationToken);
+
+        try
+        {
+            var user = await BootstrapAdminAsync(provider, cancellationToken);
+            var platformService = provider.GetRequiredService<IPlatformInvitationService>();
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                platformService.IssueAsync(
+                    new IssuePlatformInvitationCommand("player@example.com", user.Id),
+                    cancellationToken));
+
+            var database = provider.GetRequiredService<CampaignDbContext>();
+            Assert.Equal(0, await database.Invitations.CountAsync(cancellationToken));
+            Assert.Equal(0, await database.InvitationOutbox.CountAsync(cancellationToken));
+        }
+        finally
+        {
+            await PostgreSqlIntegrationTestHelper.ResetDatabaseAsync(provider, cancellationToken);
+        }
+    }
+
+    [Fact]
+    public async Task PlatformInvitationService_resend_persists_replacement_against_real_stores()
+    {
+        var connectionString = PostgreSqlIntegrationTestHelper.RequireTestConnectionString();
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        await using var provider = BuildServiceProvider(connectionString!);
+        await PostgreSqlIntegrationTestHelper.ResetDatabaseAsync(provider, cancellationToken);
+
+        try
+        {
+            var user = await BootstrapAdminAsync(provider, cancellationToken);
+            var platformService = provider.GetRequiredService<IPlatformInvitationService>();
+            var issued = await platformService.IssueAsync(
+                new IssuePlatformInvitationCommand("player@example.com", user.Id),
+                cancellationToken);
+
+            var database = provider.GetRequiredService<CampaignDbContext>();
+            var original = await database.Invitations.SingleAsync(
+                invitation => invitation.Id == issued.Id,
+                cancellationToken);
+            database.Entry(original).Property(nameof(InvitationRecord.IssuedAt)).CurrentValue =
+                DateTimeOffset.UtcNow.AddMinutes(-16);
+            await database.SaveChangesAsync(cancellationToken);
+
+            var (status, summary) = await platformService.ResendAsync(
+                new ResendInvitationCommand(issued.Id),
+                cancellationToken);
+
+            Assert.Equal(ResendInvitationStatus.Resent, status);
+            Assert.NotNull(summary);
+            Assert.NotEqual(issued.Id, summary.Id);
+
+            await database.Entry(original).ReloadAsync(cancellationToken);
+            Assert.Equal(InvitationStatus.Revoked, original.Status);
+            Assert.Equal(2, await database.Invitations.CountAsync(cancellationToken));
+            Assert.Equal(2, await database.InvitationOutbox.CountAsync(cancellationToken));
+            Assert.Equal(
+                InvitationStatus.Pending,
+                (await database.Invitations.SingleAsync(
+                    invitation => invitation.Id == summary.Id,
+                    cancellationToken)).Status);
+        }
+        finally
+        {
+            await PostgreSqlIntegrationTestHelper.ResetDatabaseAsync(provider, cancellationToken);
+        }
+    }
+
+    [Fact]
+    public async Task PlatformInvitationService_revoke_of_expired_invitation_does_not_persist_expired()
+    {
+        var connectionString = PostgreSqlIntegrationTestHelper.RequireTestConnectionString();
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        await using var provider = BuildServiceProvider(connectionString!);
+        await PostgreSqlIntegrationTestHelper.ResetDatabaseAsync(provider, cancellationToken);
+
+        try
+        {
+            var user = await BootstrapAdminAsync(provider, cancellationToken);
+            var platformService = provider.GetRequiredService<IPlatformInvitationService>();
+            var issued = await platformService.IssueAsync(
+                new IssuePlatformInvitationCommand("player@example.com", user.Id),
+                cancellationToken);
+            await ExpireInvitationAsync(provider, issued.Id, cancellationToken);
+
+            var status = await platformService.RevokeAsync(
+                new RevokeInvitationCommand(issued.Id),
+                cancellationToken);
+
+            Assert.Equal(RevokeInvitationStatus.Conflict, status);
+            var database = provider.GetRequiredService<CampaignDbContext>();
+            var row = await database.Invitations.AsNoTracking().SingleAsync(
+                invitation => invitation.Id == issued.Id,
+                cancellationToken);
+            Assert.Equal(InvitationStatus.Pending, row.Status);
+        }
+        finally
+        {
+            await PostgreSqlIntegrationTestHelper.ResetDatabaseAsync(provider, cancellationToken);
+        }
+    }
+
+    [Fact]
+    public async Task PlatformInvitationService_list_expires_all_pending_invitations_together()
+    {
+        var connectionString = PostgreSqlIntegrationTestHelper.RequireTestConnectionString();
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        await using var provider = BuildServiceProvider(connectionString!);
+        await PostgreSqlIntegrationTestHelper.ResetDatabaseAsync(provider, cancellationToken);
+
+        try
+        {
+            var user = await BootstrapAdminAsync(provider, cancellationToken);
+            var platformService = provider.GetRequiredService<IPlatformInvitationService>();
+            var first = await platformService.IssueAsync(
+                new IssuePlatformInvitationCommand("first@example.com", user.Id),
+                cancellationToken);
+            var second = await platformService.IssueAsync(
+                new IssuePlatformInvitationCommand("second@example.com", user.Id),
+                cancellationToken);
+            await ExpireInvitationAsync(provider, first.Id, cancellationToken);
+            await ExpireInvitationAsync(provider, second.Id, cancellationToken);
+
+            var items = await platformService.ListAsync(new ListPlatformInvitationsCommand(), cancellationToken);
+
+            Assert.Equal(2, items.Count);
+            Assert.All(items, item => Assert.Equal("expired", item.Status));
+            var database = provider.GetRequiredService<CampaignDbContext>();
+            Assert.Equal(
+                2,
+                await database.Invitations.CountAsync(
+                    invitation => invitation.Status == InvitationStatus.Expired,
+                    cancellationToken));
         }
         finally
         {
@@ -530,19 +714,76 @@ public sealed class ApplicationServicesIntegrationTests
         return user!;
     }
 
-    private static ServiceProvider BuildServiceProvider(string connectionString)
+    private static ServiceProvider BuildServiceProvider(
+        string connectionString,
+        bool throwOnEnqueue = false)
     {
         var services = new ServiceCollection();
         services.AddDbContext<CampaignDbContext>(options => options.UseNpgsql(connectionString));
+        services.AddScoped<IIdentityStore, IdentityStore>();
+        services.AddScoped<IInvitationStore, InvitationStore>();
+        services.AddScoped<InvitationOutboxStore>();
+        if (throwOnEnqueue)
+        {
+            services.AddScoped<IInvitationOutboxStore>(provider =>
+                new ThrowingEnqueueOutboxStore(provider.GetRequiredService<InvitationOutboxStore>()));
+        }
+        else
+        {
+            services.AddScoped<IInvitationOutboxStore>(provider =>
+                provider.GetRequiredService<InvitationOutboxStore>());
+        }
+        services.AddScoped<ITransactionalBoundary, SerializableTransactionalBoundary>();
         services.AddSingleton<TimeProvider>(TimeProvider.System);
         services.AddSingleton(IdentitySecurityTestsHelper.CreateOptions());
         services.AddSingleton<InvitationTokenProtector>();
         services.AddSingleton<IPasswordHasher<UserAccount>, PasswordHasher<UserAccount>>();
+        services.AddScoped<InvitationIssuanceCore>();
         services.AddScoped<IIdentityService, IdentityService>();
         services.AddScoped<IPlatformInvitationService, PlatformInvitationService>();
         services.AddScoped<IInvitationAcceptanceService, InvitationAcceptanceService>();
         services.AddScoped<ICampaignInvitationService, CampaignInvitationService>();
         return services.BuildServiceProvider();
+    }
+
+    private sealed class ThrowingEnqueueOutboxStore(IInvitationOutboxStore inner) : IInvitationOutboxStore
+    {
+        public Task EnqueueAsync(
+            Guid invitationId,
+            string encryptedToken,
+            DateTimeOffset now,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("forced enqueue failure");
+
+        public Task<ClaimedOutboxWork?> TryClaimNextAsync(
+            DateTimeOffset now,
+            CancellationToken cancellationToken) =>
+            inner.TryClaimNextAsync(now, cancellationToken);
+
+        public Task MarkProcessedAsync(
+            Guid outboxId,
+            string providerMessageId,
+            DateTimeOffset now,
+            CancellationToken cancellationToken) =>
+            inner.MarkProcessedAsync(outboxId, providerMessageId, now, cancellationToken);
+
+        public Task MarkDiscardedAsync(
+            Guid outboxId,
+            DateTimeOffset now,
+            CancellationToken cancellationToken) =>
+            inner.MarkDiscardedAsync(outboxId, now, cancellationToken);
+
+        public Task MarkFailedAsync(
+            Guid outboxId,
+            string errorCode,
+            DateTimeOffset now,
+            CancellationToken cancellationToken) =>
+            inner.MarkFailedAsync(outboxId, errorCode, now, cancellationToken);
+
+        public Task<IReadOnlyDictionary<Guid, InvitationDeliveryStatus>> GetDeliveryStatusesAsync(
+            IReadOnlyCollection<Guid> invitationIds,
+            CancellationToken cancellationToken) =>
+            inner.GetDeliveryStatusesAsync(invitationIds, cancellationToken);
     }
 }
 
@@ -558,7 +799,7 @@ internal static class IdentitySecurityTestsHelper
                 ["Frontend:BaseUrl"] = "https://example.com/application/",
             })
             .Build();
-        return IdentitySecurityOptions.FromConfiguration(
+        return IdentitySecurityOptionsFactory.FromConfiguration(
             configuration,
             new IntegrationTestHostEnvironment());
     }

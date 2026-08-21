@@ -1,19 +1,14 @@
-using System.Data;
 using DndCampaign.Api.Application.Identity;
 using DndCampaign.Api.Domain.Identity;
 using DndCampaign.Api.Domain.Invitations;
-using DndCampaign.Api.Infrastructure.Observability;
-using DndCampaign.Api.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 
 namespace DndCampaign.Api.Application.Invitations;
 
-/// <summary>
-/// Invitation preview and acceptance. Temporary debt: uses <see cref="CampaignDbContext"/> directly.
-/// </summary>
 public sealed class InvitationAcceptanceService(
-    CampaignDbContext database,
+    IInvitationStore invitations,
+    IIdentityStore identity,
+    ITransactionalBoundary transactions,
     IPasswordHasher<UserAccount> passwordHasher,
     TimeProvider timeProvider) : IInvitationAcceptanceService
 {
@@ -22,7 +17,7 @@ public sealed class InvitationAcceptanceService(
         CancellationToken cancellationToken)
     {
         var invitation = await InvitationInternalOperations.FindInvitationByTokenAsync(
-            database,
+            invitations,
             command.Token,
             cancellationToken);
         if (invitation is null)
@@ -31,16 +26,13 @@ public sealed class InvitationAcceptanceService(
         }
 
         var now = timeProvider.GetUtcNow();
-        invitation.MarkExpired(now);
-        if (database.ChangeTracker.HasChanges())
+        if (invitation.Expire(now))
         {
-            await database.SaveChangesAsync(cancellationToken);
+            await invitations.SaveAsync(invitation, cancellationToken);
         }
 
         var requiresAuthentication = invitation.Status == InvitationStatus.Pending
-            && await database.Users.AnyAsync(
-                user => user.Email == invitation.RecipientEmail,
-                cancellationToken);
+            && await identity.FindByEmailAsync(invitation.RecipientEmail, cancellationToken) is not null;
 
         var state = invitation.Status switch
         {
@@ -64,12 +56,37 @@ public sealed class InvitationAcceptanceService(
         AuthenticatedActor actor,
         CancellationToken cancellationToken)
     {
-        await using var transaction = await database.Database.BeginTransactionAsync(
-            IsolationLevel.Serializable,
-            cancellationToken);
+        try
+        {
+            var outcome = await transactions.ExecuteSerializableAsync(async ct =>
+            {
+                var result = await AcceptInsideTransactionAsync(command, actor, ct);
+                if (result.Status != AcceptInvitationStatus.Accepted)
+                {
+                    throw new AcceptTransactionAbortedException(result);
+                }
 
+                return result;
+            }, cancellationToken);
+
+            IdentityTelemetry.InvitationsAccepted.Add(
+                1,
+                new KeyValuePair<string, object?>("invitation.kind", outcome.Outcome!.Kind));
+            return outcome;
+        }
+        catch (AcceptTransactionAbortedException aborted)
+        {
+            return aborted.Result;
+        }
+    }
+
+    private async Task<AcceptInvitationResult> AcceptInsideTransactionAsync(
+        AcceptInvitationCommand command,
+        AuthenticatedActor actor,
+        CancellationToken cancellationToken)
+    {
         var invitation = await InvitationInternalOperations.FindInvitationByTokenAsync(
-            database,
+            invitations,
             command.Token,
             cancellationToken);
 
@@ -84,18 +101,17 @@ public sealed class InvitationAcceptanceService(
         }
 
         var now = timeProvider.GetUtcNow();
-        invitation.MarkExpired(now);
+        if (invitation.Expire(now))
+        {
+            await invitations.SaveAsync(invitation, cancellationToken);
+        }
 
         if (!invitation.IsPending(now))
         {
-            await database.SaveChangesAsync(cancellationToken);
             return AcceptInvitationResult.Failure(AcceptInvitationStatus.AlreadyAccepted);
         }
 
-        var user = await database.Users.SingleOrDefaultAsync(
-            candidate => candidate.Email == invitation.RecipientEmail,
-            cancellationToken);
-
+        var user = await identity.FindByEmailAsync(invitation.RecipientEmail, cancellationToken);
         IssuedUserSession? issuedSession = null;
 
         if (user is not null)
@@ -120,40 +136,36 @@ public sealed class InvitationAcceptanceService(
             }
 
             user = creationResult.User!;
-            issuedSession = creationResult.Session;
+            issuedSession = creationResult.Session!;
+            await identity.AddUserAsync(user, cancellationToken);
+            await identity.AddSessionAsync(issuedSession.Session, cancellationToken);
         }
 
         if (invitation.Kind == InvitationKind.Campaign && invitation.CampaignId.HasValue)
         {
             var campaignId = invitation.CampaignId.Value;
-            var isMember = await database.CampaignMemberships.AnyAsync(
-                membership =>
-                    membership.CampaignId == campaignId
-                    && membership.UserId == user.Id,
-                cancellationToken);
-
-            if (!isMember)
+            if (!await identity.IsCampaignMemberAsync(campaignId, user.Id, cancellationToken))
             {
-                database.CampaignMemberships.Add(
-                    CampaignMembership.JoinAsPlayer(campaignId, user.Id, now));
+                await identity.AddMembershipAsync(
+                    CampaignMembership.JoinAsPlayer(campaignId, user.Id, now),
+                    cancellationToken);
             }
         }
 
-        invitation.MarkAccepted(user.Id, now);
-        await database.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+        var acceptance = invitation.Accept(command.Token!, user.Id, now);
+        if (acceptance != InvitationAcceptanceResult.Accepted)
+        {
+            return AcceptInvitationResult.Failure(AcceptInvitationStatus.NotFound);
+        }
 
-        var invitationKind = invitation.Kind.ToString().ToLowerInvariant();
-        IdentityTelemetry.InvitationsAccepted.Add(
-            1,
-            new KeyValuePair<string, object?>("invitation.kind", invitationKind));
+        await invitations.SaveAsync(invitation, cancellationToken);
 
         return AcceptInvitationResult.Success(
             new InvitationAcceptanceOutcome(
                 IdentityService.ToUserProfile(user),
                 issuedSession?.Token,
                 issuedSession?.Session.ExpiresAt,
-                invitationKind));
+                invitation.Kind.ToString().ToLowerInvariant()));
     }
 
     private static AcceptInvitationStatus? ValidateExistingUser(AuthenticatedActor actor, UserAccount user)
@@ -185,11 +197,7 @@ public sealed class InvitationAcceptanceService(
 
         var user = UserAccount.Create(email, displayName!, isPlatformAdmin: false, now);
         user.SetPasswordHash(passwordHasher.HashPassword(user, password!));
-        database.Users.Add(user);
-
         var issuedSession = UserSession.Issue(user.Id, now);
-        database.UserSessions.Add(issuedSession.Session);
-
         return new UserCreationResult(user, issuedSession, []);
     }
 
@@ -197,4 +205,9 @@ public sealed class InvitationAcceptanceService(
         UserAccount? User,
         IssuedUserSession? Session,
         IReadOnlyCollection<IdentityAccountValidationErrors> Errors);
+
+    private sealed class AcceptTransactionAbortedException(AcceptInvitationResult result) : Exception
+    {
+        public AcceptInvitationResult Result { get; } = result;
+    }
 }

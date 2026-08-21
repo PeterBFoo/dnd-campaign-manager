@@ -1,16 +1,13 @@
-using System.Data;
 using DndCampaign.Api.Application.Identity;
 using DndCampaign.Api.Domain.Identity;
 using DndCampaign.Api.Domain.Invitations;
-using DndCampaign.Api.Infrastructure.Persistence;
-using DndCampaign.Api.Infrastructure.Observability;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 
 namespace DndCampaign.Api.Application.Invitations;
 
-internal sealed class InvitationIssuanceCore(
-    CampaignDbContext database,
+public sealed class InvitationIssuanceCore(
+    IInvitationStore invitations,
+    IInvitationOutboxStore outbox,
+    ITransactionalBoundary transactions,
     InvitationTokenProtector protector,
     TimeProvider timeProvider)
 {
@@ -30,38 +27,37 @@ internal sealed class InvitationIssuanceCore(
         {
             throw new InvitationEmailValidationException(exception.Message);
         }
+
         var now = timeProvider.GetUtcNow();
-        await using var transaction = await database.Database.BeginTransactionAsync(
-            IsolationLevel.Serializable,
-            cancellationToken);
+        IssuedInvitation created = CreateInvitation(kind, normalizedEmail, campaignId, issuedByUserId, now);
 
-        var alreadyPending = await database.Invitations.AnyAsync(
-            invitation =>
-                invitation.Kind == kind
-                && invitation.CampaignId == campaignId
-                && invitation.RecipientEmail == normalizedEmail
-                && invitation.Status == InvitationStatus.Pending
-                && invitation.ExpiresAt > now,
-            cancellationToken);
-        if (alreadyPending)
+        await transactions.ExecuteSerializableAsync(async ct =>
         {
-            throw new InvitationConflictException();
-        }
+            if (await invitations.HasPendingAsync(kind, campaignId, normalizedEmail, now, ct))
+            {
+                throw new InvitationConflictException();
+            }
 
-        var created = CreateInvitation(kind, normalizedEmail, campaignId, issuedByUserId, now);
-        database.Invitations.Add(created.Record);
-        database.InvitationOutbox.Add(created.Outbox);
-        await database.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+            await invitations.AddAsync(created.Invitation, ct);
+            await outbox.EnqueueAsync(
+                created.Invitation.Id,
+                protector.Protect(created.Token),
+                now,
+                ct);
+        }, cancellationToken);
+
         IdentityTelemetry.InvitationsIssued.Add(
             1,
             new KeyValuePair<string, object?>("invitation.kind", kind.ToString().ToLowerInvariant()),
             new KeyValuePair<string, object?>("invitation.operation", "initial"));
-        return InvitationInternalOperations.ToSummary(created.Record, "pending");
+        return InvitationInternalOperations.ToSummary(
+            created.Invitation,
+            lastSentAt: null,
+            InvitationDeliveryStatus.Pending);
     }
 
     internal async Task<InvitationSummary> ResendAsync(
-        InvitationRecord invitation,
+        Invitation invitation,
         CancellationToken cancellationToken)
     {
         var now = timeProvider.GetUtcNow();
@@ -70,68 +66,66 @@ internal sealed class InvitationIssuanceCore(
             throw new InvitationStateException("Solo se puede reenviar una invitación pendiente.");
         }
 
-        await using var transaction = await database.Database.BeginTransactionAsync(
-            IsolationLevel.Serializable,
-            cancellationToken);
-        var recentIssues = await database.Invitations
-            .Where(candidate =>
-                candidate.Kind == invitation.Kind
-                && candidate.CampaignId == invitation.CampaignId
-                && candidate.RecipientEmail == invitation.RecipientEmail
-                && candidate.IssuedAt >= now.AddHours(-24))
-            .Select(candidate => candidate.IssuedAt)
-            .ToListAsync(cancellationToken);
-        var mostRecentIssue = recentIssues.Count > 0 ? recentIssues.Max() : invitation.IssuedAt;
-        var nextAllowedAt = mostRecentIssue.AddMinutes(15);
-        if (now < nextAllowedAt)
-        {
-            throw new InvitationRateLimitException(nextAllowedAt);
-        }
-
-        if (recentIssues.Count >= 5)
-        {
-            throw new InvitationRateLimitException(recentIssues.Min().AddHours(24));
-        }
-
-        invitation.Revoke(now);
-        var replacement = CreateInvitation(
+        IssuedInvitation replacement = CreateInvitation(
             invitation.Kind,
             invitation.RecipientEmail,
             invitation.CampaignId,
             invitation.IssuedByUserId,
             now);
-        database.Invitations.Add(replacement.Record);
-        database.InvitationOutbox.Add(replacement.Outbox);
-        await database.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+
+        await transactions.ExecuteSerializableAsync(async ct =>
+        {
+            var recentIssues = await invitations.ListRecentIssueTimesAsync(
+                invitation.Kind,
+                invitation.CampaignId,
+                invitation.RecipientEmail,
+                now.AddHours(-24),
+                ct);
+            var mostRecentIssue = recentIssues.Count > 0 ? recentIssues.Max() : invitation.IssuedAt;
+            var nextAllowedAt = mostRecentIssue.AddMinutes(15);
+            if (now < nextAllowedAt)
+            {
+                throw new InvitationRateLimitException(nextAllowedAt);
+            }
+
+            if (recentIssues.Count >= 5)
+            {
+                throw new InvitationRateLimitException(recentIssues.Min().AddHours(24));
+            }
+
+            invitation.Revoke(now);
+            await invitations.SaveAsync(invitation, ct);
+            await invitations.AddAsync(replacement.Invitation, ct);
+            await outbox.EnqueueAsync(
+                replacement.Invitation.Id,
+                protector.Protect(replacement.Token),
+                now,
+                ct);
+        }, cancellationToken);
+
         IdentityTelemetry.InvitationsIssued.Add(
             1,
             new KeyValuePair<string, object?>(
                 "invitation.kind",
-                replacement.Record.Kind.ToString().ToLowerInvariant()),
+                replacement.Invitation.Kind.ToString().ToLowerInvariant()),
             new KeyValuePair<string, object?>("invitation.operation", "resend"));
-        return InvitationInternalOperations.ToSummary(replacement.Record, "pending");
+        return InvitationInternalOperations.ToSummary(
+            replacement.Invitation,
+            lastSentAt: null,
+            InvitationDeliveryStatus.Pending);
     }
 
-    private (InvitationRecord Record, InvitationOutboxMessage Outbox) CreateInvitation(
+    private static IssuedInvitation CreateInvitation(
         InvitationKind kind,
         string recipientEmail,
         Guid? campaignId,
         Guid issuedByUserId,
-        DateTimeOffset now)
-    {
-        var issued = kind switch
+        DateTimeOffset now) =>
+        kind switch
         {
-            InvitationKind.Platform => Invitation.IssuePlatform(recipientEmail, now),
+            InvitationKind.Platform => Invitation.IssuePlatform(recipientEmail, issuedByUserId, now),
             InvitationKind.Campaign when campaignId.HasValue =>
-                Invitation.IssueCampaign(recipientEmail, campaignId.Value, now),
+                Invitation.IssueCampaign(recipientEmail, campaignId.Value, issuedByUserId, now),
             _ => throw new InvalidOperationException("The invitation kind is not supported."),
         };
-        var record = InvitationRecord.FromIssued(issued, issuedByUserId);
-        var outbox = InvitationOutboxMessage.Create(
-            record.Id,
-            protector.Protect(issued.Token),
-            now);
-        return (record, outbox);
-    }
 }

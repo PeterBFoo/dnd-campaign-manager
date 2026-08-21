@@ -36,7 +36,7 @@ public sealed class PlatformInvitationsControllerTests
             .Setup(s => s.IssueAsync(It.IsAny<IssuePlatformInvitationCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new InvitationSummary(
                 Guid.NewGuid(), "platform", "player@example.com", null,
-                "pending", "pending", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(7), null));
+                "pending", InvitationDeliveryStatus.Pending, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(7), null));
         var controller = CreateController(service);
 
         var result = await controller.Issue(
@@ -45,6 +45,32 @@ public sealed class PlatformInvitationsControllerTests
 
         var accepted = Assert.IsType<AcceptedResult>(result);
         Assert.IsType<InvitationResponse>(accepted.Value);
+    }
+
+    [Theory]
+    [InlineData(InvitationDeliveryStatus.Pending, "pending")]
+    [InlineData(InvitationDeliveryStatus.Sent, "sent")]
+    [InlineData(InvitationDeliveryStatus.Discarded, "discarded")]
+    [InlineData(InvitationDeliveryStatus.Failed, "failed")]
+    public async Task Issue_maps_delivery_status_to_http_literals(
+        InvitationDeliveryStatus deliveryStatus,
+        string expected)
+    {
+        var service = new Mock<IPlatformInvitationService>();
+        service
+            .Setup(s => s.IssueAsync(It.IsAny<IssuePlatformInvitationCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InvitationSummary(
+                Guid.NewGuid(), "platform", "player@example.com", null,
+                "pending", deliveryStatus, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(7), null));
+        var controller = CreateController(service);
+
+        var result = await controller.Issue(
+            new IssueInvitationRequest("player@example.com"),
+            TestContext.Current.CancellationToken);
+
+        var accepted = Assert.IsType<AcceptedResult>(result);
+        var response = Assert.IsType<InvitationResponse>(accepted.Value);
+        Assert.Equal(expected, response.DeliveryStatus);
     }
 
     [Fact]
@@ -139,7 +165,7 @@ public sealed class PlatformInvitationsControllerTests
             .Setup(s => s.ResendAsync(It.IsAny<ResendInvitationCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((ResendInvitationStatus.Resent, new InvitationSummary(
                 Guid.NewGuid(), "platform", "player@example.com", null,
-                "pending", "pending", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(7), DateTimeOffset.UtcNow)));
+                "pending", InvitationDeliveryStatus.Pending, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(7), DateTimeOffset.UtcNow)));
         var controller = CreateController(service);
 
         var result = await controller.Resend(Guid.NewGuid(), TestContext.Current.CancellationToken);

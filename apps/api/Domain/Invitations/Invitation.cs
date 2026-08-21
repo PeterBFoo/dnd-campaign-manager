@@ -40,15 +40,26 @@ public sealed class Invitation
         string recipientEmail,
         Guid? campaignId,
         byte[] tokenHash,
-        DateTimeOffset issuedAt)
+        Guid issuedByUserId,
+        DateTimeOffset issuedAt,
+        DateTimeOffset expiresAt,
+        InvitationStatus status,
+        Guid? acceptedByUserId,
+        DateTimeOffset? acceptedAt,
+        DateTimeOffset? revokedAt)
     {
         Id = id;
         Kind = kind;
         RecipientEmail = recipientEmail;
         CampaignId = campaignId;
         this.tokenHash = tokenHash;
+        IssuedByUserId = issuedByUserId;
         IssuedAt = issuedAt;
-        ExpiresAt = issuedAt.Add(Lifetime);
+        ExpiresAt = expiresAt;
+        Status = status;
+        AcceptedByUserId = acceptedByUserId;
+        AcceptedAt = acceptedAt;
+        RevokedAt = revokedAt;
     }
 
     public Guid Id { get; }
@@ -58,6 +69,10 @@ public sealed class Invitation
     public string RecipientEmail { get; }
 
     public Guid? CampaignId { get; }
+
+    public Guid IssuedByUserId { get; }
+
+    public Guid? AcceptedByUserId { get; private set; }
 
     public DateTimeOffset IssuedAt { get; }
 
@@ -71,12 +86,43 @@ public sealed class Invitation
 
     public ReadOnlyMemory<byte> TokenHash => tokenHash;
 
-    public static IssuedInvitation IssuePlatform(string recipientEmail, DateTimeOffset issuedAt) =>
-        Issue(InvitationKind.Platform, recipientEmail, campaignId: null, issuedAt);
+    internal static Invitation Restore(
+        Guid id,
+        InvitationKind kind,
+        string recipientEmail,
+        Guid? campaignId,
+        byte[] tokenHash,
+        Guid issuedByUserId,
+        DateTimeOffset issuedAt,
+        DateTimeOffset expiresAt,
+        InvitationStatus status,
+        Guid? acceptedByUserId,
+        DateTimeOffset? acceptedAt,
+        DateTimeOffset? revokedAt) =>
+        new(
+            id,
+            kind,
+            recipientEmail,
+            campaignId,
+            tokenHash,
+            issuedByUserId,
+            issuedAt,
+            expiresAt,
+            status,
+            acceptedByUserId,
+            acceptedAt,
+            revokedAt);
+
+    public static IssuedInvitation IssuePlatform(
+        string recipientEmail,
+        Guid issuedByUserId,
+        DateTimeOffset issuedAt) =>
+        Issue(InvitationKind.Platform, recipientEmail, campaignId: null, issuedByUserId, issuedAt);
 
     public static IssuedInvitation IssueCampaign(
         string recipientEmail,
         Guid campaignId,
+        Guid issuedByUserId,
         DateTimeOffset issuedAt)
     {
         if (campaignId == Guid.Empty)
@@ -84,12 +130,19 @@ public sealed class Invitation
             throw new ArgumentException("A campaign invitation requires a campaign identifier.", nameof(campaignId));
         }
 
-        return Issue(InvitationKind.Campaign, recipientEmail, campaignId, issuedAt);
+        return Issue(InvitationKind.Campaign, recipientEmail, campaignId, issuedByUserId, issuedAt);
     }
 
-    public InvitationAcceptanceResult Accept(string token, DateTimeOffset now)
+    public bool IsPending(DateTimeOffset now) =>
+        Status == InvitationStatus.Pending && now < ExpiresAt;
+
+    public InvitationAcceptanceResult Accept(string token, Guid acceptedByUserId, DateTimeOffset now)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(token);
+        if (acceptedByUserId == Guid.Empty)
+        {
+            throw new ArgumentException("Acceptance requires a user identifier.", nameof(acceptedByUserId));
+        }
 
         if (Status != InvitationStatus.Pending)
         {
@@ -108,6 +161,7 @@ public sealed class Invitation
         }
 
         Status = InvitationStatus.Accepted;
+        AcceptedByUserId = acceptedByUserId;
         AcceptedAt = now;
         return InvitationAcceptanceResult.Accepted;
     }
@@ -116,6 +170,12 @@ public sealed class Invitation
     {
         if (Status != InvitationStatus.Pending)
         {
+            return false;
+        }
+
+        if (now >= ExpiresAt)
+        {
+            Status = InvitationStatus.Expired;
             return false;
         }
 
@@ -152,8 +212,14 @@ public sealed class Invitation
         InvitationKind kind,
         string recipientEmail,
         Guid? campaignId,
+        Guid issuedByUserId,
         DateTimeOffset issuedAt)
     {
+        if (issuedByUserId == Guid.Empty)
+        {
+            throw new ArgumentException("An invitation requires an issuer identifier.", nameof(issuedByUserId));
+        }
+
         var normalizedEmail = NormalizeEmail(recipientEmail);
         var token = CreateToken();
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(token));
@@ -163,7 +229,13 @@ public sealed class Invitation
             normalizedEmail,
             campaignId,
             hash,
-            issuedAt);
+            issuedByUserId,
+            issuedAt,
+            issuedAt.Add(Lifetime),
+            InvitationStatus.Pending,
+            acceptedByUserId: null,
+            acceptedAt: null,
+            revokedAt: null);
 
         return new IssuedInvitation(invitation, token);
     }

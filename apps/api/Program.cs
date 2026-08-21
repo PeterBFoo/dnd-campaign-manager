@@ -3,21 +3,17 @@ using System.Globalization;
 using System.Threading.RateLimiting;
 using System.Text.Json;
 using DndCampaign.Api.Api.Middleware;
-using DndCampaign.Api.Application.Email;
+using DndCampaign.Api.Composition;
 using DndCampaign.Api.Application.Identity;
-using DndCampaign.Api.Application.Invitations;
-using DndCampaign.Api.Domain.Identity;
-using DndCampaign.Api.Infrastructure.Email;
+using DndCampaign.Api.Infrastructure.Background;
 using DndCampaign.Api.Infrastructure.Identity;
 using DndCampaign.Api.Infrastructure.Observability;
 using DndCampaign.Api.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Npgsql;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -29,23 +25,16 @@ Activity.DefaultIdFormat = ActivityIdFormat.W3C;
 Activity.ForceDefaultIdFormat = true;
 
 var builder = WebApplication.CreateBuilder(args);
-var connectionString = ResolveDatabaseConnectionString(builder.Configuration);
-var identitySecurity = IdentitySecurityOptions.FromConfiguration(builder.Configuration, builder.Environment);
+var connectionString = DatabaseConnectionString.Resolve(builder.Configuration);
+var identitySecurity = IdentitySecurityOptionsFactory.FromConfiguration(builder.Configuration, builder.Environment);
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddControllers();
-builder.Services.AddDbContext<CampaignDbContext>(options => options.UseNpgsql(connectionString));
-builder.Services.AddSingleton(TimeProvider.System);
-builder.Services.AddSingleton(identitySecurity);
-builder.Services.AddSingleton<InvitationTokenProtector>();
-builder.Services.AddSingleton<InvitationEmailComposer>();
-builder.Services.AddScoped<IIdentityService, IdentityService>();
-builder.Services.AddScoped<IInvitationAcceptanceService, InvitationAcceptanceService>();
-builder.Services.AddScoped<IPlatformInvitationService, PlatformInvitationService>();
-builder.Services.AddScoped<ICampaignInvitationService, CampaignInvitationService>();
-builder.Services.AddSingleton<IPasswordHasher<UserAccount>, PasswordHasher<UserAccount>>();
+builder.Services.AddPersistence(connectionString);
+builder.Services.AddApplication(identitySecurity);
+builder.Services.AddEmail(builder.Configuration);
 if (builder.Configuration.GetValue("Email:OutboxWorkerEnabled", false))
 {
     builder.Services.AddHostedService<InvitationOutboxWorker>();
@@ -104,12 +93,6 @@ builder.Services.AddRateLimiter(options =>
             QueueLimit = 0,
         }));
 });
-builder.Services.Configure<BrevoOptions>(builder.Configuration.GetSection(BrevoOptions.SectionName));
-builder.Services.AddHttpClient<ITransactionalEmailSender, BrevoEmailSender>(client =>
-{
-    client.BaseAddress = new Uri("https://api.brevo.com/v3/");
-    client.Timeout = TimeSpan.FromSeconds(15);
-});
 if (allowedOrigins.Length > 0)
 {
     builder.Services.AddCors(options => options.AddPolicy("frontend", policy => policy
@@ -118,9 +101,6 @@ if (allowedOrigins.Length > 0)
         .WithHeaders("Accept", "Content-Type", "Authorization")
         .WithExposedHeaders("X-Correlation-Id")));
 }
-builder.Services
-    .AddHealthChecks()
-    .AddCheck<PostgresHealthCheck>("postgres", tags: ["ready"]);
 
 builder.Services
     .AddOpenTelemetry()
@@ -189,13 +169,17 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 });
 
 app.MapGet("/api/v1/platform/status", async (
-    CampaignDbContext database,
+    HealthCheckService healthChecks,
     IWebHostEnvironment environment,
     CancellationToken cancellationToken) =>
 {
     ApiTelemetry.PlatformStatusRequests.Add(1);
-    var databaseAvailable = await CanConnectAsync(database, cancellationToken);
-    var status = databaseAvailable ? "operational" : "degraded";
+    var report = await healthChecks.CheckHealthAsync(
+        registration => registration.Name == "postgres",
+        cancellationToken);
+    var databaseHealthy = report.Entries.TryGetValue("postgres", out var postgres)
+        && postgres.Status == HealthStatus.Healthy;
+    var status = databaseHealthy ? "operational" : "degraded";
 
     return Results.Ok(new
     {
@@ -206,7 +190,7 @@ app.MapGet("/api/v1/platform/status", async (
         generatedAt = DateTimeOffset.UtcNow,
         dependencies = new
         {
-            database = databaseAvailable ? "connected" : "unavailable",
+            database = databaseHealthy ? "connected" : "unavailable",
             telemetry = "otlp",
         },
     });
@@ -220,120 +204,6 @@ if (builder.Configuration.GetValue("Database:ApplyMigrations", false))
 }
 
 app.Run();
-
-static string ResolveDatabaseConnectionString(IConfiguration configuration)
-{
-    var configuredConnectionString = configuration.GetConnectionString("Campaigns");
-    if (!string.IsNullOrWhiteSpace(configuredConnectionString))
-    {
-        return NormalizeDatabaseConnectionString(configuredConnectionString);
-    }
-
-    return new NpgsqlConnectionStringBuilder
-    {
-        Host = GetRequiredConfiguration(configuration, "Database:Host"),
-        Port = configuration.GetValue("Database:Port", 5432),
-        Database = GetRequiredConfiguration(configuration, "Database:Name"),
-        Username = GetRequiredConfiguration(configuration, "Database:User"),
-        Password = ReadRequiredSecret(configuration, "Database:Password"),
-    }.ConnectionString;
-}
-
-static string NormalizeDatabaseConnectionString(string connectionString)
-{
-    if (!Uri.TryCreate(connectionString, UriKind.Absolute, out var databaseUri)
-        || (databaseUri.Scheme != "postgres" && databaseUri.Scheme != "postgresql"))
-    {
-        return connectionString;
-    }
-
-    var userInfoSeparator = databaseUri.UserInfo.IndexOf(':', StringComparison.Ordinal);
-    if (userInfoSeparator <= 0)
-    {
-        throw new InvalidOperationException("The PostgreSQL URI must include username and password.");
-    }
-
-    var databaseName = Uri.UnescapeDataString(databaseUri.AbsolutePath.TrimStart('/'));
-    if (string.IsNullOrWhiteSpace(databaseName))
-    {
-        throw new InvalidOperationException("The PostgreSQL URI must include a database name.");
-    }
-
-    var builder = new NpgsqlConnectionStringBuilder
-    {
-        Host = databaseUri.Host,
-        Port = databaseUri.IsDefaultPort ? 5432 : databaseUri.Port,
-        Database = databaseName,
-        Username = Uri.UnescapeDataString(databaseUri.UserInfo[..userInfoSeparator]),
-        Password = Uri.UnescapeDataString(databaseUri.UserInfo[(userInfoSeparator + 1)..]),
-    };
-
-    foreach (var queryParameter in databaseUri.Query.TrimStart('?').Split(
-        '&',
-        StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-    {
-        var keyValue = queryParameter.Split('=', 2);
-        if (keyValue.Length == 2
-            && keyValue[0].Equals("sslmode", StringComparison.OrdinalIgnoreCase)
-            && Enum.TryParse<SslMode>(Uri.UnescapeDataString(keyValue[1]), true, out var sslMode))
-        {
-            builder.SslMode = sslMode;
-        }
-    }
-
-    return builder.ConnectionString;
-}
-
-static string GetRequiredConfiguration(IConfiguration configuration, string key)
-{
-    var value = configuration[key];
-    return !string.IsNullOrWhiteSpace(value)
-        ? value
-        : throw new InvalidOperationException($"Configuration '{key}' is required.");
-}
-
-static string ReadRequiredSecret(IConfiguration configuration, string key)
-{
-    var secretFile = configuration[$"{key}_FILE"];
-    if (!string.IsNullOrWhiteSpace(secretFile))
-    {
-        try
-        {
-            var secret = File.ReadAllText(secretFile).Trim();
-            return !string.IsNullOrWhiteSpace(secret)
-                ? secret
-                : throw new InvalidOperationException($"Secret file configured by '{key}_FILE' is empty.");
-        }
-        catch (IOException exception)
-        {
-            throw new InvalidOperationException(
-                $"Secret file configured by '{key}_FILE' could not be read.",
-                exception);
-        }
-        catch (UnauthorizedAccessException exception)
-        {
-            throw new InvalidOperationException(
-                $"Secret file configured by '{key}_FILE' is not readable by the application user.",
-                exception);
-        }
-    }
-
-    return GetRequiredConfiguration(configuration, key);
-}
-
-static async Task<bool> CanConnectAsync(
-    CampaignDbContext database,
-    CancellationToken cancellationToken)
-{
-    try
-    {
-        return await database.Database.CanConnectAsync(cancellationToken);
-    }
-    catch
-    {
-        return false;
-    }
-}
 
 static Task WriteHealthResponseAsync(HttpContext context, HealthReport report)
 {

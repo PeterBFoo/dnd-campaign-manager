@@ -37,7 +37,7 @@ public sealed record InvitationSummary(
     string RecipientEmail,
     Guid? CampaignId,
     string Status,
-    string DeliveryStatus,
+    InvitationDeliveryStatus DeliveryStatus,
     DateTimeOffset IssuedAt,
     DateTimeOffset ExpiresAt,
     DateTimeOffset? LastSentAt);
