@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Threading.RateLimiting;
 using System.Text.Json;
-using DndCampaign.Api.Api;
+using DndCampaign.Api.Api.Middleware;
 using DndCampaign.Api.Application.Email;
 using DndCampaign.Api.Application.Identity;
 using DndCampaign.Api.Application.Invitations;
@@ -34,14 +34,17 @@ var identitySecurity = IdentitySecurityOptions.FromConfiguration(builder.Configu
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 
 builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddControllers();
 builder.Services.AddDbContext<CampaignDbContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton(identitySecurity);
 builder.Services.AddSingleton<InvitationTokenProtector>();
 builder.Services.AddSingleton<InvitationEmailComposer>();
-builder.Services.AddScoped<InvitationService>();
-builder.Services.AddScoped<IdentityService>();
+builder.Services.AddScoped<IIdentityService, IdentityService>();
+builder.Services.AddScoped<IInvitationAcceptanceService, InvitationAcceptanceService>();
+builder.Services.AddScoped<IPlatformInvitationService, PlatformInvitationService>();
+builder.Services.AddScoped<ICampaignInvitationService, CampaignInvitationService>();
 builder.Services.AddSingleton<IPasswordHasher<UserAccount>, PasswordHasher<UserAccount>>();
 if (builder.Configuration.GetValue("Email:OutboxWorkerEnabled", false))
 {
@@ -208,8 +211,6 @@ app.MapGet("/api/v1/platform/status", async (
         },
     });
 });
-
-app.MapIdentityInvitationEndpoints();
 
 if (builder.Configuration.GetValue("Database:ApplyMigrations", false))
 {

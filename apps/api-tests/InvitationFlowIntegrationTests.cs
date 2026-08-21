@@ -12,6 +12,7 @@ using Xunit;
 
 namespace DndCampaign.Api.Tests;
 
+[Collection(PostgreSqlIntegrationCollection.Name)]
 public sealed class InvitationFlowIntegrationTests
 {
     [Fact]

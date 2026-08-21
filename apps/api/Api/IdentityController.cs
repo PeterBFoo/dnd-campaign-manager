@@ -1,4 +1,7 @@
+using System.Security.Claims;
+using DndCampaign.Api.Api.Contracts;
 using DndCampaign.Api.Application.Identity;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -6,27 +9,24 @@ namespace DndCampaign.Api.Api;
 
 [ApiController]
 [Route("api/v1/identity")]
-public sealed class IdentityController(IdentityService identityService, ILogger<IdentityController> logger)
-    : ControllerBase
+public sealed class IdentityController(IIdentityService identityService) : ControllerBase
 {
-    private readonly ILogger<IdentityController> _logger = logger;
-    private readonly IdentityService _identityService = identityService;
-
     [HttpGet("bootstrap")]
     public async Task<IActionResult> GetBootstrapStatus(CancellationToken cancellationToken)
     {
-        var bootstrapStatus = await _identityService.GetBootstrapStatus(cancellationToken);
-        return Ok(new
-        {
-            state = bootstrapStatus == BootstrapStatus.Completed ? "completed" : "required"
-        });
+        var status = await identityService.GetBootstrapStatus(cancellationToken);
+        return Ok(IdentityHttpMapping.ToResponse(status));
     }
 
     [HttpPost("bootstrap")]
     [EnableRateLimiting("bootstrap")]
-    public async Task<IActionResult> Bootstrap([FromBody] BootstrapRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Bootstrap(
+        [FromBody] BootstrapRequest request,
+        CancellationToken cancellationToken)
     {
-        var (status, errors, userResponse) = await _identityService.BootstrapAsync(request, cancellationToken);
+        var (status, errors, user) = await identityService.BootstrapAsync(
+            IdentityHttpMapping.ToCommand(request),
+            cancellationToken);
         return status switch
         {
             BootstrapCreationStatus.InvalidBootstrapToken => CannotValidateCredentials(),
@@ -35,26 +35,46 @@ public sealed class IdentityController(IdentityService identityService, ILogger<
             {
                 Status = StatusCodes.Status409Conflict,
                 Title = "El alta inicial ya está cerrada.",
-                Detail = "La primera cuenta de administración ya fue creada."
+                Detail = "La primera cuenta de administración ya fue creada.",
             }),
-            BootstrapCreationStatus.Created => Created("/api/v1/identity/me", userResponse),
-            _ => throw new ArgumentOutOfRangeException()
+            BootstrapCreationStatus.Created => Created("/api/v1/identity/me", IdentityHttpMapping.ToResponse(user!)),
+            _ => throw new ArgumentOutOfRangeException(),
         };
     }
-    
-    private IActionResult CannotValidateCredentials()
+
+    [HttpPost("login")]
+    [EnableRateLimiting("login")]
+    public async Task<IActionResult> Login(
+        [FromBody] LoginRequest request,
+        CancellationToken cancellationToken)
     {
-        return Unauthorized(new ProblemDetails
-        {
-            Status = StatusCodes.Status401Unauthorized,
-            Title = "No se han podido validar las credenciales."
-        });
+        var outcome = await identityService.LoginAsync(
+            IdentityHttpMapping.ToCommand(request),
+            cancellationToken);
+        return outcome is null
+            ? CannotValidateCredentials()
+            : Ok(IdentityHttpMapping.ToSessionResponse(outcome));
     }
 
-    private IActionResult InvalidCredentials(
-        IEnumerable<IdentityAccountValidationErrors> errors)
+    [HttpPost("logout")]
+    [Authorize]
+    public async Task<IActionResult> Logout(CancellationToken cancellationToken)
     {
-        return BadRequest(
-            IdentityValidationProblemFactory.Create(errors));
+        await identityService.LogoutAsync(IdentityHttpMapping.ToCommand(User), cancellationToken);
+        return NoContent();
     }
+
+    [HttpGet("me")]
+    [Authorize]
+    public IActionResult Me() => Ok(IdentityHttpMapping.ToResponse(User));
+
+    private IActionResult CannotValidateCredentials() =>
+        Unauthorized(new ProblemDetails
+        {
+            Status = StatusCodes.Status401Unauthorized,
+            Title = "No se han podido validar las credenciales.",
+        });
+
+    private IActionResult InvalidCredentials(IEnumerable<IdentityAccountValidationErrors> errors) =>
+        BadRequest(IdentityValidationProblemFactory.Create(errors));
 }
