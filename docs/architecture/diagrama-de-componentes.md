@@ -31,30 +31,27 @@ flowchart LR
         middleware["Pipeline HTTP<br/>errores y correlación"]
         status_endpoint["Endpoint de estado<br/>/api/v1/platform/status"]
         health["Health checks<br/>/health/live · /health/ready"]
-        persistence["Persistencia<br/>EF Core y Npgsql"]
-        invitations["Dominio de invitaciones<br/>tipos · estados · token hash"]
-        identity["Identidad y sesiones<br/>password hash · sesión opaca"]
-        identity_endpoints["Endpoints de identidad<br/>bootstrap · login · invitaciones"]
-        outbox["Worker de outbox<br/>token cifrado · reintentos"]
-        email_port["Puerto de correo transaccional"]
-        brevo_adapter["Adaptador HTTP de Brevo"]
+        host["Api Host<br/>composición · middleware"]
+        subgraph access["Módulo Access · un proyecto"]
+            identity_endpoints["Api<br/>contratos y endpoints"]
+            application["Application<br/>commands · queries · puertos"]
+            domain["Domain<br/>cuentas · sesiones · invitaciones · acceso"]
+            infrastructure["Infrastructure<br/>EF Core · auth · outbox · correo"]
+            identity_endpoints --> application
+            application --> domain
+            infrastructure --> application
+            infrastructure --> domain
+        end
         telemetry["Instrumentación<br/>OpenTelemetry"]
 
+        middleware --> host
+        host --> identity_endpoints
         middleware --> status_endpoint
         middleware --> health
-        status_endpoint --> persistence
-        health --> persistence
-        invitations --> email_port
-        middleware --> identity_endpoints
-        identity_endpoints --> identity
-        identity_endpoints --> invitations
-        identity_endpoints --> persistence
-        invitations --> outbox
-        outbox --> email_port
-        email_port --> brevo_adapter
+        status_endpoint --> health
         middleware --> telemetry
         status_endpoint --> telemetry
-        brevo_adapter --> telemetry
+        infrastructure --> telemetry
     end
 
     database[("PostgreSQL")]
@@ -67,11 +64,11 @@ flowchart LR
     status_client -->|"GET /api/v1/platform/status"| nginx
     identity_client -->|"JSON · Authorization Bearer"| nginx
     nginx -->|"proxy /api y /health"| middleware
-    persistence -->|"conexión SQL"| database
+    infrastructure -->|"conexión SQL"| database
     database -->|"estadísticas operativas"| postgres_exporter
     observability -->|"scrape Prometheus"| postgres_exporter
     telemetry -->|"OTLP: logs, métricas y trazas"| observability
-    brevo_adapter -->|"HTTPS · API key solo backend"| brevo
+    infrastructure -->|"HTTPS · API key solo backend"| brevo
 ```
 
 ## Responsabilidades
@@ -80,7 +77,8 @@ flowchart LR
 |---|---|---|
 | Angular | Presentación, navegación y consumo de la API | Autoridad de seguridad o acceso directo a datos |
 | Nginx | Servir el build y mantener `/api` y `/health` bajo el mismo origen | Reglas de dominio |
-| ASP.NET Core | Contratos HTTP, autorización futura, coordinación y diagnóstico | Renderizado del frontend |
+| Api Host | Composición de módulos, middleware transversal, health y diagnóstico | Casos de uso, EF Core o contratos funcionales de Access |
+| Módulo Access | Propiedad de cuentas, sesiones, invitaciones y concesiones actuales de acceso | Consumir internals o tablas de futuros módulos |
 | Dominio de invitaciones | Estados, caducidad de siete días y validación del token de un solo uso | Enviar correo o exponer el token persistido |
 | Identidad y sesiones | Validar credenciales, emitir y revocar sesiones opacas | Permitir autorregistro o guardar tokens de sesión en claro |
 | Worker de outbox | Entregar invitaciones con reintentos y eliminar el ciphertext tras procesarlo | Conceder permisos o registrar destinatarios y tokens |
@@ -95,7 +93,9 @@ flowchart LR
 
 - El navegador solo accede a la API a través de Nginx en el recorrido integrado.
 - Angular no se conecta directamente a PostgreSQL ni al collector de telemetría.
-- El backend es responsable de filtrar la información antes de construir una respuesta HTTP.
+- El host solo accede a la fachada pública de cada módulo; no conoce sus capas internas.
+- Los tests globales impiden dependencias entre implementaciones de módulos y cada proyecto de tests modular protege sus propias capas.
+- Api depende de Application; Application de Domain; Infrastructure implementa los puertos de Application y persiste Domain.
 - El dominio de invitaciones no depende de Brevo; el adaptador implementa un puerto de aplicación.
 - Brevo solo transporta mensajes. El estado funcional de la invitación permanece en el backend y PostgreSQL.
 - La persistencia depende de abstracciones de EF Core; la estructura concreta del dominio se decidirá por separado.
