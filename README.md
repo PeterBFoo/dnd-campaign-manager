@@ -9,8 +9,10 @@ La fundación técnica y el primer flujo de identidad están implementados: boot
 ## Arquitectura actual
 
 - `apps/web`: Angular 22, componentes standalone y modo estricto.
-- `apps/api`: C# y ASP.NET Core 10 LTS.
-- `apps/api-tests`: pruebas de integración del backend.
+- `apps/api`: host ASP.NET Core 10 LTS, limitado a composición y pipeline transversal.
+- `src/Modules/Access/DndCampaign.Modules.Access`: módulo de acceso; un único proyecto con capas internas.
+- `tests/Modules/Access/DndCampaign.Modules.Access.Tests`: tests unitarios, integración, componente y arquitectura propios de Access.
+- `tests/DndCampaign.ArchitectureTests`: fitness functions globales entre módulos y host.
 - PostgreSQL 18 como persistencia primaria.
 - OpenTelemetry para logs, métricas y trazas.
 - Grafana LGTM local: Collector, Prometheus, Tempo, Loki y Grafana.
@@ -21,6 +23,7 @@ La decisión de plataforma está documentada en:
 - [ADR-0001: monorepositorio, plataforma y observabilidad](docs/adr/0001-monorepositorio-y-monolito-modular.md)
 - [ADR-0002: identidad, invitaciones y correo transaccional](docs/adr/0002-identidad-invitaciones-y-correo-transaccional.md)
 - [ADR-0003: bootstrap, sesiones y flujo funcional](docs/adr/0003-bootstrap-sesiones-y-flujo-de-invitaciones.md)
+- [ADR-0004: arquitectura modular, CQRS y límites](docs/adr/0004-arquitectura-modular-cqrs-y-limites-de-dependencia.md)
 
 La arquitectura resultante se representa, de lo lógico a lo físico, en:
 
@@ -60,6 +63,7 @@ Servicios locales:
 | API ASP.NET Core | http://localhost:8080/api/v1/platform/status |
 | Liveness | http://localhost:8080/health/live |
 | Readiness | http://localhost:8080/health/ready |
+| Swagger UI — solo Development | http://localhost:8080/swagger |
 | Grafana | http://localhost:3000 |
 | PostgreSQL | localhost:5432 |
 | OTLP gRPC / HTTP | localhost:4317 / localhost:4318 |
