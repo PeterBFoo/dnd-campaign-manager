@@ -11,19 +11,18 @@ La API seguirá siendo un único monolito desplegable y el código funcional act
 
 ## Estructura objetivo
 
-Se conservará `apps/api` como host para evitar cambios innecesarios en Docker y despliegue. El proyecto del módulo se ubicará fuera de su árbol de compilación automática:
+Se conservará `apps/api` como aplicación desplegable. El proyecto del módulo se ubicará dentro de `apps/api/Modules` y el host excluirá ese árbol de su compilación implícita para mantener ensamblados independientes:
 
 ```text
 apps/
-  api/                                      host ASP.NET Core
-
-src/
-  Modules/Access/
-    DndCampaign.Modules.Access/
-      Api/
-      Application/
-      Domain/
-      Infrastructure/
+  api/                                      aplicación ASP.NET Core
+    DndCampaign.Api.csproj                  host y composition root
+    Modules/Access/
+      DndCampaign.Modules.Access/
+        Api/
+        Application/
+        Domain/
+        Infrastructure/
 
 tests/
   DndCampaign.ArchitectureTests/

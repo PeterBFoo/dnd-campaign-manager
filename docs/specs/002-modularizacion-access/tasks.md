@@ -63,7 +63,7 @@ Una tarea solo puede marcarse como completada cuando cumple todos sus criterios,
 
 **Trabajo:**
 
-- Crear `DndCampaign.Modules.Access` bajo `src/Modules/Access`, con carpetas Domain, Application, Infrastructure y Api.
+- Crear `DndCampaign.Modules.Access` bajo `apps/api/Modules/Access`, con carpetas Domain, Application, Infrastructure y Api.
 - Añadirlo a `DndCampaign.slnx` y eliminar los proyectos por capa.
 - Mantener `apps/api` como host y composition root.
 - Centralizar propiedades comunes en `Directory.Build.props` sin añadir dependencias transversales innecesarias.

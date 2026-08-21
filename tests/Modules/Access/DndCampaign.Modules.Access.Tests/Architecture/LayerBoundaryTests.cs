@@ -18,7 +18,8 @@ public sealed class LayerBoundaryTests
     {
         var apiDirectory = Path.Combine(
             FindRepositoryRoot(),
-            "src",
+            "apps",
+            "api",
             "Modules",
             "Access",
             "DndCampaign.Modules.Access",
@@ -44,7 +45,14 @@ public sealed class LayerBoundaryTests
         string layer,
         params string[] forbiddenTokens)
     {
-        var layerDirectory = Path.Combine(FindRepositoryRoot(), "src", "Modules", "Access", "DndCampaign.Modules.Access", layer);
+        var layerDirectory = Path.Combine(
+            FindRepositoryRoot(),
+            "apps",
+            "api",
+            "Modules",
+            "Access",
+            "DndCampaign.Modules.Access",
+            layer);
         var violations = Directory.EnumerateFiles(layerDirectory, "*.cs", SearchOption.AllDirectories)
             .SelectMany(file => forbiddenTokens
                 .Where(token => !string.IsNullOrEmpty(token) && File.ReadAllText(file).Contains(token, StringComparison.Ordinal))

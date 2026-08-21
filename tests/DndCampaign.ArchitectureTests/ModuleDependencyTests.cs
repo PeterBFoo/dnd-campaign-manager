@@ -11,9 +11,16 @@ public sealed class ModuleDependencyTests
     private static readonly Assembly Host = typeof(Program).Assembly;
 
     [Fact]
+    public void Backend_modules_live_inside_the_api_application()
+    {
+        Assert.True(Directory.Exists(GetModulesDirectory()));
+        Assert.False(Directory.Exists(Path.Combine(FindRepositoryRoot(), "src", "Modules")));
+    }
+
+    [Fact]
     public void Each_module_is_exactly_one_project()
     {
-        var modulesDirectory = Path.Combine(FindRepositoryRoot(), "src", "Modules");
+        var modulesDirectory = GetModulesDirectory();
         var violations = Directory.EnumerateDirectories(modulesDirectory)
             .Select(module => new
             {
@@ -30,7 +37,7 @@ public sealed class ModuleDependencyTests
     [Fact]
     public void Module_projects_do_not_reference_other_projects()
     {
-        var modulesDirectory = Path.Combine(FindRepositoryRoot(), "src", "Modules");
+        var modulesDirectory = GetModulesDirectory();
         var violations = Directory.EnumerateFiles(modulesDirectory, "*.csproj", SearchOption.AllDirectories)
             .SelectMany(project => XDocument.Load(project)
                 .Descendants("ProjectReference")
@@ -68,6 +75,7 @@ public sealed class ModuleDependencyTests
     public void Host_only_uses_module_facades()
     {
         var hostDirectory = Path.Combine(FindRepositoryRoot(), "apps", "api");
+        var modulesDirectory = Path.Combine(hostDirectory, "Modules") + Path.DirectorySeparatorChar;
         var forbidden = new[]
         {
             "DndCampaign.Modules.Access.Api",
@@ -78,6 +86,7 @@ public sealed class ModuleDependencyTests
         };
         var violations = Directory.EnumerateFiles(hostDirectory, "*.cs", SearchOption.AllDirectories)
             .Where(file => !file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .Where(file => !file.StartsWith(modulesDirectory, StringComparison.Ordinal))
             .SelectMany(file => forbidden
                 .Where(token => File.ReadAllText(file).Contains(token, StringComparison.Ordinal))
                 .Select(token => $"{Path.GetRelativePath(hostDirectory, file)} -> {token}"))
@@ -85,6 +94,11 @@ public sealed class ModuleDependencyTests
 
         Assert.True(violations.Length == 0, string.Join(Environment.NewLine, violations));
     }
+
+    [Fact]
+    public void Host_does_not_compile_module_sources() => Assert.DoesNotContain(
+        Host.DefinedTypes,
+        type => type.Namespace?.StartsWith("DndCampaign.Modules.", StringComparison.Ordinal) == true);
 
     [Fact]
     public void Module_graph_is_acyclic()
@@ -146,4 +160,7 @@ public sealed class ModuleDependencyTests
         return current?.FullName
             ?? throw new DirectoryNotFoundException("Could not locate the repository root.");
     }
+
+    private static string GetModulesDirectory() =>
+        Path.Combine(FindRepositoryRoot(), "apps", "api", "Modules");
 }

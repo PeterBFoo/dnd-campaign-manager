@@ -15,6 +15,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../src/Modules/Access/DndCampaign.Modules.Access/DndCampaign.Modules.Access.csproj" />
+    <ProjectReference Include="Modules/Access/DndCampaign.Modules.Access/DndCampaign.Modules.Access.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Modules/**/*.cs" />
+    <Content Remove="Modules/**/*" />
+    <EmbeddedResource Remove="Modules/**/*" />
+    <None Remove="Modules/**/*" />
   </ItemGroup>
 </Project>

@@ -71,28 +71,26 @@ La estructura lógica será:
 apps/
   api/
     Program.cs
-
-src/
-  Modules/Access/
-    DndCampaign.Modules.Access/
-      Domain/
-        Accounts/
-        Sessions/
-        Invitations/
-        CampaignAccess/
-      Application/
-        Bootstrap/
-        Identity/
-        Invitations/
-        Ports/
-      Infrastructure/
-        Authentication/
-        Email/
-        Outbox/
-        Persistence/
-      Api/
-        Controllers/
-        Contracts/
+    Modules/Access/
+      DndCampaign.Modules.Access/
+        Domain/
+          Accounts/
+          Sessions/
+          Invitations/
+          CampaignAccess/
+        Application/
+          Bootstrap/
+          Identity/
+          Invitations/
+          Ports/
+        Infrastructure/
+          Authentication/
+          Email/
+          Outbox/
+          Persistence/
+        Api/
+          Controllers/
+          Contracts/
 
 tests/
   DndCampaign.ArchitectureTests/
