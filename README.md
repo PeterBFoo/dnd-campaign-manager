@@ -9,8 +9,8 @@ La fundación técnica y el primer flujo de identidad están implementados: boot
 ## Arquitectura actual
 
 - `apps/web`: Angular 22, componentes standalone y modo estricto.
-- `apps/api`: host ASP.NET Core 10 LTS, limitado a composición y pipeline transversal.
-- `src/Modules/Access/DndCampaign.Modules.Access`: módulo de acceso; un único proyecto con capas internas.
+- `apps/api`: aplicación ASP.NET Core 10 LTS; contiene el host y sus módulos desplegados conjuntamente.
+- `apps/api/Modules/Access/DndCampaign.Modules.Access`: módulo de acceso; un único proyecto con capas internas.
 - `tests/Modules/Access/DndCampaign.Modules.Access.Tests`: tests unitarios, integración, componente y arquitectura propios de Access.
 - `tests/DndCampaign.ArchitectureTests`: fitness functions globales entre módulos y host.
 - PostgreSQL 18 como persistencia primaria.
