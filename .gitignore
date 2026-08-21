@@ -4,6 +4,8 @@
 !.env.example
 secrets/
 deploy/secrets/
+.debug/
+.vscode/
 *.pem
 *.key
 *.p12

@@ -1,6 +1,8 @@
 using DndCampaign.Api.Application.Identity;
 using Microsoft.AspNetCore.Mvc;
 
+namespace DndCampaign.Api.Api;
+
 public static class IdentityValidationProblemFactory
 {
     public static ValidationProblemDetails Create(

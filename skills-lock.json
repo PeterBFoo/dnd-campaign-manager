@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "skills": {
+    "angular-developer": {
+      "source": "angular/skills",
+      "sourceType": "github",
+      "skillPath": "angular-developer/SKILL.md",
+      "computedHash": "b347918e4684319dabde773c882cce231a738454166a221684f991a6197749eb"
+    },
+    "arch-check": {
+      "source": "codewithmukesh/dotnet-claude-kit",
+      "sourceType": "github",
+      "skillPath": "skills/arch-check/SKILL.md",
+      "computedHash": "8e81e8dca97f3fad983af16c751395895d5e153f91d389b92e2e845ee39d7b0b"
+    },
+    "clean-architecture": {
+      "source": "codewithmukesh/dotnet-claude-kit",
+      "sourceType": "github",
+      "skillPath": "skills/clean-architecture/SKILL.md",
+      "computedHash": "009579b0785dccb1a65a08d0a1f8480c0538cfa89a26f8554145f35ab2c6ed7e"
+    },
+    "dotnet-webapi": {
+      "source": "dotnet/skills",
+      "sourceType": "github",
+      "skillPath": "plugins/dotnet-aspnetcore/skills/dotnet-webapi/SKILL.md",
+      "computedHash": "9f9ca386ddefb34ebeaf269c6a7dac0bd0a8e9ea901ad5c489cd4d5e7c61fb22"
+    },
+    "ef-core": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/ef-core/SKILL.md",
+      "computedHash": "23f0a7c7e8c050337d67303f0af339da1ab8f0aa6a334f13112c3f85250c329c"
+    },
+    "httpclient-factory": {
+      "source": "codewithmukesh/dotnet-claude-kit",
+      "sourceType": "github",
+      "skillPath": "skills/httpclient-factory/SKILL.md",
+      "computedHash": "ebc81d5ba54712087659536ee64acbe9564cddee491c4c7685306a3c47015983"
+    }
+  }
+}

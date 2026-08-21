@@ -1,0 +1,168 @@
+schema: spec-driven
+
+context: |
+  Repository type: monorepo.
+
+  Main components:
+  - Backend API: C# / ASP.NET Core.
+  - Frontend: Angular.
+  - Database: PostgreSQL.
+  - ORM: Entity Framework Core.
+  - Observability: Prometheus + Grafana.
+  - PostgreSQL metrics: postgres_exporter.
+  - Infrastructure: Microsoft Azure.
+  - Infrastructure as Code: Terraform.
+
+  General architecture:
+  - Keep clear boundaries between frontend, backend, database, observability and infrastructure.
+  - Changes must identify which monorepo components are affected.
+  - Do not introduce cross-component coupling without an explicit architectural justification.
+  - Prefer simple implementations over unnecessary abstractions.
+  - Do not introduce libraries, patterns or infrastructure solely because they are common best practices.
+  - Existing architecture and conventions take precedence over generic framework recommendations.
+
+  Backend architecture:
+  - The API follows Clean Architecture.
+  - Dependencies must point inward.
+  - Domain contains business rules, entities, value objects and domain invariants.
+  - Domain must not depend on ASP.NET Core, Entity Framework Core, PostgreSQL or infrastructure concerns.
+  - Application contains use cases and orchestration.
+  - Infrastructure contains Entity Framework Core, PostgreSQL persistence, external integrations and infrastructure implementations.
+  - API is the HTTP transport layer.
+  - Controllers/endpoints must remain thin.
+  - Controllers must not contain business logic.
+  - Controllers must not contain Entity Framework queries.
+  - Controllers must not implement transactions or orchestration logic.
+  - Controllers should validate the HTTP boundary, invoke an application use case and map the result to an HTTP response.
+  - Business validation belongs in Domain or Application depending on whether it represents a domain invariant or use-case validation.
+  - EF Core entities/configuration must not leak persistence concerns into the Domain layer.
+  - Prefer explicit request and response DTOs at the API boundary.
+  - Use async APIs for I/O operations and propagate CancellationToken where appropriate.
+  - Avoid catch(Exception) unless the exception is handled meaningfully.
+  - Prefer centralized exception handling and ProblemDetails for API errors.
+  - Do not expose internal exception details to API consumers.
+
+  Backend design principles:
+  - Apply SOLID pragmatically.
+  - Prefer composition over inheritance.
+  - Avoid god services and god controllers.
+  - Keep classes focused around one responsibility.
+  - Avoid unnecessary generic repositories when Entity Framework Core already provides the required abstraction.
+  - Avoid speculative abstractions.
+  - Use dependency injection for infrastructure dependencies.
+  - Validate configuration on startup where practical.
+  - Do not store secrets in source code.
+
+  Application architecture:
+  - Model application behaviour around explicit use cases.
+  - A use case may be implemented using application services, commands/queries or handlers depending on existing project conventions.
+  - Mediator/CQRS is an implementation option, not a mandatory architecture requirement.
+  - Do not introduce a mediator simply to move every method behind Send().
+  - Use commands and queries when they improve separation, testing or complexity management.
+
+  Resilience:
+  - Apply resilience patterns only at boundaries where failures can actually occur.
+  - External HTTP/service dependencies should define appropriate timeout behaviour.
+  - Retries must only be used for transient failures and safe/idempotent operations.
+  - Circuit breakers should protect remote dependencies where repeated failures could cascade.
+  - Do not apply circuit breakers to normal in-process method calls.
+  - Avoid retry storms by combining retry policies with timeouts and circuit breaking appropriately.
+
+  Database:
+  - PostgreSQL is the primary relational database.
+  - Entity Framework Core is the ORM.
+  - Database changes must use explicit migrations.
+  - Review schema changes for compatibility, locking and potential data loss.
+  - Avoid N+1 queries and unnecessary entity loading.
+  - Prefer projections for read operations when full entities are not required.
+  - Define transactional boundaries at application/use-case level when an operation must be atomic.
+  - Consider optimistic concurrency when concurrent updates can occur.
+
+  Frontend architecture:
+  - Angular code should be organised primarily by feature rather than by technical type globally.
+  - Route-level UI should normally be represented by page/container components.
+  - A feature may contain:
+      pages/
+      components/
+      data-access/
+      models/
+      services/
+  - pages/ represents routed screens and orchestrates the feature.
+  - components/ contains reusable presentational components belonging to the feature.
+  - data-access/ contains API communication and feature-specific state/data orchestration when needed.
+  - Shared components should only be moved to a shared area when they are genuinely reused by multiple features.
+  - Avoid large global shared modules containing unrelated functionality.
+  - Prefer standalone Angular components when supported by the project's Angular version.
+  - Prefer component composition.
+  - Keep HTTP communication outside presentational components.
+  - Page components may coordinate UI state but substantial business/application logic should live outside the template/component.
+  - Prefer Signals for local reactive state when appropriate for the installed Angular version.
+  - Use RxJS when modelling asynchronous streams actually benefits from stream composition.
+  - Do not introduce global state management for state that can remain local to a feature.
+  - Lazy load route-level features where appropriate.
+
+  Observability:
+  - Prometheus is responsible for metrics collection.
+  - Grafana is responsible for querying configured data sources and visualising dashboards.
+  - postgres_exporter exposes PostgreSQL metrics for Prometheus.
+  - Application changes should consider useful operational metrics when they introduce critical flows.
+  - Avoid high-cardinality metric labels.
+  - Logs, metrics and traces must never contain secrets or sensitive credentials.
+  - Infrastructure/observability changes must identify affected dashboards, alerts and exporters.
+
+  Infrastructure:
+  - Production infrastructure is deployed in Azure.
+  - Terraform is the source of truth for infrastructure provisioning.
+  - Do not propose manual Azure configuration when the resource can and should be managed by Terraform.
+  - Infrastructure changes should remain reproducible and declarative.
+  - Do not commit secrets, Terraform state containing secrets or credentials.
+  - Changes to infrastructure must consider deployment and rollback behaviour.
+
+  Cross-cutting:
+  - Security, observability, concurrency, resilience and error handling are cross-cutting concerns and should not be duplicated ad hoc in controllers/components.
+  - New abstractions require an identifiable problem they solve.
+  - New architectural patterns should include the rationale and trade-offs.
+  - Breaking API or database changes require explicit justification and migration strategy.
+
+rules:
+  proposal:
+    - Identify the affected monorepo components: API, Angular, PostgreSQL, observability and/or Terraform.
+    - Describe the user or system problem before proposing implementation details.
+    - Explicitly identify breaking API, schema or infrastructure changes.
+    - Include migration or rollout considerations when the change affects persistence or infrastructure.
+    - Avoid proposing new architectural patterns unless the problem requires them.
+
+  specs:
+    - Describe observable behaviour rather than implementation details.
+    - Use Given/When/Then style scenarios where practical.
+    - Include relevant successful, validation and failure scenarios.
+    - Include authorization/security scenarios when the behaviour is protected.
+    - Include concurrency or idempotency scenarios when multiple requests may affect the same resource.
+    - Do not mention Controller, EF Core, Mediator, Terraform or concrete implementation mechanisms unless they are part of the external contract.
+
+  design:
+    - Identify every affected monorepo component.
+    - Explain the end-to-end flow before describing individual classes.
+    - Preserve Clean Architecture dependency boundaries.
+    - Explicitly state which layer owns each new responsibility.
+    - Controllers/endpoints must remain HTTP adapters and must not contain business logic or persistence logic.
+    - Explain whether application logic belongs in a use case, handler, application service, domain service or domain entity.
+    - If introducing Mediator/CQRS, explain why it improves this use case rather than applying it mechanically.
+    - For external dependencies, evaluate timeout, retry, circuit breaker and idempotency requirements.
+    - For database changes, document transaction boundaries, concurrency behaviour and required EF Core migrations.
+    - For Angular changes, describe the feature, page/container components, child components and data-access boundaries.
+    - For Terraform changes, identify affected Azure resources and deployment implications.
+    - For operationally important flows, describe required metrics and observability.
+    - Document significant architectural decisions and rejected alternatives when trade-offs are non-trivial.
+
+  tasks:
+    - Group implementation tasks by affected monorepo component.
+    - Keep API transport, Application, Domain and Infrastructure tasks separated when applicable.
+    - Include unit tests for domain/application behaviour.
+    - Include integration tests for persistence or HTTP behaviour when relevant.
+    - Include EF Core migration creation and verification for database schema changes.
+    - Include Angular build and tests for frontend changes.
+    - Include dotnet build and dotnet test verification for backend changes.
+    - Include terraform fmt, terraform validate and terraform plan for infrastructure changes.
+    - Include observability/dashboard changes when introducing operationally important behaviour.
+    - Finish with a verification task covering the complete acceptance criteria.
