@@ -5,7 +5,8 @@ La documentación del proyecto forma parte del mismo repositorio que el código 
 ## Secciones
 
 - [`adr/`](adr/README.md): decisiones arquitectónicas aceptadas, sustituidas o rechazadas.
-- [`specs/`](specs/README.md): especificaciones funcionales, planes de implementación y tareas.
+- [`roadmap/`](roadmap/README.md): alcance funcional completo, secuencia y trazabilidad del producto.
+- [`specs/`](specs/README.md): incrementos acotados con especificaciones, planes de implementación y tareas.
 - `architecture/`: vistas generales y diagramas de arquitectura.
 - `runbooks/`: procedimientos de despliegue, restauración y respuesta ante incidencias.
 

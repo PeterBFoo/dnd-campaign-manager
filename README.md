@@ -4,7 +4,7 @@ Aplicación web para preparar y dirigir campañas con estado narrativo persisten
 
 ## Estado
 
-La fundación técnica y el primer flujo de identidad están implementados: bootstrap del administrador, acceso con credenciales e invitaciones de plataforma y campaña. Los incrementos posteriores seguirán el flujo Spec-Driven Development descrito en [la guía de especificaciones](docs/specs/README.md).
+La fundación técnica y el primer flujo de identidad están implementados: bootstrap del administrador, acceso con credenciales e invitaciones de plataforma y campaña. El [roadmap de producto](docs/roadmap/product-roadmap.md) mantiene el alcance completo y cada capacidad se implementa mediante un incremento independiente siguiendo [la guía de especificaciones](docs/specs/README.md).
 
 ## Arquitectura actual
 

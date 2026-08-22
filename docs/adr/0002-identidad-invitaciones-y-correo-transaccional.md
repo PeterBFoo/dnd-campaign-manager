@@ -4,7 +4,7 @@
 - Fecha: 2026-08-19
 - Decisores: equipo del proyecto
 - Alcance: alta de usuarios, invitaciones y entrega de correo transaccional
-- Depende de: ADR-0001 y Especificación 001
+- Depende de: ADR-0001 y [roadmap funcional](../roadmap/product-roadmap.md), antes denominado Especificación 001
 
 ## Contexto
 

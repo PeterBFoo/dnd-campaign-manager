@@ -1,6 +1,8 @@
-# Especificaciones y flujo SDD
+# Especificaciones de incremento y flujo SDD
 
-Cada capacidad funcional o técnica se desarrolla a partir de una especificación versionada en este directorio.
+Cada capacidad funcional o técnica se desarrolla a partir de una especificación versionada en este directorio. El alcance completo del producto, su secuencia y su trazabilidad se mantienen aparte en el [roadmap de producto](../roadmap/product-roadmap.md).
+
+El roadmap no es un spec implementable. Para iniciar un módulo se selecciona un incremento acotado del roadmap y se crea un nuevo directorio `NNN-nombre`; no se redacta un plan ni se modifica código directamente a partir del roadmap.
 
 ## Estructura
 
@@ -13,7 +15,7 @@ docs/specs/NNN-nombre/
 
 ### `spec.md`
 
-Define el problema, objetivo, alcance, actores, reglas, criterios de aceptación, observabilidad y elementos fuera de alcance. No contiene detalles accidentales de implementación salvo que sean una restricción aceptada.
+Define el problema, objetivo, alcance, actores, reglas, criterios de aceptación, observabilidad y elementos fuera de alcance. Enlaza los requisitos `RF-*` del roadmap y declara sus dependencias con otros specs. No contiene detalles accidentales de implementación salvo que sean una restricción aceptada.
 
 ### `plan.md`
 
@@ -25,22 +27,33 @@ Descompone el plan aprobado en tareas pequeñas, ordenadas y verificables. Cada 
 
 ## Ciclo de vida
 
-1. Redactar y revisar `spec.md`.
-2. Aceptar o rechazar las decisiones abiertas.
-3. Crear los ADR transversales necesarios.
-4. Redactar `plan.md`.
-5. Descomponer el plan en `tasks.md`.
-6. Implementar junto con pruebas y telemetría.
-7. Verificar los criterios de aceptación.
-8. Actualizar documentación, ADR y runbooks afectados.
+1. Seleccionar en el roadmap una capacidad vertical acotada y comprobar sus dependencias.
+2. Auditar el código y los specs existentes para evitar duplicar comportamiento ya implementado.
+3. Crear y revisar `spec.md`, incluyendo trazabilidad `RF-*` y alcance de frontend y API.
+4. Aceptar o rechazar las decisiones abiertas.
+5. Crear los ADR transversales necesarios.
+6. Redactar `plan.md`.
+7. Descomponer el plan en `tasks.md`.
+8. Implementar junto con pruebas y telemetría.
+9. Verificar los criterios de aceptación.
+10. Actualizar el roadmap, este índice, la documentación, los ADR y los runbooks afectados.
+
+## Tamaño y límites de un incremento
+
+- Debe producir una capacidad demostrable de principio a fin y poder verificarse independientemente.
+- Debe asignar ownership explícito en `apps/web` y `apps/api`; una excepción debe quedar justificada en el spec.
+- No debe agrupar varios dominios solo porque aparezcan juntos en el roadmap.
+- Las dependencias transversales se resuelven mediante contratos o ADR, no ampliando silenciosamente el alcance.
+- Las preguntas del roadmap se resuelven en el primer spec que necesite la respuesta.
 
 ## Especificaciones
 
 | Especificación | Estado | Alcance |
 |---|---|---|
-| [001: requisitos funcionales base](001-requisitos-funcionales-base/spec.md) | Borrador para validación | Identidad, campañas, módulos de aventura y herramientas comunes de juego |
-| [002: modularización de Access](002-modularizacion-access/spec.md) | Aceptada | Extracción modular de la API actual, CQRS ligero y límites arquitectónicos verificables |
-| [003: modularización del frontend](003-modularizacion-frontend/spec.md) | Aceptada | Organización Angular por capacidades, APIs públicas y crecimiento alineado semánticamente con la API |
+| [002: modularización de Access](002-modularizacion-access/spec.md) | Aceptada; implementación en curso | Extracción modular de la API actual, CQRS ligero y límites arquitectónicos verificables |
+| [003: modularización del frontend](003-modularizacion-frontend/spec.md) | Completada | Organización Angular por capacidades, APIs públicas y crecimiento alineado semánticamente con la API |
+
+El antiguo documento `001` se conserva como origen histórico de requisitos, pero ahora es el [roadmap de producto](../roadmap/product-roadmap.md) y no forma parte de la cola de specs ejecutables. El siguiente identificador disponible es `004`.
 
 ## Definición de terminado
 

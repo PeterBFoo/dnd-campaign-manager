@@ -1,13 +1,57 @@
-# Especificación 001: requisitos funcionales base
+# Roadmap funcional del producto
 
-- Estado: Borrador para validación
-- Fecha: 2026-08-19
+- Tipo: fuente de roadmap; no es una especificación ejecutable
+- Origen: antigua Especificación 001 de requisitos funcionales base
+- Creado: 2026-08-19
+- Última auditoría de implementación: 2026-08-22
 - Alcance: identidad, alta por invitación, campañas, módulos de aventura y herramientas comunes de juego
-- ADR relacionados: [ADR-0002](../../adr/0002-identidad-invitaciones-y-correo-transaccional.md) y [ADR-0003](../../adr/0003-bootstrap-sesiones-y-flujo-de-invitaciones.md), limitados a las decisiones de identidad e invitaciones ya confirmadas
+- ADR relacionados: [ADR-0002](../adr/0002-identidad-invitaciones-y-correo-transaccional.md) y [ADR-0003](../adr/0003-bootstrap-sesiones-y-flujo-de-invitaciones.md), limitados a las decisiones de identidad e invitaciones ya confirmadas
 
 ## Objetivo
 
-Definir qué debe hacer el producto antes de decidir cómo se implementarán la identidad, la autorización, el modelo de campaña o la gestión del contenido. Esta especificación no incorpora contenido concreto de una campaña ni publica recursos editoriales de ningún módulo de aventura.
+Definir qué debe hacer el producto, cómo se agrupan sus capacidades y en qué orden pueden convertirse en incrementos independientes. Este documento no se implementa directamente, no incorpora contenido concreto de una campaña y no publica recursos editoriales de ningún módulo de aventura.
+
+Cada entrega se define en un spec separado bajo [`docs/specs`](../specs/README.md). El spec selecciona un subconjunto coherente de requisitos `RF-*`, concreta las decisiones que necesita y entrega conjuntamente la experiencia web y el contrato de API necesarios.
+
+## Estado actual de implementación
+
+La tabla distingue comportamiento disponible de extremo a extremo de infraestructura o modelos que todavía no forman una capacidad utilizable.
+
+| Área del roadmap | Requisitos | Estado | Evidencia y límite actual |
+|---|---|---|---|
+| Identidad y sesión | RF-001 | Implementado | Login, logout, sesión bearer y usuario actual existen en web y API. |
+| Roles, aislamiento e incorporación a campaña | RF-002 a RF-004 | Parcial | Access modela membresías `DM`/`Jugador`, autoriza la gestión de invitaciones y concede membresía de jugador; todavía no existe el módulo Campaigns ni un recorrido productivo que cree al DM. |
+| Personajes y contexto activo | RF-005 a RF-009 | Pendiente | No hay modelo, API ni interfaz de personajes; la unicidad del DM tampoco está integrada con el ciclo de vida de una campaña. |
+| Campañas y catálogo de módulos | RF-010 a RF-015 | Pendiente | No hay endpoints, persistencia ni pantallas de campañas o módulos de aventura. |
+| Librería y NPC | RF-020 a RF-026 | Pendiente | Sin implementación productiva. |
+| Bitácora | RF-030 a RF-035 | Pendiente | Sin implementación productiva. |
+| Calendario y misiones | RF-040 a RF-045 | Pendiente | Sin implementación productiva. |
+| Iniciativa de combate | RF-050 a RF-057 | Pendiente | Sin implementación productiva. |
+| Capítulos y recursos | RF-060 a RF-066 | Pendiente | Solo están documentadas las restricciones editoriales y legales; no existe capacidad funcional. |
+| Alta e invitaciones de plataforma | RF-069 a RF-072 | Implementado | Bootstrap inicial, panel de administración, registro por invitación y alta sin acceso a campañas están disponibles. El bootstrap de la primera cuenta es la excepción deliberada a RF-069 definida por ADR-0003. |
+| Creación y DM de campaña | RF-073 y RF-074 | Pendiente | Depende del futuro módulo Campaigns. |
+| Invitaciones de campaña | RF-075 a RF-082 | Parcial | API, UI, estados, tokens, aceptación y controles de rol están implementados y probados con membresías preparadas en tests; falta conectarlos a campañas creadas por el producto. |
+
+La arquitectura Angular por capacidades del [spec 003](../specs/003-modularizacion-frontend/spec.md) está completada. La extracción modular de Access del [spec 002](../specs/002-modularizacion-access/spec.md) continúa en curso y debe cerrarse según sus propias tareas antes de considerar terminada esa mejora técnica.
+
+## Incrementos previstos por módulo
+
+Esta secuencia orienta los próximos specs, pero no sustituye sus decisiones ni sus criterios de aceptación. Cada fila debe convertirse en uno o más specs verticales si no cabe de forma segura en un solo incremento.
+
+| Orden | Módulo de software | Capacidad candidata | Requisitos principales | Dependencias |
+|---:|---|---|---|---|
+| 0 | Access | Terminar su modularización técnica y verificación | Sin ampliar alcance funcional | Spec 002 |
+| 1 | AdventureModules | Catálogo mínimo de módulos seleccionables, sin contenido editorial protegido | RF-013 y base de RF-010/RF-011 | Access estable |
+| 2 | Campaigns | Crear y consultar campañas, asociarlas a un módulo y asignar un único DM | RF-009 a RF-011, RF-014, RF-015, RF-073, RF-074 | AdventureModules |
+| 3 | Access + Campaigns | Integrar las invitaciones existentes con campañas reales y cerrar su recorrido end-to-end | RF-002 a RF-004, RF-075 a RF-082 | Campaigns |
+| 4 | Characters | Crear, asociar, listar y seleccionar el personaje activo | RF-005 a RF-008, RF-012, RF-020 | Campaigns |
+| 5 | Library | Catálogo de NPC, desbloqueo por campaña y vistas diferenciadas | RF-021 a RF-026 | Campaigns, AdventureModules |
+| 6 | AdventureContent | Capítulos y recursos de dirección con procedencia verificable | RF-060 a RF-066 | Campaigns, AdventureModules |
+| 7 | Journal | Bitácora por campaña y referencias seguras a NPC visibles | RF-030 a RF-035 | Characters, Library |
+| 8 | Missions | Calendario, misiones y unicidad de la misión principal | RF-040 a RF-045 | Campaigns, Characters |
+| 9 | Combat | Iniciativa, turnos, rondas, enemigos y proyección segura para jugadores | RF-050 a RF-057 | Campaigns, Characters |
+
+El siguiente spec disponible es el `004`. Debe elegirse a partir del primer incremento preparado para comenzar; no se crean de antemano specs vacíos para todas las filas.
 
 ## Restricciones tecnológicas aceptadas
 
@@ -204,7 +248,7 @@ La referencia de cumplimiento será la [Política de contenido de fans de Wizard
 
 ## Decisiones funcionales pendientes
 
-Estas preguntas deben resolverse antes de aceptar la especificación y redactar el siguiente ADR:
+Cada pregunta debe resolverse en el primer spec que dependa de ella y, si la decisión es transversal o difícil de revertir, en un ADR asociado:
 
 1. **Resuelto en ADR-0003.** La primera administración utiliza un secreto de bootstrap de un solo uso funcional y el endpoint se cierra cuando existe cualquier cuenta.
 2. **Resuelto en ADR-0003.** El reenvío rota la invitación, exige 15 minutos entre emisiones y admite como máximo cinco en 24 horas para una misma dirección y contexto.
@@ -230,6 +274,12 @@ Estas preguntas deben resolverse antes de aceptar la especificación y redactar 
 - publicación de contenido editorial protegido o información específica de una campaña;
 - decisiones de persistencia, API, sincronización en tiempo real o almacenamiento de imágenes, que deberán justificarse después mediante plan o ADR.
 
-## Condición de aceptación
+## Gobierno y actualización
 
-Esta especificación pasará a `Aceptada` cuando las decisiones funcionales pendientes que afecten al alcance inicial tengan respuesta explícita y los criterios de aceptación representen el comportamiento esperado por DM y jugadores. Solo entonces se redactarán los ADR necesarios y el plan de implementación.
+Este roadmap no pasa a estado `Aceptado` ni genera un único plan de implementación. Evoluciona durante toda la vida del producto.
+
+- Un requisito solo se marca implementado cuando el spec correspondiente está terminado y existe evidencia en código y pruebas.
+- El estado parcial debe explicar qué recorrido falta; no equivale a una entrega completa.
+- Los cambios de alcance actualizan primero este documento y después se concretan en un spec independiente.
+- Las decisiones abiertas permanecen aquí hasta que un spec o ADR las resuelva y enlace la respuesta.
+- Los criterios transversales se reparten entre specs y cada uno incorpora solo los que pueda verificar de extremo a extremo.
