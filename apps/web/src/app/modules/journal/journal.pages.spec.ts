@@ -83,8 +83,11 @@ describe('journal pages', () => {
     const fixture = TestBed.createComponent(JournalPage);
     fixture.detectChanges();
 
-    fixture.componentInstance.content.setValue('Entrada nueva');
-    fixture.componentInstance.submit();
+    const textarea = fixture.nativeElement.querySelector('textarea') as HTMLTextAreaElement;
+    textarea.value = 'Entrada nueva';
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    const form = fixture.nativeElement.querySelector('form') as HTMLFormElement;
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     fixture.detectChanges();
 
     expect(journal.create).toHaveBeenCalledWith('campaign-1', 'Entrada nueva');

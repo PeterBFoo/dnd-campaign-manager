@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
 
@@ -39,6 +39,7 @@ export class JournalPage implements OnInit {
     nonNullable: true,
     validators: [Validators.required, Validators.maxLength(5_000)],
   });
+  readonly form = new FormGroup({ content: this.content });
   readonly currentUserId = computed(() => this.session.user()?.id ?? '');
   readonly isPlayer = computed(() => this.campaign()?.role === 'player');
   readonly hasActiveCharacter = computed(() => this.characters().some((character) =>

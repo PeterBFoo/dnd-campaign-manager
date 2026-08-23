@@ -13,14 +13,14 @@
   @if (loading()) { <p class="muted">Cargando bitácora…</p> }
   @else {
     @if (canShowForm()) {
-      <form class="panel journal-form" (ngSubmit)="submit()">
+      <form class="panel journal-form" [formGroup]="form" (ngSubmit)="submit()">
         <div class="section-title">
           <h2>{{ editingId() ? 'Editar entrada' : 'Nueva entrada' }}</h2>
           <span>{{ content.value.length }} / 5000</span>
         </div>
         <label>
           Contenido
-          <textarea [formControl]="content" maxlength="5000" rows="6" placeholder="Escribe una pista o información relevante"></textarea>
+          <textarea formControlName="content" maxlength="5000" rows="6" placeholder="Escribe una pista o información relevante"></textarea>
         </label>
         @if (content.touched && content.hasError('required')) {
           <p class="form-error" role="alert">El contenido es obligatorio.</p>
