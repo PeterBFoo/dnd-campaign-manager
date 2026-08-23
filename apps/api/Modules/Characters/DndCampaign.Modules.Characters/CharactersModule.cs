@@ -4,6 +4,7 @@ using DndCampaign.Modules.Characters.Api;
 using DndCampaign.Modules.Characters.Application.Characters;
 using DndCampaign.Modules.Characters.Application.Ports;
 using DndCampaign.Modules.Characters.Contracts.ActiveCharacters;
+using DndCampaign.Modules.Characters.Contracts.CombatParticipants;
 using DndCampaign.Modules.Characters.Infrastructure.Access;
 using DndCampaign.Modules.Characters.Infrastructure.Observability;
 using DndCampaign.Modules.Characters.Infrastructure.Persistence;
@@ -43,6 +44,7 @@ public static class CharactersModule
             options.UseNpgsql(ResolveDatabaseConnectionString(configuration)));
         services.AddScoped<ICharacterRepository, CharacterRepository>();
         services.AddScoped<IActiveCharacterReader, ActiveCharacterReader>();
+        services.AddScoped<ICombatCharacterReader, CombatCharacterReader>();
         services.AddSingleton<ICharacterImageStore, AzureBlobCharacterImageStore>();
         services.AddSingleton(CreateBlobContainerClient(configuration, environment));
         services.AddSingleton<ICharacterMetrics, CharacterMetrics>();

@@ -64,6 +64,15 @@ public sealed class CharacterPersistenceAndStorageTests
         Assert.NotNull(snapshot);
         Assert.Equal(remaining.Id, snapshot.CharacterId);
         Assert.Equal(remaining.Name, snapshot.Name);
+
+        var combatReader = new CombatCharacterReader(database);
+        var combatSnapshot = await combatReader.GetAsync(
+            campaignId, remaining.Id, TestContext.Current.CancellationToken);
+        var wrongCampaign = await combatReader.GetAsync(
+            Guid.NewGuid(), remaining.Id, TestContext.Current.CancellationToken);
+        Assert.NotNull(combatSnapshot);
+        Assert.Equal(remaining.ArmorClass, combatSnapshot.ArmorClass);
+        Assert.Null(wrongCampaign);
     }
 
     [Fact]

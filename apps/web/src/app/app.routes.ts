@@ -22,6 +22,11 @@ export const routes: Routes = [
   },
   {
     path: '',
+    loadChildren: () => import('./modules/combat/combat.routes')
+      .then((module) => module.COMBAT_ROUTES),
+  },
+  {
+    path: '',
     loadChildren: () => import('./modules/journal/journal.routes')
       .then((module) => module.JOURNAL_ROUTES),
   },

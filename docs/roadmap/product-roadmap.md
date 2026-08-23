@@ -27,7 +27,7 @@ La tabla distingue comportamiento disponible de extremo a extremo de infraestruc
 | Librería y NPC | RF-020 a RF-026 | Parcial | El elenco de RF-020 y su resumen de activos están disponibles; NPC y desbloqueos siguen pendientes. |
 | Bitácora | RF-030 a RF-035 | Parcial | El spec 007 implementa bitácora independiente, autoría mediante personaje activo, texto compartido, orden, edición colaborativa, eliminación por creador y consulta DM. Referencias seguras a NPC de RF-033 y RF-034 siguen pendientes. |
 | Calendario y misiones | RF-040 a RF-045 | Parcial | Spec 008 implementado con pruebas web/API y PostgreSQL; queda pendiente la construcción adicional de las imágenes finales por el límite del sistema de aprobaciones. |
-| Iniciativa de combate | RF-050 a RF-057 | Pendiente | Sin implementación productiva. |
+| Iniciativa de combate | RF-050 a RF-057 | Implementado; ampliación en curso | El [spec 009](../specs/009-encuentros-iniciativa/spec.md) aporta el recorrido base. El [spec 010](../specs/010-grupos-enemigos-eliminacion-encuentros/spec.md) amplía grupos con turno compartido, vida individual y eliminación segura. |
 | Capítulos y recursos | RF-060 a RF-066 | Pendiente | Solo están documentadas las restricciones editoriales y legales; no existe capacidad funcional. |
 | Alta e invitaciones de plataforma | RF-069 a RF-072 | Implementado | Bootstrap inicial, panel de administración, registro por invitación y alta sin acceso a campañas están disponibles. El bootstrap de la primera cuenta es la excepción deliberada a RF-069 definida por ADR-0003. |
 | Creación y DM de campaña | RF-073 y RF-074 | Implementado | Cualquier cuenta autenticada crea una campaña sin módulo y queda como su único DM. |
@@ -52,7 +52,7 @@ Esta secuencia orienta los próximos specs, pero no sustituye sus decisiones ni 
 | 8 | Missions | Calendario, misiones y unicidad de la misión principal | RF-040 a RF-045 | Campaigns, Characters |
 | 9 | Combat | Iniciativa, turnos, rondas, enemigos y proyección segura para jugadores | RF-050 a RF-057 | Campaigns, Characters |
 
-Las filas 1 y 2 quedaron completadas por el [spec 004](../specs/004-creacion-campanas/spec.md) y la fila 4 por el [spec 005](../specs/005-personajes-campana/spec.md), refinado por el [spec 006](../specs/006-resumen-personajes-activos/spec.md), el 2026-08-23. La fila 7 está completada parcialmente por el [spec 007](../specs/007-bitacora-campana/spec.md), sin incluir todavía referencias a NPC. La fila 3 permanece para un incremento posterior independiente. El [spec 008](../specs/008-calendario-misiones/spec.md) implementa calendario y misiones y conserva pendiente únicamente la construcción adicional de imágenes finales. El siguiente identificador disponible es `009`; no se crean de antemano specs vacíos para las demás filas.
+Las filas 1 y 2 quedaron completadas por el [spec 004](../specs/004-creacion-campanas/spec.md) y la fila 4 por el [spec 005](../specs/005-personajes-campana/spec.md), refinado por el [spec 006](../specs/006-resumen-personajes-activos/spec.md), el 2026-08-23. La fila 7 está completada parcialmente por el [spec 007](../specs/007-bitacora-campana/spec.md), sin incluir todavía referencias a NPC. La fila 3 permanece para un incremento posterior independiente. El [spec 008](../specs/008-calendario-misiones/spec.md) implementa calendario y misiones y conserva pendiente únicamente la construcción adicional de imágenes finales. El [spec 009](../specs/009-encuentros-iniciativa/spec.md) completa la fila 9 con la herramienta vertical de Combat y su proyección segura; el [spec 010](../specs/010-grupos-enemigos-eliminacion-encuentros/spec.md) amplía esa misma fila. El siguiente identificador disponible es `011`; no se crean de antemano specs vacíos para las demás filas.
 
 ## Restricciones tecnológicas aceptadas
 
@@ -264,8 +264,8 @@ Cada pregunta debe resolverse en el primer spec que dependa de ella y, si la dec
 8. **Resuelto para bitácora en spec 007 y para misiones en spec 008.** En misiones, DM y jugadores aceptados pueden editar cualquier misión; un jugador elimina solo las que creó y el DM puede eliminar cualquiera de su campaña.
 9. **Resuelto para bitácora en spec 007.** Las entradas son siempre compartidas dentro de la campaña; no existen borradores ni entradas privadas en el alcance inicial.
 10. **Resuelto en spec 008 para el alcance inicial.** Las misiones usan los estados `Activa`, `Completada`, `Fallida` y `Cancelada`; no tienen fecha de aceptación, fecha objetivo ni recurrencia. El calendario se concreta como un registro ordenado con la principal primero.
-11. ¿La iniciativa se actualiza en tiempo real para los jugadores y qué datos del enemigo, además de la vida y estadísticas, deben ocultarse?
-12. ¿Cómo se resuelven exactamente empates, sorpresa y participantes con la misma iniciativa en D&D 5.5?
+11. **Resuelto en spec 009 para el alcance inicial.** La vista del jugador se actualizará mediante sondeo cada 5 segundos y mostrará nombre, tipo, iniciativa y turno, pero no CA, vida ni controles de los enemigos.
+12. **Resuelto en spec 009 para el alcance inicial.** El DM introducirá el total de iniciativa del encuentro y resolverá expresamente el orden relativo de los empates antes de activarlo; sorpresa y cálculo automático de tiradas quedan fuera del primer incremento.
 13. ¿Los capítulos tienen progreso o desbloqueo, o son únicamente una biblioteca completa para el DM?
 14. ¿Qué catálogo de fuentes, licencias y atribuciones se aceptará para cada texto e imagen de un módulo?
 15. **Resuelto en ADR-0006.** Una campaña puede crearse sin módulo y asociar como máximo uno cuando esa capacidad exista.

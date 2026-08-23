@@ -1,0 +1,218 @@
+<main class="combat-shell">
+  <a class="back-link" [routerLink]="['/campaigns', campaignId]">← Volver a la campaña</a>
+
+  @if (error()) { <p class="combat-error" role="alert">{{ error() }}</p> }
+  @if (loading()) { <p class="muted">Cargando encuentros…</p> }
+  @else if (campaign(); as currentCampaign) {
+    @if (currentCampaign.role === 'player') {
+      <section class="combat-heading">
+        <div>
+          <p class="eyebrow">Encuentro activo</p>
+          <h1>{{ currentCampaign.name }}</h1>
+        </div>
+      </section>
+      @if (activeEncounter(); as active) {
+        <section class="turn-banner" aria-live="polite">
+          <span>Ronda {{ active.round }}</span>
+          <strong>Turno de {{ active.currentParticipantName }}</strong>
+        </section>
+        <section class="combat-card">
+          <h2>{{ active.name }}</h2>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Orden</th><th>Participante</th><th>Tipo</th><th>Cantidad</th><th>Iniciativa</th></tr></thead>
+              <tbody>
+                @for (participant of active.participants; track participant.orderPosition) {
+                  <tr [class.current-turn]="participant.isCurrentTurn">
+                    <td>{{ participant.orderPosition + 1 }}</td>
+                    <td>{{ participant.name }} @if (participant.isCurrentTurn) { <span class="turn-chip">Turno actual</span> }</td>
+                    <td>{{ participant.kind === 'character' ? 'Personaje' : 'Enemigo' }}</td>
+                    <td>{{ participant.quantity }}</td>
+                    <td>{{ participant.initiative }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      } @else {
+        <section class="combat-card empty-state">
+          <h2>No hay un encuentro activo</h2>
+          <p>La tabla aparecerá aquí cuando el DM active un encuentro.</p>
+        </section>
+      }
+    } @else {
+      @if (encounter(); as selected) {
+        <section class="combat-heading">
+          <div>
+            <p class="eyebrow">Mesa de dirección · {{ statusLabel(selected.status) }}</p>
+            <h1>{{ selected.name }}</h1>
+          </div>
+          <a class="button secondary" [routerLink]="['/campaigns', campaignId, 'encounters']">Todos los encuentros</a>
+        </section>
+
+        @if (selected.status === 'draft') {
+          <section class="combat-grid forms-grid">
+            <form class="combat-card compact-form" [formGroup]="renameForm" (ngSubmit)="renameEncounter()">
+              <h2>Nombre del encuentro</h2>
+              <label>Nombre <input formControlName="name" maxlength="120" /></label>
+              <button type="submit" [disabled]="saving()">Guardar nombre</button>
+            </form>
+
+            <form class="combat-card compact-form" [formGroup]="characterForm" (ngSubmit)="addCharacter()">
+              <h2>Añadir personaje</h2>
+              <label>Personaje
+                <select formControlName="characterId">
+                  <option value="">Selecciona un personaje</option>
+                  @for (character of availableCharacters(); track character.id) {
+                    <option [value]="character.id">{{ character.name }} · CA {{ character.armorClass }} · mod. {{ character.initiative >= 0 ? '+' : '' }}{{ character.initiative }}</option>
+                  }
+                </select>
+              </label>
+              <label>Iniciativa del encuentro <input type="number" formControlName="initiative" min="-20" max="30" /></label>
+              <button type="submit" [disabled]="saving() || availableCharacters().length === 0">Añadir personaje</button>
+            </form>
+
+            <form class="combat-card compact-form" [formGroup]="enemyForm" (ngSubmit)="addEnemy()">
+              <h2>Crear enemigo</h2>
+              <label>Nombre <input formControlName="name" maxlength="80" /></label>
+              <div class="numeric-grid">
+                <label>Iniciativa <input type="number" formControlName="initiative" min="-20" max="30" /></label>
+                <label>CA <input type="number" formControlName="armorClass" min="0" max="40" /></label>
+                <label>Vida máxima <input type="number" formControlName="maximumHitPoints" min="1" max="100000" /></label>
+                <label>Cantidad <input type="number" formControlName="quantity" min="1" max="100" /></label>
+              </div>
+              <button type="submit" [disabled]="saving()">Crear enemigo</button>
+            </form>
+          </section>
+        }
+
+        @if (selected.status === 'active') {
+          <section class="turn-banner" aria-live="polite">
+            <span>Ronda {{ selected.round }}</span>
+            <strong>Turno de {{ currentParticipantName(selected) }}</strong>
+            <button type="button" (click)="advance()" [disabled]="saving()">Siguiente turno</button>
+          </section>
+        }
+
+        <section class="combat-card">
+          <div class="section-heading">
+            <div>
+              <h2>Orden de iniciativa</h2>
+              @if (selected.status === 'draft' && !selected.tiesResolved) {
+                <p class="warning">Hay empates pendientes. Ordénalos y confirma antes de activar.</p>
+              }
+            </div>
+            @if (selected.status === 'draft') {
+              <div class="button-row">
+                @if (!selected.tiesResolved) {
+                  <button type="button" class="secondary" (click)="confirmOrder()" [disabled]="saving()">Confirmar desempates</button>
+                }
+                <button type="button" (click)="activate()" [disabled]="saving() || selected.participants.length === 0 || !selected.tiesResolved">Activar encuentro</button>
+              </div>
+            }
+          </div>
+
+          @if (selected.participants.length === 0) {
+            <p class="empty-state">Añade al menos un personaje o enemigo para preparar la iniciativa.</p>
+          } @else {
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Orden</th><th>Participante</th><th>Tipo</th><th>Cantidad</th><th>Iniciativa</th><th>CA</th><th>Vida individual</th><th>Acciones</th></tr></thead>
+                <tbody>
+                  @for (participant of selected.participants; track participant.id; let index = $index) {
+                    <tr [class.current-turn]="participant.isCurrentTurn">
+                      <td>{{ participant.orderPosition + 1 }}</td>
+                      <td>{{ participant.name }} @if (participant.isCurrentTurn) { <span class="turn-chip">Turno actual</span> }</td>
+                      <td>{{ participant.kind === 'character' ? 'Personaje' : 'Enemigo' }}</td>
+                      <td>{{ participant.quantity }}</td>
+                      <td>
+                        @if (selected.status === 'draft') {
+                          <div class="inline-control">
+                            <input #initiativeInput type="number" [value]="participant.initiative" min="-20" max="30" aria-label="Iniciativa de {{ participant.name }}" />
+                            <button type="button" class="small secondary" (click)="changeInitiative(participant, initiativeInput.value)" [disabled]="saving()">Guardar</button>
+                          </div>
+                        } @else { {{ participant.initiative }} }
+                      </td>
+                      <td>{{ participant.armorClass }}</td>
+                      <td>
+                        @if (participant.kind === 'enemy') {
+                          <div class="enemy-members">
+                            @for (member of participant.members; track member.id) {
+                              <div class="enemy-member" [class.defeated]="member.currentHitPoints === 0">
+                                <strong>#{{ member.ordinal }} · {{ member.currentHitPoints }} / {{ member.maximumHitPoints }}</strong>
+                                @if (selected.status === 'active') {
+                                  <div class="inline-control">
+                                    <input #hpAmount type="number" min="1" max="100000" value="1" aria-label="Cantidad para {{ participant.name }} {{ member.ordinal }}" />
+                                    <button type="button" class="small danger" (click)="adjustHitPoints(participant, member, 'damage', hpAmount.value)" [disabled]="saving()">Daño</button>
+                                    <button type="button" class="small secondary" (click)="adjustHitPoints(participant, member, 'healing', hpAmount.value)" [disabled]="saving()">Curar</button>
+                                  </div>
+                                }
+                              </div>
+                            }
+                          </div>
+                        } @else { — }
+                      </td>
+                      <td>
+                        @if (selected.status === 'draft') {
+                          <div class="button-row">
+                            <button type="button" class="small secondary" (click)="moveParticipant(index, -1)" [disabled]="saving() || !canMove(index, -1)" aria-label="Subir {{ participant.name }}">↑</button>
+                            <button type="button" class="small secondary" (click)="moveParticipant(index, 1)" [disabled]="saving() || !canMove(index, 1)" aria-label="Bajar {{ participant.name }}">↓</button>
+                            <button type="button" class="small danger" (click)="removeParticipant(participant)" [disabled]="saving()">Retirar</button>
+                          </div>
+                        } @else { — }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </section>
+
+        @if (selected.status === 'active') {
+          <section class="danger-zone">
+            <div><h2>Finalizar encuentro</h2><p>Conserva el estado final y retira la tabla de los jugadores.</p></div>
+            <button type="button" class="danger" (click)="finish()" [disabled]="saving()">Finalizar</button>
+          </section>
+        } @else {
+          <section class="danger-zone">
+            <div><h2>Eliminar encuentro</h2><p>Elimina definitivamente este encuentro y todo su estado de combate.</p></div>
+            <button type="button" class="danger" (click)="deleteEncounter(selected)" [disabled]="saving()">Eliminar</button>
+          </section>
+        }
+      } @else {
+        <section class="combat-heading">
+          <div><p class="eyebrow">Dirección de campaña</p><h1>Encuentros</h1></div>
+        </section>
+        <section class="combat-grid list-grid">
+          <form class="combat-card compact-form" [formGroup]="createForm" (ngSubmit)="createEncounter()">
+            <h2>Preparar encuentro</h2>
+            <label>Nombre <input formControlName="name" maxlength="120" /></label>
+            <button type="submit" [disabled]="saving()">Crear borrador</button>
+          </form>
+          <section class="combat-card">
+            <h2>Encuentros de la campaña</h2>
+            @if (encounters().length === 0) {
+              <p class="empty-state">Todavía no hay encuentros preparados.</p>
+            } @else {
+              <div class="encounter-list">
+                @for (item of encounters(); track item.id) {
+                  <div class="encounter-list-item">
+                    <a [routerLink]="['/campaigns', campaignId, 'encounters', item.id]">
+                      <span><strong>{{ item.name }}</strong><small>{{ item.participantCount }} participantes</small></span>
+                      <span class="status-chip" [class.active]="item.status === 'active'">{{ statusLabel(item.status) }}</span>
+                    </a>
+                    @if (item.status !== 'active') {
+                      <button type="button" class="small danger" (click)="deleteEncounter(item)" [disabled]="saving()" aria-label="Eliminar {{ item.name }}">Eliminar</button>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </section>
+        </section>
+      }
+    }
+  }
+</main>

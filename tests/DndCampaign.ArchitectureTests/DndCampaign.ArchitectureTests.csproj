@@ -16,6 +16,8 @@
     <ProjectReference Include="../../apps/api/DndCampaign.Api.csproj" />
     <ProjectReference Include="../../apps/api/Modules/Access/DndCampaign.Modules.Access/DndCampaign.Modules.Access.csproj" />
     <ProjectReference Include="../../apps/api/Modules/Campaigns/DndCampaign.Modules.Campaigns/DndCampaign.Modules.Campaigns.csproj" />
+    <ProjectReference Include="../../apps/api/Modules/Characters/DndCampaign.Modules.Characters/DndCampaign.Modules.Characters.csproj" />
+    <ProjectReference Include="../../apps/api/Modules/Combat/DndCampaign.Modules.Combat/DndCampaign.Modules.Combat.csproj" />
     <ProjectReference Include="../../apps/api/Modules/Journal/DndCampaign.Modules.Journal/DndCampaign.Modules.Journal.csproj" />
     <ProjectReference Include="../../apps/api/Modules/Missions/DndCampaign.Modules.Missions/DndCampaign.Modules.Missions.csproj" />
   </ItemGroup>

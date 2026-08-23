@@ -127,6 +127,7 @@ function boundaryViolation(source: string, target: string): string | null {
       && (targetPath.endsWith('/access.routes.ts')
         || targetPath.endsWith('/campaigns.routes.ts')
         || targetPath.endsWith('/characters.routes.ts')
+        || targetPath.endsWith('/combat.routes.ts')
         || targetPath.endsWith('/journal.routes.ts')
         || targetPath.endsWith('/missions.routes.ts'));
     if (!isRouteEntrypoint) {

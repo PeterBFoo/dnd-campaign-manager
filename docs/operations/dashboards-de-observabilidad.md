@@ -6,7 +6,9 @@
 
 Los dashboards cubren las señales necesarias para detectar indisponibilidad, degradación, saturación y problemas de persistencia sin registrar información narrativa ni datos de campaña.
 
-Además de las métricas HTTP, Missions publica `missions.operations` y `missions.operation.duration` con las dimensiones acotadas `missions.operation` (`list`, `create`, `update`, `set_main`, `clear_main`, `delete`) y `missions.outcome`. Títulos, descripciones e identificadores no forman parte de la telemetría. Estas series pueden investigarse desde la vista Explore y correlacionarse con los paneles HTTP existentes.
+Además de las métricas HTTP, Missions publica `missions.operations` y `missions.operation.duration` con las dimensiones acotadas `missions.operation` (`list`, `create`, `update`, `set_main`, `clear_main`, `delete`) y `missions.outcome`.
+
+Combat publica `combat.operations` y `combat.operation.duration` con dimensiones acotadas: `combat.operation` (`list`, `get`, `get_active`, `create`, `rename`, `add_character`, `add_enemy`, `update_initiative`, `remove_participant`, `resolve_order`, `activate`, `advance`, `adjust_hit_points`, `finish`) y `combat.outcome`. Nombres e identificadores de usuarios, campañas, encuentros y participantes no forman parte de la telemetría. Estas series pueden investigarse desde Explore y correlacionarse con los paneles HTTP existentes.
 
 ## Selección
 

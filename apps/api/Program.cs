@@ -3,6 +3,7 @@ using System.Text.Json;
 using DndCampaign.Modules.Access;
 using DndCampaign.Modules.Campaigns;
 using DndCampaign.Modules.Characters;
+using DndCampaign.Modules.Combat;
 using DndCampaign.Modules.Journal;
 using DndCampaign.Modules.Missions;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -25,6 +26,7 @@ builder.Services.AddProblemDetails();
 builder.Services.AddAccessModule(builder.Configuration, builder.Environment);
 builder.Services.AddCampaignsModule(builder.Configuration, builder.Environment);
 builder.Services.AddCharactersModule(builder.Configuration, builder.Environment);
+builder.Services.AddCombatModule(builder.Configuration, builder.Environment);
 builder.Services.AddJournalModule(builder.Configuration, builder.Environment);
 builder.Services.AddMissionsModule(builder.Configuration, builder.Environment);
 if (builder.Environment.IsDevelopment())
@@ -127,6 +129,7 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 app.MapAccessModule();
 app.MapCampaignsModule();
 app.MapCharactersModule();
+app.MapCombatModule();
 app.MapJournalModule();
 app.MapMissionsModule();
 
@@ -137,6 +140,7 @@ if (builder.Configuration.GetValue("Database:ApplyMigrations", false))
     await app.Services.ApplyCharactersMigrationsAsync();
     await app.Services.ApplyJournalMigrationsAsync();
     await app.Services.ApplyMissionsMigrationsAsync();
+    await app.Services.ApplyCombatMigrationsAsync();
 }
 
 app.Run();

@@ -3,6 +3,7 @@ using System.Xml.Linq;
 using DndCampaign.Modules.Access;
 using DndCampaign.Modules.Campaigns;
 using DndCampaign.Modules.Characters;
+using DndCampaign.Modules.Combat;
 using DndCampaign.Modules.Journal;
 using DndCampaign.Modules.Missions;
 using Xunit;
@@ -14,6 +15,7 @@ public sealed class ModuleDependencyTests
     private static readonly Assembly Access = typeof(AccessModule).Assembly;
     private static readonly Assembly Campaigns = typeof(CampaignsModule).Assembly;
     private static readonly Assembly Characters = typeof(CharactersModule).Assembly;
+    private static readonly Assembly Combat = typeof(CombatModule).Assembly;
     private static readonly Assembly Journal = typeof(JournalModule).Assembly;
     private static readonly Assembly Missions = typeof(MissionsModule).Assembly;
     private static readonly Assembly Host = typeof(Program).Assembly;
@@ -68,13 +70,13 @@ public sealed class ModuleDependencyTests
 
     [Fact]
     public void Modules_do_not_reference_the_host() => Assert.DoesNotContain(
-        new[] { Access, Campaigns, Characters, Journal, Missions }.SelectMany(module => module.GetReferencedAssemblies()),
+        new[] { Access, Campaigns, Characters, Combat, Journal, Missions }.SelectMany(module => module.GetReferencedAssemblies()),
         reference => reference.Name == Host.GetName().Name);
 
     [Fact]
     public void Modules_do_not_reference_other_module_implementations()
     {
-        var modules = new[] { Access, Campaigns, Characters, Journal, Missions };
+        var modules = new[] { Access, Campaigns, Characters, Combat, Journal, Missions };
         var moduleNames = modules.Select(module => module.GetName().Name!).ToHashSet(StringComparer.Ordinal);
 
         foreach (var module in modules)
@@ -95,6 +97,10 @@ public sealed class ModuleDependencyTests
                 Assert.Subset(new HashSet<string>([Access.GetName().Name!, Campaigns.GetName().Name!]), dependencies);
             }
             else if (module == Journal)
+            {
+                Assert.Subset(new HashSet<string>([Campaigns.GetName().Name!, Characters.GetName().Name!]), dependencies);
+            }
+            else if (module == Combat)
             {
                 Assert.Subset(new HashSet<string>([Campaigns.GetName().Name!, Characters.GetName().Name!]), dependencies);
             }
@@ -131,6 +137,11 @@ public sealed class ModuleDependencyTests
             "DndCampaign.Modules.Characters.Domain",
             "DndCampaign.Modules.Characters.Infrastructure",
             "CharactersDbContext",
+            "DndCampaign.Modules.Combat.Api",
+            "DndCampaign.Modules.Combat.Application",
+            "DndCampaign.Modules.Combat.Domain",
+            "DndCampaign.Modules.Combat.Infrastructure",
+            "CombatDbContext",
             "DndCampaign.Modules.Journal.Api",
             "DndCampaign.Modules.Journal.Application",
             "DndCampaign.Modules.Journal.Domain",
@@ -161,7 +172,7 @@ public sealed class ModuleDependencyTests
     [Fact]
     public void Module_graph_is_acyclic()
     {
-        var modules = new[] { Access, Campaigns, Characters, Journal, Missions };
+        var modules = new[] { Access, Campaigns, Characters, Combat, Journal, Missions };
         var names = modules.ToDictionary(module => module.GetName().Name!, StringComparer.Ordinal);
         var edges = modules.ToDictionary(
             module => module.GetName().Name!,
@@ -214,6 +225,9 @@ public sealed class ModuleDependencyTests
             && (reference.Contains($"{Path.DirectorySeparatorChar}Campaigns{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
                 || reference.Contains($"{Path.DirectorySeparatorChar}Access{Path.DirectorySeparatorChar}", StringComparison.Ordinal)))
         || (project.StartsWith($"Journal{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+            && (reference.Contains($"{Path.DirectorySeparatorChar}Campaigns{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                || reference.Contains($"{Path.DirectorySeparatorChar}Characters{Path.DirectorySeparatorChar}", StringComparison.Ordinal)))
+        || (project.StartsWith($"Combat{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
             && (reference.Contains($"{Path.DirectorySeparatorChar}Campaigns{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
                 || reference.Contains($"{Path.DirectorySeparatorChar}Characters{Path.DirectorySeparatorChar}", StringComparison.Ordinal)))
         || (project.StartsWith($"Missions{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
