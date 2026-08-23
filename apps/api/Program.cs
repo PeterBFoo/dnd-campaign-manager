@@ -4,6 +4,7 @@ using DndCampaign.Modules.Access;
 using DndCampaign.Modules.Campaigns;
 using DndCampaign.Modules.Characters;
 using DndCampaign.Modules.Journal;
+using DndCampaign.Modules.Missions;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -25,6 +26,7 @@ builder.Services.AddAccessModule(builder.Configuration, builder.Environment);
 builder.Services.AddCampaignsModule(builder.Configuration, builder.Environment);
 builder.Services.AddCharactersModule(builder.Configuration, builder.Environment);
 builder.Services.AddJournalModule(builder.Configuration, builder.Environment);
+builder.Services.AddMissionsModule(builder.Configuration, builder.Environment);
 if (builder.Environment.IsDevelopment())
 {
     builder.Services.AddEndpointsApiExplorer();
@@ -126,6 +128,7 @@ app.MapAccessModule();
 app.MapCampaignsModule();
 app.MapCharactersModule();
 app.MapJournalModule();
+app.MapMissionsModule();
 
 if (builder.Configuration.GetValue("Database:ApplyMigrations", false))
 {
@@ -133,6 +136,7 @@ if (builder.Configuration.GetValue("Database:ApplyMigrations", false))
     await app.Services.ApplyCampaignsMigrationsAsync();
     await app.Services.ApplyCharactersMigrationsAsync();
     await app.Services.ApplyJournalMigrationsAsync();
+    await app.Services.ApplyMissionsMigrationsAsync();
 }
 
 app.Run();

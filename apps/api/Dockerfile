@@ -7,10 +7,12 @@ COPY apps/api/Modules/Access/DndCampaign.Modules.Access/DndCampaign.Modules.Acce
 COPY apps/api/Modules/Campaigns/DndCampaign.Modules.Campaigns/DndCampaign.Modules.Campaigns.csproj apps/api/Modules/Campaigns/DndCampaign.Modules.Campaigns/
 COPY apps/api/Modules/Characters/DndCampaign.Modules.Characters/DndCampaign.Modules.Characters.csproj apps/api/Modules/Characters/DndCampaign.Modules.Characters/
 COPY apps/api/Modules/Journal/DndCampaign.Modules.Journal/DndCampaign.Modules.Journal.csproj apps/api/Modules/Journal/DndCampaign.Modules.Journal/
+COPY apps/api/Modules/Missions/DndCampaign.Modules.Missions/DndCampaign.Modules.Missions.csproj apps/api/Modules/Missions/DndCampaign.Modules.Missions/
 COPY tests/Modules/Access/DndCampaign.Modules.Access.Tests/DndCampaign.Modules.Access.Tests.csproj tests/Modules/Access/DndCampaign.Modules.Access.Tests/
 COPY tests/Modules/Campaigns/DndCampaign.Modules.Campaigns.Tests/DndCampaign.Modules.Campaigns.Tests.csproj tests/Modules/Campaigns/DndCampaign.Modules.Campaigns.Tests/
 COPY tests/Modules/Characters/DndCampaign.Modules.Characters.Tests/DndCampaign.Modules.Characters.Tests.csproj tests/Modules/Characters/DndCampaign.Modules.Characters.Tests/
 COPY tests/Modules/Journal/DndCampaign.Modules.Journal.Tests/DndCampaign.Modules.Journal.Tests.csproj tests/Modules/Journal/DndCampaign.Modules.Journal.Tests/
+COPY tests/Modules/Missions/DndCampaign.Modules.Missions.Tests/DndCampaign.Modules.Missions.Tests.csproj tests/Modules/Missions/DndCampaign.Modules.Missions.Tests/
 COPY tests/DndCampaign.ArchitectureTests/DndCampaign.ArchitectureTests.csproj tests/DndCampaign.ArchitectureTests/
 RUN dotnet restore DndCampaign.slnx
 

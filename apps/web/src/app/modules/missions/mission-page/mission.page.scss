@@ -1,0 +1,24 @@
+.mission-shell { max-width: 980px; }
+.mission-heading p { color: var(--muted); }
+.mission-form { margin-bottom: 42px; }
+input, textarea, select { width: 100%; padding: 12px 14px; border: 1px solid var(--line-strong); border-radius: 2px; outline: none; color: var(--ink); background: rgba(0,0,0,.18); font: inherit; }
+textarea { resize: vertical; line-height: 1.6; }
+input:focus, textarea:focus, select:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(198,161,91,.1); }
+.checkbox-row { display: flex; align-items: center; gap: 10px; }
+.checkbox-row input { width: auto; }
+.form-actions { display: flex; gap: 12px; align-items: center; }
+.secondary-button { border-color: var(--line-strong); }
+.active-character-warning, .mission-empty { margin-bottom: 42px; }
+.active-character-warning h2, .mission-empty h2, .mission-section > h2 { margin: 0 0 16px; font: 500 1.8rem/1.2 var(--serif); }
+.mission-section { margin-top: 38px; }
+.main-section { padding: 24px; border: 1px solid rgba(198,161,91,.45); background: rgba(198,161,91,.04); }
+.mission-list { display: grid; gap: 18px; }
+.mission-card { padding: 24px; border: 1px solid var(--line-strong); background: rgba(255,255,255,.018); }
+.main-card { border-color: var(--gold); }
+.mission-card header { display: flex; align-items: start; justify-content: space-between; gap: 24px; }
+.mission-card h3 { margin: 8px 0; font: 500 1.45rem/1.25 var(--serif); }
+.mission-card time, .mission-card header span { color: var(--muted); font-size: .74rem; }
+.mission-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: end; }
+.mission-actions .text-button { margin-top: 0; }
+.mission-description { margin: 20px 0 0; padding-top: 18px; border-top: 1px solid var(--line); white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
+@media (max-width: 700px) { .mission-card header { flex-direction: column; } .mission-actions { justify-content: start; } }

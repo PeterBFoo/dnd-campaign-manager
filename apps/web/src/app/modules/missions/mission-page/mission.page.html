@@ -1,0 +1,120 @@
+<main class="page-shell mission-shell">
+  <a class="back-link" [routerLink]="['/campaigns', campaignId]">← Volver a la campaña</a>
+  <section class="page-heading mission-heading">
+    <div>
+      <p class="eyebrow">Objetivos compartidos</p>
+      <h1>Misiones</h1>
+      <p>Registra y actualiza los objetivos aceptados por el grupo.</p>
+    </div>
+  </section>
+
+  @if (error()) { <p class="form-error message" role="alert">{{ error() }}</p> }
+  @if (loading()) { <p class="muted">Cargando misiones…</p> }
+  @else {
+    @if (canShowForm()) {
+      <form class="panel mission-form" [formGroup]="form" (ngSubmit)="submit()">
+        <div class="section-title">
+          <h2>{{ editingId() ? 'Editar misión' : 'Nueva misión' }}</h2>
+          <span>{{ description.value.length }} / 5000</span>
+        </div>
+        <label>
+          Título
+          <input formControlName="title" maxlength="120" placeholder="Nombre de la misión">
+        </label>
+        @if (title.touched && (title.hasError('required') || title.hasError('minlength'))) {
+          <p class="form-error" role="alert">El título debe contener al menos 2 caracteres.</p>
+        }
+        <label>
+          Descripción opcional
+          <textarea formControlName="description" maxlength="5000" rows="5" placeholder="Describe el objetivo compartido"></textarea>
+        </label>
+        @if (editingId()) {
+          <label>
+            Estado
+            <select formControlName="status">
+              <option value="active">Activa</option>
+              <option value="completed">Completada</option>
+              <option value="failed">Fallida</option>
+              <option value="cancelled">Cancelada</option>
+            </select>
+          </label>
+        } @else {
+          <label class="checkbox-row"><input type="checkbox" formControlName="isMain"> Marcar como misión principal</label>
+        }
+        <div class="form-actions">
+          <button type="submit" [disabled]="saving()">{{ saving() ? 'Guardando…' : (editingId() ? 'Guardar cambios' : 'Crear misión') }}</button>
+          @if (editingId()) { <button class="secondary-button" type="button" (click)="cancelEdit()">Cancelar</button> }
+        </div>
+      </form>
+    } @else if (isPlayer()) {
+      <section class="empty-state active-character-warning">
+        <h2>Necesitas un personaje activo</h2>
+        <p>Puedes consultar y editar las misiones, pero necesitas un personaje activo para registrar una nueva.</p>
+        <a class="button-link" [routerLink]="['/campaigns', campaignId, 'characters']">Gestionar mis personajes</a>
+      </section>
+    }
+
+    @if (missions().length === 0) {
+      <section class="empty-state mission-empty">
+        <h2>No hay misiones registradas</h2>
+        <p>Las misiones creadas por el grupo aparecerán aquí.</p>
+      </section>
+    } @else {
+      @if (mainMission(); as mission) {
+        <section class="mission-section main-section" aria-labelledby="main-mission-heading">
+          <h2 id="main-mission-heading">Misión principal</h2>
+          <ng-container [ngTemplateOutlet]="missionCard" [ngTemplateOutletContext]="{ $implicit: mission }" />
+        </section>
+      }
+
+      @if (activeMissions().length > 0) {
+        <section class="mission-section" aria-labelledby="active-missions-heading">
+          <h2 id="active-missions-heading">Misiones activas</h2>
+          <div class="mission-list">
+            @for (mission of activeMissions(); track mission.id) {
+              <ng-container [ngTemplateOutlet]="missionCard" [ngTemplateOutletContext]="{ $implicit: mission }" />
+            }
+          </div>
+        </section>
+      }
+
+      @if (closedMissions().length > 0) {
+        <section class="mission-section" aria-labelledby="closed-missions-heading">
+          <h2 id="closed-missions-heading">Misiones cerradas</h2>
+          <div class="mission-list">
+            @for (mission of closedMissions(); track mission.id) {
+              <ng-container [ngTemplateOutlet]="missionCard" [ngTemplateOutletContext]="{ $implicit: mission }" />
+            }
+          </div>
+        </section>
+      }
+    }
+  }
+</main>
+
+<ng-template #missionCard let-mission>
+  <article class="mission-card" [class.main-card]="mission.isMain">
+    <header>
+      <div>
+        <p class="eyebrow">{{ statusLabel(mission.status) }} · Registrada por {{ mission.authorDisplayName }}</p>
+        <h3>{{ mission.title }}</h3>
+        <time [attr.datetime]="mission.createdAt">{{ mission.createdAt | date:'medium' }}</time>
+        @if (mission.updatedAt) { <span> · Actualizada {{ mission.updatedAt | date:'medium' }}</span> }
+      </div>
+      <div class="mission-actions">
+        <button class="text-button" type="button" (click)="beginEdit(mission)" [disabled]="saving()">Editar</button>
+        @if (mission.status === 'active') {
+          @if (mission.isMain) {
+            <button class="text-button" type="button" (click)="clearMain(mission)" [disabled]="operatingId() !== null">Desmarcar principal</button>
+          } @else {
+            <button class="text-button" type="button" (click)="setMain(mission)" [disabled]="operatingId() !== null">Marcar principal</button>
+          }
+        }
+        @if (mission.canDelete) {
+          <button class="text-button danger" type="button" (click)="remove(mission)" [disabled]="operatingId() !== null">Eliminar</button>
+        }
+      </div>
+    </header>
+    @if (mission.description) { <p class="mission-description">{{ mission.description }}</p> }
+  </article>
+</ng-template>

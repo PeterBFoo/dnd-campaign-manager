@@ -25,5 +25,10 @@ export const routes: Routes = [
     loadChildren: () => import('./modules/journal/journal.routes')
       .then((module) => module.JOURNAL_ROUTES),
   },
+  {
+    path: '',
+    loadChildren: () => import('./modules/missions/missions.routes')
+      .then((module) => module.MISSIONS_ROUTES),
+  },
   { path: '**', redirectTo: '' },
 ];

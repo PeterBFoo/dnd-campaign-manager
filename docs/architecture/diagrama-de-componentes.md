@@ -2,7 +2,7 @@
 
 - Estado: vigente
 - ADR relacionados: [ADR-0001: plataforma y observabilidad](../adr/0001-monorepositorio-y-monolito-modular.md), [ADR-0002: identidad e invitaciones](../adr/0002-identidad-invitaciones-y-correo-transaccional.md), [ADR-0004: modularización backend](../adr/0004-arquitectura-modular-cqrs-y-limites-de-dependencia.md), [ADR-0005: modularización frontend](../adr/0005-frontend-modular-por-capacidades.md), [ADR-0006: campañas e invitaciones](../adr/0006-campanas-acceso-e-invitaciones.md) y [ADR-0007: imágenes privadas](../adr/0007-imagenes-privadas-de-personajes.md)
-- Alcance: componentes lógicos de plataforma, identidad, campañas, invitaciones, personajes y bitácora
+- Alcance: componentes lógicos de plataforma, identidad, campañas, invitaciones, personajes, bitácora y misiones
 
 Esta vista describe las responsabilidades y dependencias de la plataforma. No define todavía componentes de dominio ni incorpora información específica de ninguna campaña.
 
@@ -42,6 +42,11 @@ flowchart LR
             journal_client["JournalClient<br/>contratos JSON"]
             journal_ui --> journal_client
         end
+        subgraph missions_front["Módulo Missions"]
+            missions_ui["Registro compartido<br/>alta · edición · estados · principal · borrado"]
+            missions_client["MissionsClient<br/>contratos JSON sin fechas funcionales"]
+            missions_ui --> missions_client
+        end
 
         composition --> shell
         composition --> session
@@ -50,11 +55,13 @@ flowchart LR
         shell -->|"API pública"| campaigns_ui
         shell -->|"API pública"| characters_ui
         shell -->|"ruta pública"| journal_ui
+        shell -->|"ruta pública"| missions_ui
         status_client --> shared
         access_clients --> shared
         campaigns_client --> shared
         characters_client --> shared
         journal_client --> shared
+        missions_client --> shared
     end
 
     subgraph edge["Entrada web"]
@@ -111,6 +118,16 @@ flowchart LR
             journal_infra --> journal_app
             journal_infra --> journal_domain
         end
+        subgraph missions["Módulo Missions · un proyecto"]
+            missions_api["Api<br/>registro de misiones"]
+            missions_app["Application<br/>acceso · autoría · permisos · principal"]
+            missions_domain["Domain<br/>Mission · estados"]
+            missions_infra["Infrastructure<br/>EF Core · concurrencia · métricas"]
+            missions_api --> missions_app
+            missions_app --> missions_domain
+            missions_infra --> missions_app
+            missions_infra --> missions_domain
+        end
         telemetry["Instrumentación<br/>OpenTelemetry"]
 
         middleware --> host
@@ -118,6 +135,7 @@ flowchart LR
         host --> campaigns_api
         host --> characters_api
         host --> journal_api
+        host --> missions_api
         middleware --> status_endpoint
         middleware --> health
         status_endpoint --> health
@@ -127,6 +145,7 @@ flowchart LR
         campaigns_infra --> telemetry
         characters_infra --> telemetry
         journal_infra --> telemetry
+        missions_infra --> telemetry
     end
 
     database[("PostgreSQL")]
@@ -142,11 +161,13 @@ flowchart LR
     campaigns_client -->|"JSON · Authorization Bearer"| nginx
     characters_client -->|"multipart y blobs · bearer"| nginx
     journal_client -->|"JSON · Authorization Bearer"| nginx
+    missions_client -->|"JSON · Authorization Bearer"| nginx
     nginx -->|"proxy /api y /health"| middleware
     infrastructure -->|"conexión SQL"| database
     campaigns_infra -->|"conexión SQL"| database
     characters_infra -->|"metadatos SQL"| database
     journal_infra -->|"entradas SQL"| database
+    missions_infra -->|"misiones SQL"| database
     characters_infra -->|"binarios privados"| blob
     database -->|"estadísticas operativas"| postgres_exporter
     observability -->|"scrape Prometheus"| postgres_exporter
@@ -164,6 +185,7 @@ flowchart LR
 | Módulo frontend Campaigns | Listar, crear y consultar campañas; navegar a la ruta pública de invitaciones | Usuarios, invitaciones o internals de Access |
 | Módulo frontend Characters | Crear, listar, editar, activar y eliminar personajes; cargar imágenes autenticadas | Autorizar operaciones o acceder directamente al contenedor privado |
 | Módulo frontend Journal | Listar, crear, editar y eliminar entradas según los permisos devueltos por la API | Decidir autoría, rol u ownership en el navegador |
+| Módulo frontend Missions | Listar, crear y editar misiones; proyectar estados, principal y borrado autorizado | Introducir fechas funcionales o decidir autoría y permisos en el navegador |
 | Shared frontend | Runtime config y traducción genérica de `ProblemDetails` | Usuarios, sesiones, campañas, invitaciones o UI funcional |
 | Nginx | Servir el build y mantener `/api` y `/health` bajo el mismo origen | Reglas de dominio |
 | Api Host | Composición de módulos, middleware transversal, health y diagnóstico | Casos de uso, EF Core o contratos funcionales de Access |
@@ -171,12 +193,13 @@ flowchart LR
 | Módulo Campaigns | Propiedad de campañas, `DmUserId`, módulo opcional y consultas autorizadas | Persistir usuarios, invitaciones o concesiones de jugador |
 | Módulo Characters | Propiedad de personajes, vínculo opcional, personaje activo y metadatos de imagen | Persistir usuarios/campañas o publicar blobs |
 | Módulo Journal | Propiedad de entradas, autoría histórica, orden, paginación y permisos de escritura | Consultar tablas de Campaigns o Characters |
+| Módulo Missions | Propiedad de misiones, autoría histórica, estados, borrado y principal única por campaña | Consultar tablas de Campaigns o Characters |
 | Dominio de invitaciones | Estados, caducidad de siete días y validación del token de un solo uso | Enviar correo o exponer el token persistido |
 | Identidad y sesiones | Validar credenciales, emitir y revocar sesiones opacas | Permitir autorregistro o guardar tokens de sesión en claro |
 | Worker de outbox | Entregar invitaciones con reintentos y eliminar el ciphertext tras procesarlo | Conceder permisos o registrar destinatarios y tokens |
 | Puerto y adaptador Brevo | Aislar el proveedor y enviar correo transaccional por HTTPS | Decidir si una invitación concede acceso |
 | EF Core/Npgsql | Acceso transaccional a PostgreSQL | Definir por adelantado el modelo de dominio |
-| PostgreSQL | Persistencia primaria con esquemas `access`, `campaigns`, `characters` y `journal` | Exposición directa al navegador o foreign keys entre módulos |
+| PostgreSQL | Persistencia primaria con esquemas `access`, `campaigns`, `characters`, `journal` y `missions` | Exposición directa al navegador o foreign keys entre módulos |
 | Azure Blob / Azurite | Binarios de retratos bajo claves opacas | Datos de dominio, acceso público o autorización de campaña |
 | PostgreSQL exporter | Exponer métricas operativas de la base de datos a Prometheus | Servir tráfico público o almacenar credenciales en la imagen |
 | OpenTelemetry | Instrumentación neutral respecto del proveedor | Registrar secretos o contenido sensible |
@@ -193,7 +216,8 @@ flowchart LR
 - El host solo accede a la fachada pública de cada módulo; no conoce sus capas internas.
 - `Campaigns -> Access` resuelve concesiones de jugador; `Characters -> Campaigns` consume el acceso efectivo y `Characters -> Access` obtiene la lista minimizada de jugadores aceptados mediante contratos públicos.
 - `Journal -> Campaigns` comprueba acceso efectivo y `Journal -> Characters` resuelve una instantánea mínima del personaje activo mediante contratos públicos.
-- Access, Campaigns, Characters y Journal no comparten entidades, `DbContext`, transacciones ni consultas entre esquemas.
+- `Missions -> Campaigns` comprueba acceso efectivo y `Missions -> Characters` resuelve el personaje activo solo al crear como jugador.
+- Access, Campaigns, Characters, Journal y Missions no comparten entidades, `DbContext`, transacciones ni consultas entre esquemas.
 - Los tests globales impiden dependencias entre implementaciones de módulos y cada proyecto de tests modular protege sus propias capas.
 - Api depende de Application; Application de Domain; Infrastructure implementa los puertos de Application y persiste Domain.
 - El dominio de invitaciones no depende de Brevo; el adaptador implementa un puerto de aplicación.

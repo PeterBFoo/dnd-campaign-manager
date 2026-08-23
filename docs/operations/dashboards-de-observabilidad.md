@@ -6,6 +6,8 @@
 
 Los dashboards cubren las señales necesarias para detectar indisponibilidad, degradación, saturación y problemas de persistencia sin registrar información narrativa ni datos de campaña.
 
+Además de las métricas HTTP, Missions publica `missions.operations` y `missions.operation.duration` con las dimensiones acotadas `missions.operation` (`list`, `create`, `update`, `set_main`, `clear_main`, `delete`) y `missions.outcome`. Títulos, descripciones e identificadores no forman parte de la telemetría. Estas series pueden investigarse desde la vista Explore y correlacionarse con los paneles HTTP existentes.
+
 ## Selección
 
 ### Plataforma · Disponibilidad y rendimiento

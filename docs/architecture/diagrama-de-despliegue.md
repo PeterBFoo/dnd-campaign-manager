@@ -19,7 +19,7 @@ flowchart TB
         subgraph network["Red interna de Docker Compose"]
             web["Contenedor web<br/>Nginx + build Angular<br/>puerto interno 80"]
             api["Contenedor api<br/>ASP.NET Core 10<br/>puerto interno 8080"]
-            postgres["Contenedor postgres<br/>PostgreSQL 18<br/>esquemas access · campaigns · characters · journal"]
+            postgres["Contenedor postgres<br/>PostgreSQL 18<br/>esquemas access · campaigns · characters · journal · missions"]
             azurite["Contenedor Azurite<br/>Blob privado"]
             postgres_exporter["Contenedor postgres-exporter<br/>métricas Prometheus<br/>puerto interno 9187"]
             lgtm["Contenedor observability<br/>Grafana OpenTelemetry LGTM<br/>OTLP 4317/4318 · Grafana 3000"]

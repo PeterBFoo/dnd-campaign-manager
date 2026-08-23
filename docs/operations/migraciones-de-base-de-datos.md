@@ -2,7 +2,7 @@
 
 - Estado: vigente
 - ADR relacionados: [ADR-0004](../adr/0004-arquitectura-modular-cqrs-y-limites-de-dependencia.md) y [ADR-0006](../adr/0006-campanas-acceso-e-invitaciones.md)
-- Alcance: migraciones de los módulos Access, Campaigns, Characters y Journal
+- Alcance: migraciones de los módulos Access, Campaigns, Characters, Journal y Missions
 
 ## Orden de aplicación
 
@@ -11,9 +11,10 @@ La API comparte una conexión PostgreSQL, pero cada módulo mantiene su propio `
 1. migraciones de Access;
 2. migraciones de Campaigns.
 3. migraciones de Characters;
-4. migraciones de Journal.
+4. migraciones de Journal;
+5. migraciones de Missions.
 
-Access mantiene identidad e invitaciones en el esquema `access`; Campaigns conserva campañas en `campaigns`; Characters persiste personajes y metadatos de imagen en `characters`; Journal conserva entradas y su autoría histórica en `journal`. No hay foreign keys ni consultas directas entre esquemas de módulos.
+Access mantiene identidad e invitaciones en el esquema `access`; Campaigns conserva campañas en `campaigns`; Characters persiste personajes y metadatos de imagen en `characters`; Journal conserva entradas y su autoría histórica en `journal`; Missions conserva misiones, autoría y principal única en `missions`. No hay foreign keys ni consultas directas entre esquemas de módulos.
 
 ## Antes de desplegar
 
@@ -24,11 +25,12 @@ Access mantiene identidad e invitaciones en el esquema `access`; Campaigns conse
 
 ## Verificación posterior
 
-- comprobar que existen los esquemas `access`, `campaigns`, `characters` y `journal`;
+- comprobar que existen los esquemas `access`, `campaigns`, `characters`, `journal` y `missions`;
 - comprobar que el historial contiene las migraciones esperadas;
 - verificar `/health/ready`;
 - crear y consultar una campaña de prueba no editorial en un entorno no productivo;
 - crear, editar, listar y eliminar una entrada genérica de bitácora con los roles autorizados;
+- crear, editar, marcar como principal y eliminar una misión genérica; comprobar que no existe más de una principal por campaña;
 - revisar errores de migración y de PostgreSQL sin registrar payloads ni datos personales.
 
 ## Reversibilidad
