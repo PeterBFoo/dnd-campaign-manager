@@ -1,0 +1,76 @@
+<main class="page-shell journal-shell">
+  <a class="back-link" [routerLink]="['/campaigns', campaignId]">← Volver a la campaña</a>
+  <section class="page-heading journal-heading">
+    <div>
+      <p class="eyebrow">Memoria compartida</p>
+      <h1>Bitácora</h1>
+      <p>Registra pistas e información de interés para el grupo.</p>
+    </div>
+    @if (campaign()?.role === 'dm') { <span class="read-only-badge">Solo lectura</span> }
+  </section>
+
+  @if (error()) { <p class="form-error message" role="alert">{{ error() }}</p> }
+  @if (loading()) { <p class="muted">Cargando bitácora…</p> }
+  @else {
+    @if (canShowForm()) {
+      <form class="panel journal-form" (ngSubmit)="submit()">
+        <div class="section-title">
+          <h2>{{ editingId() ? 'Editar entrada' : 'Nueva entrada' }}</h2>
+          <span>{{ content.value.length }} / 5000</span>
+        </div>
+        <label>
+          Contenido
+          <textarea [formControl]="content" maxlength="5000" rows="6" placeholder="Escribe una pista o información relevante"></textarea>
+        </label>
+        @if (content.touched && content.hasError('required')) {
+          <p class="form-error" role="alert">El contenido es obligatorio.</p>
+        }
+        <div class="form-actions">
+          <button type="submit" [disabled]="saving()">{{ saving() ? 'Guardando…' : (editingId() ? 'Guardar cambios' : 'Añadir entrada') }}</button>
+          @if (editingId()) { <button class="secondary-button" type="button" (click)="cancelEdit()">Cancelar</button> }
+        </div>
+      </form>
+    } @else if (isPlayer()) {
+      <section class="empty-state active-character-warning">
+        <h2>Necesitas un personaje activo</h2>
+        <p>Puedes leer y editar la bitácora, pero necesitas un personaje activo para introducir una entrada nueva.</p>
+        <a class="button-link" [routerLink]="['/campaigns', campaignId, 'characters']">Gestionar mis personajes</a>
+      </section>
+    }
+
+    @if (entries().length === 0) {
+      <section class="empty-state journal-empty">
+        <h2>La bitácora está vacía</h2>
+        <p>Las nuevas entradas aparecerán aquí de más recientes a más antiguas.</p>
+      </section>
+    } @else {
+      <section class="journal-list" aria-label="Entradas de bitácora">
+        @for (entry of entries(); track entry.id) {
+          <article class="journal-entry">
+            <header>
+              <div>
+                <p class="eyebrow">Introducida por {{ entry.authorCharacterName }}</p>
+                <time [attr.datetime]="entry.createdAt">{{ entry.createdAt | date:'medium' }}</time>
+                @if (entry.updatedAt) { <span> · Editada {{ entry.updatedAt | date:'medium' }}</span> }
+              </div>
+              <div class="entry-actions">
+                @if (entry.canEdit) {
+                  <button class="text-button" type="button" (click)="beginEdit(entry)" [disabled]="saving()">Editar</button>
+                }
+                @if (entry.canDelete) {
+                  <button class="text-button danger" type="button" (click)="remove(entry)" [disabled]="deletingId() !== null">Eliminar</button>
+                }
+              </div>
+            </header>
+            <p class="journal-content">{{ entry.content }}</p>
+          </article>
+        }
+      </section>
+      @if (nextCursor()) {
+        <button class="load-more" type="button" (click)="loadMore()" [disabled]="loadingMore()">
+          {{ loadingMore() ? 'Cargando…' : 'Cargar entradas anteriores' }}
+        </button>
+      }
+    }
+  }
+</main>

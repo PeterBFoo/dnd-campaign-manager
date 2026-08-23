@@ -16,5 +16,6 @@
     <ProjectReference Include="../../apps/api/DndCampaign.Api.csproj" />
     <ProjectReference Include="../../apps/api/Modules/Access/DndCampaign.Modules.Access/DndCampaign.Modules.Access.csproj" />
     <ProjectReference Include="../../apps/api/Modules/Campaigns/DndCampaign.Modules.Campaigns/DndCampaign.Modules.Campaigns.csproj" />
+    <ProjectReference Include="../../apps/api/Modules/Journal/DndCampaign.Modules.Journal/DndCampaign.Modules.Journal.csproj" />
   </ItemGroup>
 </Project>

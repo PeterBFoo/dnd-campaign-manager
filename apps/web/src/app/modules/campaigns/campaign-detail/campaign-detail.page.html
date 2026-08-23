@@ -9,9 +9,12 @@
         <h1>{{ current.name }}</h1>
         <p>{{ current.adventureModuleId ? 'Módulo asociado' : 'Sin módulo asociado' }}</p>
       </div>
-      @if (current.role === 'dm') {
-        <a class="button-link" [routerLink]="['/campaigns', current.id, 'invitations']">Invitar jugadores</a>
-      }
+      <div class="campaign-heading-actions">
+        <a class="button-link" [routerLink]="['/campaigns', current.id, 'journal']">Abrir bitácora</a>
+        @if (current.role === 'dm') {
+          <a class="button-link" [routerLink]="['/campaigns', current.id, 'invitations']">Invitar jugadores</a>
+        }
+      </div>
     </section>
     <dnd-active-characters-panel [campaignId]="current.id" [role]="current.role" />
   }

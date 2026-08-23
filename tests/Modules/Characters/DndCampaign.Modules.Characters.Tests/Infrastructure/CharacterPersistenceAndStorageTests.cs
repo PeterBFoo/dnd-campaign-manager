@@ -3,6 +3,7 @@ using DndCampaign.Modules.Characters.Application.Ports;
 using DndCampaign.Modules.Characters.Domain.Characters;
 using DndCampaign.Modules.Characters.Infrastructure.Persistence;
 using DndCampaign.Modules.Characters.Infrastructure.Storage;
+using DndCampaign.Modules.Characters.Infrastructure.Access;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
@@ -57,6 +58,12 @@ public sealed class CharacterPersistenceAndStorageTests
             character => character.CampaignId == campaignId,
             TestContext.Current.CancellationToken);
         Assert.True(remaining.IsActive);
+
+        var snapshot = await new ActiveCharacterReader(database).GetActiveAsync(
+            campaignId, ownerId, TestContext.Current.CancellationToken);
+        Assert.NotNull(snapshot);
+        Assert.Equal(remaining.Id, snapshot.CharacterId);
+        Assert.Equal(remaining.Name, snapshot.Name);
     }
 
     [Fact]

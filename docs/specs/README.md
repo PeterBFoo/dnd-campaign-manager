@@ -55,8 +55,9 @@ Descompone el plan aprobado en tareas pequeñas, ordenadas y verificables. Cada 
 | [004: creación de campañas](004-creacion-campanas/spec.md) | Completada | Creación sin módulo, DM único, búsqueda de usuarios activos e invitaciones integradas |
 | [005: personajes de campaña](005-personajes-campana/spec.md) | Completada | CRUD autorizado, vínculo opcional, imágenes privadas y selección activa por jugador y campaña |
 | [006: resumen de personajes activos](006-resumen-personajes-activos/spec.md) | Completada | Portada de campaña con personajes activos y gestión diferenciada para jugador y DM |
+| [007: bitácora compartida de campaña](007-bitacora-campana/spec.md) | Completada | Entradas compartidas por campaña, autoría visible, edición colaborativa entre jugadores y eliminación por su creador |
 
-El antiguo documento `001` se conserva como origen histórico de requisitos, pero ahora es el [roadmap de producto](../roadmap/product-roadmap.md) y no forma parte de la cola de specs ejecutables. El siguiente identificador disponible es `007`.
+El antiguo documento `001` se conserva como origen histórico de requisitos, pero ahora es el [roadmap de producto](../roadmap/product-roadmap.md) y no forma parte de la cola de specs ejecutables. El siguiente identificador libre es `008`.
 
 ## Definición de terminado
 

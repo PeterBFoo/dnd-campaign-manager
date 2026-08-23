@@ -87,6 +87,7 @@ describe('campaign pages', () => {
     expect(clientStub.get).toHaveBeenCalledWith('campaign-1');
     expect(charactersStub.list).toHaveBeenCalledWith('campaign-1');
     expect(fixture.nativeElement.textContent).toContain('Invitar jugadores');
+    expect(fixture.nativeElement.textContent).toContain('Abrir bitácora');
     expect(fixture.nativeElement.textContent).toContain('Exploradora');
     expect(fixture.nativeElement.textContent).not.toContain('Guerrera');
     expect(fixture.nativeElement.textContent).toContain('Gestionar personajes');

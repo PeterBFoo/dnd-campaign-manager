@@ -126,7 +126,8 @@ function boundaryViolation(source: string, target: string): string | null {
     const isRouteEntrypoint = sourcePath === 'app.routes.ts'
       && (targetPath.endsWith('/access.routes.ts')
         || targetPath.endsWith('/campaigns.routes.ts')
-        || targetPath.endsWith('/characters.routes.ts'));
+        || targetPath.endsWith('/characters.routes.ts')
+        || targetPath.endsWith('/journal.routes.ts'));
     if (!isRouteEntrypoint) {
       return `${sourcePath} must use the public API of ${targetModule}`;
     }

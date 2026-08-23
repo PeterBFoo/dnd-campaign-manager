@@ -18,6 +18,7 @@
     <ProjectReference Include="Modules/Access/DndCampaign.Modules.Access/DndCampaign.Modules.Access.csproj" />
     <ProjectReference Include="Modules/Campaigns/DndCampaign.Modules.Campaigns/DndCampaign.Modules.Campaigns.csproj" />
     <ProjectReference Include="Modules/Characters/DndCampaign.Modules.Characters/DndCampaign.Modules.Characters.csproj" />
+    <ProjectReference Include="Modules/Journal/DndCampaign.Modules.Journal/DndCampaign.Modules.Journal.csproj" />
   </ItemGroup>
 
   <ItemGroup>

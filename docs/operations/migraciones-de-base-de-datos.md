@@ -2,7 +2,7 @@
 
 - Estado: vigente
 - ADR relacionados: [ADR-0004](../adr/0004-arquitectura-modular-cqrs-y-limites-de-dependencia.md) y [ADR-0006](../adr/0006-campanas-acceso-e-invitaciones.md)
-- Alcance: migraciones de los módulos Access y Campaigns
+- Alcance: migraciones de los módulos Access, Campaigns, Characters y Journal
 
 ## Orden de aplicación
 
@@ -10,8 +10,10 @@ La API comparte una conexión PostgreSQL, pero cada módulo mantiene su propio `
 
 1. migraciones de Access;
 2. migraciones de Campaigns.
+3. migraciones de Characters;
+4. migraciones de Journal.
 
-Access mueve sus tablas existentes al esquema `access` preservando datos, índices y restricciones. Campaigns crea su tabla en el esquema `campaigns`. No hay foreign keys ni consultas directas entre ambos esquemas.
+Access mantiene identidad e invitaciones en el esquema `access`; Campaigns conserva campañas en `campaigns`; Characters persiste personajes y metadatos de imagen en `characters`; Journal conserva entradas y su autoría histórica en `journal`. No hay foreign keys ni consultas directas entre esquemas de módulos.
 
 ## Antes de desplegar
 
@@ -22,10 +24,11 @@ Access mueve sus tablas existentes al esquema `access` preservando datos, índic
 
 ## Verificación posterior
 
-- comprobar que existen los esquemas `access` y `campaigns`;
+- comprobar que existen los esquemas `access`, `campaigns`, `characters` y `journal`;
 - comprobar que el historial contiene las migraciones esperadas;
 - verificar `/health/ready`;
 - crear y consultar una campaña de prueba no editorial en un entorno no productivo;
+- crear, editar, listar y eliminar una entrada genérica de bitácora con los roles autorizados;
 - revisar errores de migración y de PostgreSQL sin registrar payloads ni datos personales.
 
 ## Reversibilidad
