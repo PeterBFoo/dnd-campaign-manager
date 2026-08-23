@@ -16,7 +16,21 @@ describe('CombatClient', () => {
     http = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    http.verify();
+    delete window.__DND_CONFIG__;
+  });
+
+  it('uses the configured API origin in production', () => {
+    window.__DND_CONFIG__ = { apiBaseUrl: 'https://api.example.test/' };
+
+    client.create('campaign-1', 'Encuentro de prueba').subscribe();
+
+    const creation = http.expectOne('https://api.example.test/api/v1/campaigns/campaign-1/encounters');
+    expect(creation.request.method).toBe('POST');
+    expect(creation.request.body).toEqual({ name: 'Encuentro de prueba' });
+    creation.flush({});
+  });
 
   it('separates dm listings from the safe active projection', () => {
     client.list('campaign-1').subscribe();

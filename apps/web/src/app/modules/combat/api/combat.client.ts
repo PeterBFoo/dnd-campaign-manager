@@ -2,6 +2,8 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
+import { apiBaseUrl } from '@shared/config/runtime-config';
+
 import {
   ActiveEncounterResponse,
   AddEnemyValue,
@@ -119,6 +121,6 @@ export class CombatClient {
   }
 
   private base(campaignId: string): string {
-    return `/api/v1/campaigns/${campaignId}/encounters`;
+    return `${apiBaseUrl()}/api/v1/campaigns/${campaignId}/encounters`;
   }
 }
