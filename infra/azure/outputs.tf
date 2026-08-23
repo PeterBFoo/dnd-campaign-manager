@@ -12,3 +12,8 @@ output "resource_group_name" {
   description = "Resource group scope used for least-privilege deployment access."
   value       = azurerm_resource_group.production.name
 }
+
+output "character_storage_service_uri" {
+  description = "Private character image Blob service endpoint consumed with managed identity."
+  value       = azurerm_storage_account.character_images.primary_blob_endpoint
+}

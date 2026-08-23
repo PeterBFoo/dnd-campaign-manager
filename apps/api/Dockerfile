@@ -5,8 +5,10 @@ COPY global.json Directory.Build.props DndCampaign.slnx ./
 COPY apps/api/DndCampaign.Api.csproj apps/api/
 COPY apps/api/Modules/Access/DndCampaign.Modules.Access/DndCampaign.Modules.Access.csproj apps/api/Modules/Access/DndCampaign.Modules.Access/
 COPY apps/api/Modules/Campaigns/DndCampaign.Modules.Campaigns/DndCampaign.Modules.Campaigns.csproj apps/api/Modules/Campaigns/DndCampaign.Modules.Campaigns/
+COPY apps/api/Modules/Characters/DndCampaign.Modules.Characters/DndCampaign.Modules.Characters.csproj apps/api/Modules/Characters/DndCampaign.Modules.Characters/
 COPY tests/Modules/Access/DndCampaign.Modules.Access.Tests/DndCampaign.Modules.Access.Tests.csproj tests/Modules/Access/DndCampaign.Modules.Access.Tests/
 COPY tests/Modules/Campaigns/DndCampaign.Modules.Campaigns.Tests/DndCampaign.Modules.Campaigns.Tests.csproj tests/Modules/Campaigns/DndCampaign.Modules.Campaigns.Tests/
+COPY tests/Modules/Characters/DndCampaign.Modules.Characters.Tests/DndCampaign.Modules.Characters.Tests.csproj tests/Modules/Characters/DndCampaign.Modules.Characters.Tests/
 COPY tests/DndCampaign.ArchitectureTests/DndCampaign.ArchitectureTests.csproj tests/DndCampaign.ArchitectureTests/
 RUN dotnet restore DndCampaign.slnx
 

@@ -14,8 +14,9 @@
       }
     </section>
     <section class="empty-state">
-      <h2>La mesa está preparada</h2>
-      <p>Los personajes y herramientas de juego llegarán en incrementos posteriores.</p>
+      <h2>Personajes de campaña</h2>
+      <p>Consulta el elenco, crea personajes y administra cuál está activo.</p>
+      <a class="button-link" [routerLink]="['/campaigns', current.id, 'characters']">Ver personajes</a>
     </section>
   }
 </main>

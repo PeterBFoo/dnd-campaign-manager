@@ -1,6 +1,15 @@
 name: dnd-campaign-companion
 
 services:
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.36.0
+    command: azurite-blob --blobHost 0.0.0.0 --location /data
+    environment:
+      AZURITE_ACCOUNTS: dndlocal:MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=
+    volumes:
+      - character-images-data:/data
+    restart: unless-stopped
+
   postgres:
     image: postgres:18-alpine
     environment:
@@ -71,6 +80,7 @@ services:
       Identity__OutboxEncryptionKey: ${OUTBOX_ENCRYPTION_KEY:-}
       Frontend__BaseUrl: http://localhost:4200/
       Database__ApplyMigrations: "true"
+      Storage__Characters__ConnectionString: DefaultEndpointsProtocol=http;AccountName=dndlocal;AccountKey=MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=;BlobEndpoint=http://azurite:10000/dndlocal;
     ports:
       - "8080:8080"
     depends_on:
@@ -78,6 +88,8 @@ services:
         condition: service_healthy
       observability:
         condition: service_healthy
+      azurite:
+        condition: service_started
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/health/live"]
       interval: 10s
@@ -111,9 +123,12 @@ services:
       ConnectionStrings__Campaigns: Host=postgres-tests;Port=5432;Database=dnd_identity_test;Username=${POSTGRES_USER:-dnd_app};Password=${POSTGRES_PASSWORD:-local-development-only}
       IDENTITY_TEST_DATABASE: Host=postgres-tests;Port=5432;Database=dnd_identity_test;Username=${POSTGRES_USER:-dnd_app};Password=${POSTGRES_PASSWORD:-local-development-only}
       OTEL_SDK_DISABLED: "true"
+      Storage__Characters__ConnectionString: DefaultEndpointsProtocol=http;AccountName=dndlocal;AccountKey=MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=;BlobEndpoint=http://azurite:10000/dndlocal;
     depends_on:
       postgres-tests:
         condition: service_healthy
+      azurite:
+        condition: service_started
 
   postgres-tests:
     profiles: ["test"]
@@ -133,3 +148,4 @@ services:
 volumes:
   postgres18-data:
   observability-data:
+  character-images-data:

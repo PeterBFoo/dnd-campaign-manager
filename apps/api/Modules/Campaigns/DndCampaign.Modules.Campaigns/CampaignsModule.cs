@@ -2,6 +2,7 @@ using DndCampaign.Modules.Access.Contracts.CampaignAccess;
 using DndCampaign.Modules.Campaigns.Api;
 using DndCampaign.Modules.Campaigns.Application.Campaigns;
 using DndCampaign.Modules.Campaigns.Application.Ports;
+using DndCampaign.Modules.Campaigns.Contracts.CampaignAccess;
 using DndCampaign.Modules.Campaigns.Infrastructure.Access;
 using DndCampaign.Modules.Campaigns.Infrastructure.Observability;
 using DndCampaign.Modules.Campaigns.Infrastructure.Persistence;
@@ -41,6 +42,7 @@ public static class CampaignsModule
         services.AddScoped<ICampaignRepository, CampaignRepository>();
         services.AddSingleton<ICampaignMetrics, CampaignMetrics>();
         services.AddScoped<ICampaignInvitationContext, CampaignInvitationContext>();
+        services.AddScoped<ICampaignAccessReader, CampaignAccessReader>();
         services.AddScoped<CreateCampaignHandler>();
         services.AddScoped<ListCampaignsHandler>();
         services.AddScoped<GetCampaignHandler>();

@@ -1,4 +1,4 @@
-# Despliegue gratuito en Azure
+# Despliegue en Azure con coste acotado
 
 - Estado: infraestructura aprovisionada; publicación automatizada mediante GitHub Actions
 - ADR relacionado: [ADR-0001](../adr/0001-monorepositorio-y-monolito-modular.md)
@@ -6,13 +6,14 @@
 
 ## Topología y límites de coste
 
-Terraform crea solamente un grupo de recursos, un entorno Azure Container Apps Consumption y una Container App Linux. La API queda limitada a `0.25` vCPU, `0.5 GiB`, cero réplicas en reposo y una como máximo. No se crea VM, Azure Container Registry, IP pública dedicada, Log Analytics ni PostgreSQL de Azure.
+Terraform crea un grupo de recursos, un entorno Azure Container Apps Consumption, una Container App Linux y una cuenta StorageV2 Standard LRS con contenedor privado para retratos. La API queda limitada a `0.25` vCPU, `0.5 GiB` y una réplica como máximo. No se crea VM, Azure Container Registry, IP pública dedicada, Log Analytics ni PostgreSQL de Azure.
 
-Angular se publica en GitHub Pages, PostgreSQL reside en Neon Free y la telemetría se envía a Grafana Cloud Free. Los tres proveedores aplican cuotas y los planes gratuitos no tienen SLA. Debe existir un presupuesto Azure con avisos antes de habilitar cualquier recurso adicional.
+Angular se publica en GitHub Pages, PostgreSQL reside en Neon Free y la telemetría se envía a Grafana Cloud Free. Azure Blob Storage se factura por capacidad y operaciones, aunque el volumen inicial sea pequeño; debe existir un presupuesto Azure con avisos. Los planes gratuitos no tienen SLA.
 
 ## 1. Requisitos de las cuentas
 
 1. Activar una suscripción Azure y comprobarla con `az account show`.
+   Registrar `Microsoft.Storage` además de `Microsoft.App`.
 2. Crear un proyecto Neon Free en una región europea y copiar su cadena de conexión con TLS obligatorio.
 3. Crear un stack Grafana Cloud Free y una política con escritura OTLP para métricas, logs y trazas.
 4. Crear una cuenta de servicio Grafana con rol `Editor` para publicar los dashboards versionados.
@@ -25,6 +26,7 @@ Angular se publica en GitHub Pages, PostgreSQL reside en Neon Free y la telemetr
 az login
 az account set --subscription '<subscription-id>'
 az provider register --namespace Microsoft.App
+az provider register --namespace Microsoft.Storage
 terraform -chdir=infra/azure init
 terraform -chdir=infra/azure plan -out=dnd-campaign-manager.tfplan
 terraform -chdir=infra/azure apply dnd-campaign-manager.tfplan
@@ -43,6 +45,7 @@ Se crea una aplicación de Microsoft Entra con credencial federada limitada al e
 - `AZURE_RESOURCE_GROUP=dnd-campaign-manager-production`
 - `AZURE_CONTAINER_APP=dnd-campaign-api`
 - `GRAFANA_CLOUD_OTLP_ENDPOINT`
+- `CHARACTER_STORAGE_SERVICE_URI`, con el output Terraform del mismo nombre;
 - `API_BASE_URL`, con el output `api_url` de Terraform
 
 La configuración federada utiliza el sujeto:
@@ -71,6 +74,11 @@ El workflow instala ambos como secretos de Container Apps y los referencia desde
 4. Esperar a que `deploy-pages`, también iniciado al integrar en `main`, publique Angular.
 5. Abrir `https://peterbfoo.github.io/dnd-campaign-manager/` y comprobar el estado operativo.
 6. Confirmar en Grafana que llegan logs, métricas y trazas y que el mismo workflow ha actualizado los dashboards versionados.
+7. Crear un personaje con imagen y comprobar que el blob permanece privado y que otro jugador no puede modificarlo.
+
+## Imágenes y recuperación
+
+La cuenta de almacenamiento usa LRS, acceso público deshabilitado y retención lógica de borrados durante siete días. La identidad administrada de la Container App tiene `Storage Blob Data Contributor` limitado a esa cuenta. La restauración funcional debe coordinar el snapshot/export de PostgreSQL con los blobs referenciados; antes de una recuperación masiva se ensaya en un entorno aislado y se comprueban objetos huérfanos o metadatos sin blob.
 
 La API puede tardar varios segundos en responder a la primera petición después de escalar a cero. Los smoke tests reintentan liveness para contemplar ese arranque en frío.
 

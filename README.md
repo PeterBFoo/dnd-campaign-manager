@@ -37,7 +37,7 @@ La arquitectura resultante se representa, de lo lógico a lo físico, en:
 La preparación operativa de credenciales está en [Secretos de despliegue](docs/operations/secretos-de-despliegue.md).
 El orden y la reversibilidad de los cambios de datos están en [Migraciones de base de datos](docs/operations/migraciones-de-base-de-datos.md).
 La selección, contenido y uso de los paneles está en [Dashboards de observabilidad](docs/operations/dashboards-de-observabilidad.md).
-El procedimiento productivo gratuito está en [Despliegue en Azure](docs/operations/despliegue-azure.md).
+El procedimiento productivo con coste acotado está en [Despliegue en Azure](docs/operations/despliegue-azure.md).
 
 ## Requisitos
 
@@ -112,9 +112,9 @@ BASE_URL=https://app.example.com sh scripts/smoke-test.sh
 
 Si Grafana es accesible desde el ejecutor de la prueba, añade `GRAFANA_URL`.
 
-## Producción gratuita
+## Producción con coste acotado
 
-La topología de referencia utiliza GitHub Pages para Angular, Azure Container Apps Consumption con escala a cero para ASP.NET Core, Neon Free para PostgreSQL y Grafana Cloud Free para telemetría. Las imágenes AMD64 se publican en GHCR y el workflow manual `deploy-azure` despliega únicamente tags inmutables asociados al commit. `deploy-pages` publica el frontend cuando cambia `main`.
+La topología de referencia utiliza GitHub Pages para Angular, Azure Container Apps Consumption para ASP.NET Core, Azure Blob Storage privado para retratos, Neon Free para PostgreSQL y Grafana Cloud Free para telemetría. Las imágenes AMD64 se publican en GHCR y el workflow `deploy-azure` despliega únicamente tags inmutables asociados al commit. `deploy-pages` publica el frontend cuando cambia `main`.
 
 El ADR-0003 autoriza temporalmente la autenticación entre orígenes mediante sesiones bearer opacas, `sessionStorage` y una política CORS exacta. Recuperar una entrada same-origin continúa siendo la evolución preferente antes de ampliar el volumen de información privada.
 

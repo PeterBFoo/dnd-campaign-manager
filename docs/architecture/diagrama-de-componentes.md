@@ -1,8 +1,8 @@
 # Diagrama de componentes
 
 - Estado: vigente
-- ADR relacionados: [ADR-0001: plataforma y observabilidad](../adr/0001-monorepositorio-y-monolito-modular.md), [ADR-0002: identidad e invitaciones](../adr/0002-identidad-invitaciones-y-correo-transaccional.md), [ADR-0004: modularización backend](../adr/0004-arquitectura-modular-cqrs-y-limites-de-dependencia.md), [ADR-0005: modularización frontend](../adr/0005-frontend-modular-por-capacidades.md) y [ADR-0006: campañas e invitaciones](../adr/0006-campanas-acceso-e-invitaciones.md)
-- Alcance: componentes lógicos de la plataforma, identidad, campañas e invitaciones
+- ADR relacionados: [ADR-0001: plataforma y observabilidad](../adr/0001-monorepositorio-y-monolito-modular.md), [ADR-0002: identidad e invitaciones](../adr/0002-identidad-invitaciones-y-correo-transaccional.md), [ADR-0004: modularización backend](../adr/0004-arquitectura-modular-cqrs-y-limites-de-dependencia.md), [ADR-0005: modularización frontend](../adr/0005-frontend-modular-por-capacidades.md), [ADR-0006: campañas e invitaciones](../adr/0006-campanas-acceso-e-invitaciones.md) y [ADR-0007: imágenes privadas](../adr/0007-imagenes-privadas-de-personajes.md)
+- Alcance: componentes lógicos de plataforma, identidad, campañas, invitaciones y personajes
 
 Esta vista describe las responsabilidades y dependencias de la plataforma. No define todavía componentes de dominio ni incorpora información específica de ninguna campaña.
 
@@ -32,15 +32,22 @@ flowchart LR
             campaigns_client["CampaignsClient<br/>contratos HTTP"]
             campaigns_ui --> campaigns_client
         end
+        subgraph characters_front["Módulo Characters"]
+            characters_ui["Elenco · alta · edición<br/>activación · eliminación"]
+            characters_client["CharactersClient<br/>multipart · blobs autenticados"]
+            characters_ui --> characters_client
+        end
 
         composition --> shell
         composition --> session
         shell -->|"API pública"| status_ui
         shell -->|"API pública"| access_ui
         shell -->|"API pública"| campaigns_ui
+        shell -->|"API pública"| characters_ui
         status_client --> shared
         access_clients --> shared
         campaigns_client --> shared
+        characters_client --> shared
     end
 
     subgraph edge["Entrada web"]
@@ -77,11 +84,22 @@ flowchart LR
             campaigns_infra --> campaigns_domain
             campaigns_infra --> access_contracts
         end
+        subgraph characters["Módulo Characters · un proyecto"]
+            characters_api["Api<br/>CRUD · imagen · activo"]
+            characters_app["Application<br/>autorización · casos de uso"]
+            characters_domain["Domain<br/>PlayerCharacter"]
+            characters_infra["Infrastructure<br/>EF Core · Azure Blob"]
+            characters_api --> characters_app
+            characters_app --> characters_domain
+            characters_infra --> characters_app
+            characters_infra --> characters_domain
+        end
         telemetry["Instrumentación<br/>OpenTelemetry"]
 
         middleware --> host
         host --> identity_endpoints
         host --> campaigns_api
+        host --> characters_api
         middleware --> status_endpoint
         middleware --> health
         status_endpoint --> health
@@ -89,21 +107,26 @@ flowchart LR
         status_endpoint --> telemetry
         infrastructure --> telemetry
         campaigns_infra --> telemetry
+        characters_infra --> telemetry
     end
 
     database[("PostgreSQL")]
     postgres_exporter["PostgreSQL exporter"]
     observability["Backend de observabilidad<br/>Collector · Prometheus · Tempo · Loki · Grafana"]
     brevo["Brevo<br/>API transaccional v3"]
+    blob[("Azure Blob / Azurite<br/>contenedor privado")]
 
     user -->|"HTTP"| nginx
     nginx -->|"recursos estáticos"| frontend
     status_client -->|"GET /api/v1/platform/status"| nginx
     access_clients -->|"JSON · Authorization Bearer"| nginx
     campaigns_client -->|"JSON · Authorization Bearer"| nginx
+    characters_client -->|"multipart y blobs · bearer"| nginx
     nginx -->|"proxy /api y /health"| middleware
     infrastructure -->|"conexión SQL"| database
     campaigns_infra -->|"conexión SQL"| database
+    characters_infra -->|"metadatos SQL"| database
+    characters_infra -->|"binarios privados"| blob
     database -->|"estadísticas operativas"| postgres_exporter
     observability -->|"scrape Prometheus"| postgres_exporter
     telemetry -->|"OTLP: logs, métricas y trazas"| observability
@@ -118,17 +141,20 @@ flowchart LR
 | Módulo frontend Platform | Consultar y presentar el estado técnico con estado limitado a la home | Sesión, identidad o reglas de Access |
 | Módulo frontend Access | Login, sesión, bootstrap, invitaciones, guards, interceptor y contratos HTTP propios | Autoridad de seguridad o internals de módulos futuros |
 | Módulo frontend Campaigns | Listar, crear y consultar campañas; navegar a la ruta pública de invitaciones | Usuarios, invitaciones o internals de Access |
+| Módulo frontend Characters | Crear, listar, editar, activar y eliminar personajes; cargar imágenes autenticadas | Autorizar operaciones o acceder directamente al contenedor privado |
 | Shared frontend | Runtime config y traducción genérica de `ProblemDetails` | Usuarios, sesiones, campañas, invitaciones o UI funcional |
 | Nginx | Servir el build y mantener `/api` y `/health` bajo el mismo origen | Reglas de dominio |
 | Api Host | Composición de módulos, middleware transversal, health y diagnóstico | Casos de uso, EF Core o contratos funcionales de Access |
 | Módulo Access | Propiedad de cuentas, sesiones, invitaciones, búsqueda elegible y concesiones `Jugador` | Persistir campañas o consultar tablas de Campaigns |
 | Módulo Campaigns | Propiedad de campañas, `DmUserId`, módulo opcional y consultas autorizadas | Persistir usuarios, invitaciones o concesiones de jugador |
+| Módulo Characters | Propiedad de personajes, vínculo opcional, personaje activo y metadatos de imagen | Persistir usuarios/campañas o publicar blobs |
 | Dominio de invitaciones | Estados, caducidad de siete días y validación del token de un solo uso | Enviar correo o exponer el token persistido |
 | Identidad y sesiones | Validar credenciales, emitir y revocar sesiones opacas | Permitir autorregistro o guardar tokens de sesión en claro |
 | Worker de outbox | Entregar invitaciones con reintentos y eliminar el ciphertext tras procesarlo | Conceder permisos o registrar destinatarios y tokens |
 | Puerto y adaptador Brevo | Aislar el proveedor y enviar correo transaccional por HTTPS | Decidir si una invitación concede acceso |
 | EF Core/Npgsql | Acceso transaccional a PostgreSQL | Definir por adelantado el modelo de dominio |
-| PostgreSQL | Persistencia primaria con esquemas `access` y `campaigns` | Exposición directa al navegador o foreign keys entre módulos |
+| PostgreSQL | Persistencia primaria con esquemas `access`, `campaigns` y `characters` | Exposición directa al navegador o foreign keys entre módulos |
+| Azure Blob / Azurite | Binarios de retratos bajo claves opacas | Datos de dominio, acceso público o autorización de campaña |
 | PostgreSQL exporter | Exponer métricas operativas de la base de datos a Prometheus | Servir tráfico público o almacenar credenciales en la imagen |
 | OpenTelemetry | Instrumentación neutral respecto del proveedor | Registrar secretos o contenido sensible |
 | Stack Grafana LGTM | Recibir, almacenar y consultar telemetría local | Ser la topología de producción |
@@ -142,8 +168,8 @@ flowchart LR
 - Los clientes HTTP no conservan estado de pantalla; sesión y stores tienen ownership y alcance explícitos.
 - La suite Vitest verifica deep imports, dirección de dependencias y ciclos TypeScript.
 - El host solo accede a la fachada pública de cada módulo; no conoce sus capas internas.
-- `Campaigns -> Access` es la única dependencia funcional entre módulos: usa contratos públicos para consultar concesiones de jugador y aporta el contexto autoritativo del DM.
-- Access y Campaigns no comparten entidades, `DbContext`, transacciones ni consultas entre esquemas.
+- `Campaigns -> Access` resuelve concesiones de jugador; `Characters -> Campaigns` consume el acceso efectivo y `Characters -> Access` obtiene la lista minimizada de jugadores aceptados mediante contratos públicos.
+- Access, Campaigns y Characters no comparten entidades, `DbContext`, transacciones ni consultas entre esquemas.
 - Los tests globales impiden dependencias entre implementaciones de módulos y cada proyecto de tests modular protege sus propias capas.
 - Api depende de Application; Application de Domain; Infrastructure implementa los puertos de Application y persiste Domain.
 - El dominio de invitaciones no depende de Brevo; el adaptador implementa un puerto de aplicación.

@@ -115,6 +115,7 @@ public sealed class PlatformHealthTests : IClassFixture<WebApplicationFactory<Pr
                 builder.UseSetting(
                     "Identity:OutboxEncryptionKey",
                     "MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=");
+                builder.UseSetting("Storage:Characters:ConnectionString", "UseDevelopmentStorage=true");
                 builder.UseSetting("Frontend:BaseUrl", "https://example.com/application/");
             });
         using var productionClient = factory.CreateClient();

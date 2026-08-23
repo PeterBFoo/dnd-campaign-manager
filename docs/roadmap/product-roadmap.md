@@ -21,10 +21,10 @@ La tabla distingue comportamiento disponible de extremo a extremo de infraestruc
 |---|---|---|---|
 | Identidad y sesión | RF-001 | Implementado | Login, logout, sesión bearer y usuario actual existen en web y API. |
 | Roles, aislamiento e incorporación a campaña | RF-002 a RF-004 | Implementado | Campaigns conserva el DM único; Access concede `Jugador` tras aceptación y la API aplica aislamiento en consultas y gestión de invitaciones. |
-| Personajes y contexto activo | RF-005 a RF-008 | Pendiente | No hay modelo, API ni interfaz de personajes o selección de contexto activo. |
+| Personajes y contexto activo | RF-005 a RF-008 | Implementado | Spec 005 aporta CRUD autorizado, vínculo opcional, imagen privada y un único personaje activo por jugador y campaña. |
 | DM único | RF-009 | Implementado | `DmUserId` es obligatorio en el agregado Campaign y se fija atómicamente al crearla. |
 | Campañas y catálogo de módulos | RF-010 a RF-015 | Parcial | El spec 004 implementa creación, persistencia y pantallas de campañas sin módulo; catálogo, asociación posterior y contenido del módulo siguen pendientes. |
-| Librería y NPC | RF-020 a RF-026 | Pendiente | Sin implementación productiva. |
+| Librería y NPC | RF-020 a RF-026 | Parcial | El elenco de personajes de RF-020 está disponible; NPC y desbloqueos siguen pendientes. |
 | Bitácora | RF-030 a RF-035 | Pendiente | Sin implementación productiva. |
 | Calendario y misiones | RF-040 a RF-045 | Pendiente | Sin implementación productiva. |
 | Iniciativa de combate | RF-050 a RF-057 | Pendiente | Sin implementación productiva. |
@@ -52,7 +52,7 @@ Esta secuencia orienta los próximos specs, pero no sustituye sus decisiones ni 
 | 8 | Missions | Calendario, misiones y unicidad de la misión principal | RF-040 a RF-045 | Campaigns, Characters |
 | 9 | Combat | Iniciativa, turnos, rondas, enemigos y proyección segura para jugadores | RF-050 a RF-057 | Campaigns, Characters |
 
-Las filas 1 y 2 quedaron completadas por el [spec 004](../specs/004-creacion-campanas/spec.md) el 2026-08-23. La fila 3 permanece para un incremento posterior. El siguiente identificador disponible es `005`; no se crean de antemano specs vacíos para las demás filas.
+Las filas 1 y 2 quedaron completadas por el [spec 004](../specs/004-creacion-campanas/spec.md) y la fila 4 por el [spec 005](../specs/005-personajes-campana/spec.md) el 2026-08-23. La fila 3 permanece para un incremento posterior independiente. El siguiente identificador disponible es `006`; no se crean de antemano specs vacíos para las demás filas.
 
 ## Restricciones tecnológicas aceptadas
 
@@ -79,7 +79,7 @@ Las filas 1 y 2 quedaron completadas por el [spec 004](../specs/004-creacion-cam
 
 ```mermaid
 erDiagram
-    USUARIO ||--o{ PERSONAJE : controla
+    USUARIO o|--o{ PERSONAJE : puede_controlar
     USUARIO ||--o{ MEMBRESIA_CAMPANA : participa
     USUARIO ||--o| ADMINISTRADOR_PLATAFORMA : puede_ser
     ADMINISTRADOR_PLATAFORMA ||--o{ INVITACION_PLATAFORMA : emite
@@ -121,6 +121,8 @@ Las relaciones anteriores son funcionales. No prescriben tablas, agregados, endp
 |---|---:|---:|
 | Iniciar sesión con credenciales | Sí | Sí |
 | Seleccionar uno de sus personajes | Sí, cuando actúe como personaje | Sí |
+| Crear personajes | Sí, vinculados o sin jugador | Sí, solo propios |
+| Editar o eliminar personajes | Sí, cualquiera de su campaña | Sí, solo propios |
 | Crear o invitar jugadores | Sí | No |
 | Consultar personajes de su campaña | Sí | Sí |
 | Consultar todos los NPC del módulo | Sí | No |
@@ -147,16 +149,16 @@ Ningún permiso del frontend sustituye la autorización del backend. Toda operac
 - **RF-003 — Aislamiento.** Un usuario solo podrá consultar o modificar campañas, personajes y contenido para los que tenga autorización explícita.
 - **RF-004 — Incorporación de jugadores.** Un DM podrá invitar a usuarios registrados o a personas sin cuenta para incorporarlos como jugadores de su campaña. Toda membresía de jugador quedará asociada a una cuenta de usuario.
 - **RF-005 — Personajes del usuario.** Un usuario podrá controlar varios personajes, incluso pertenecientes a campañas diferentes.
-- **RF-006 — Selección de personaje.** Después de autenticarse, el usuario deberá seleccionar uno de sus personajes autorizados antes de realizar acciones como jugador.
+- **RF-006 — Selección de personaje.** El primer personaje del usuario en una campaña quedará activo automáticamente; después podrá seleccionar otro de sus personajes autorizados antes de realizar acciones que requieran contexto de jugador.
 - **RF-007 — Cambio de contexto.** El usuario podrá cambiar de personaje activo sin autenticarse de nuevo, siempre que no exista una operación que deba concluir antes.
-- **RF-008 — Ausencia de personajes.** Si el usuario no tiene personajes disponibles, el sistema mostrará ese estado y no permitirá entrar en una campaña como jugador.
+- **RF-008 — Ausencia de personajes.** Si el usuario no tiene personajes disponibles en una campaña, el sistema mostrará ese estado y permitirá entrar únicamente para consultar el elenco y crear el primero; no permitirá acciones de juego que requieran personaje activo.
 - **RF-009 — DM único.** Cada campaña tendrá exactamente un usuario con rol `DM`. Ninguna operación podrá dejar una campaña activa sin DM ni asignarle dos simultáneamente.
 
 ### Campañas y módulos de aventura
 
 - **RF-010 — Creación de campaña.** Cualquier usuario registrado podrá crear una campaña nueva indicando como mínimo un nombre. La selección de un módulo de aventura será opcional. Al completarse la creación, se convertirá en el único DM de esa campaña.
 - **RF-011 — Asociación opcional y única.** Cada campaña podrá no tener módulo o estar asociada como máximo a uno. Un mismo módulo podrá servir de plantilla para varias campañas independientes y podrá asociarse posteriormente cuando esté disponible en el ecosistema.
-- **RF-012 — Asociación del personaje.** Cada personaje pertenecerá a exactamente una campaña y a exactamente un usuario responsable.
+- **RF-012 — Asociación del personaje.** Cada personaje pertenecerá a exactamente una campaña. Podrá estar vinculado a un único jugador responsable o quedar sin propietario cuando lo cree el DM; un personaje sin propietario no podrá estar activo.
 - **RF-013 — Contenido independiente por módulo.** Cada módulo dispondrá de sus propios capítulos, NPC y recursos editoriales.
 - **RF-014 — Estado independiente por campaña.** El progreso, NPC desbloqueados, bitácora, misiones y combates no se compartirán entre campañas aunque utilicen el mismo módulo.
 - **RF-015 — Acceso del DM.** El único DM de una campaña podrá consultar desde el inicio todo el contenido de dirección del módulo seleccionado.

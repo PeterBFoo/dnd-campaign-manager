@@ -1,0 +1,44 @@
+<main class="page-shell narrow-page">
+  <a class="back-link" [routerLink]="['/campaigns', campaignId, 'characters']">← Volver a personajes</a>
+  <section class="page-heading">
+    <p class="eyebrow">{{ editing ? 'Editar personaje' : 'Nuevo personaje' }}</p>
+    <h1>{{ editing ? existing()?.name ?? 'Personaje' : 'Crear personaje' }}</h1>
+    <p>Nombre, CA e iniciativa son obligatorios. Puedes añadir un retrato JPEG, PNG o WebP de hasta 5 MiB.</p>
+  </section>
+
+  @if (loading()) { <p class="muted">Preparando formulario…</p> }
+  @else {
+    <form class="panel stacked-form" [formGroup]="form" (ngSubmit)="submit()">
+      <label>Nombre <input type="text" formControlName="name" maxlength="80" autocomplete="off" /></label>
+      @if (form.controls.name.touched && form.controls.name.invalid) {
+        <p class="form-error">El nombre debe contener entre 2 y 80 caracteres.</p>
+      }
+      <div class="number-fields">
+        <label>CA <input type="number" formControlName="armorClass" min="0" max="40" /></label>
+        <label>Iniciativa <input type="number" formControlName="initiative" min="-20" max="30" /></label>
+      </div>
+      @if ((form.controls.armorClass.touched && form.controls.armorClass.invalid) || (form.controls.initiative.touched && form.controls.initiative.invalid)) {
+        <p class="form-error">La CA debe estar entre 0 y 40 y la iniciativa entre -20 y 30.</p>
+      }
+      @if (campaign()?.role === 'dm') {
+        <label>
+          Jugador vinculado
+          <select formControlName="ownerUserId">
+            <option [ngValue]="null">Sin jugador</option>
+            @for (owner of owners(); track owner.userId) { <option [value]="owner.userId">{{ owner.displayName }}</option> }
+          </select>
+        </label>
+      }
+      <label>
+        Retrato
+        <input type="file" accept="image/jpeg,image/png,image/webp" (change)="selectImage($event)" />
+      </label>
+      @if (editing && existing()?.imageUrl?.startsWith('/api/')) {
+        <label class="checkbox-label"><input type="checkbox" formControlName="removeImage" /> Retirar imagen y usar el avatar por defecto</label>
+      }
+      <p class="form-hint">La imagen se guarda en almacenamiento privado y solo se entrega a miembros autorizados de la campaña.</p>
+      @if (error()) { <p class="form-error" role="alert">{{ error() }}</p> }
+      <button type="submit" [disabled]="submitting()">{{ submitting() ? 'Guardando…' : 'Guardar personaje' }}</button>
+    </form>
+  }
+</main>

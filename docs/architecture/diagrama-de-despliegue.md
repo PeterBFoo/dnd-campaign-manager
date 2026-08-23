@@ -1,11 +1,11 @@
 # Diagrama de despliegue
 
 - Estado: vigente
-- ADR relacionados: [ADR-0001: plataforma y observabilidad](../adr/0001-monorepositorio-y-monolito-modular.md), [ADR-0002: identidad e invitaciones](../adr/0002-identidad-invitaciones-y-correo-transaccional.md) y [ADR-0006: campañas e invitaciones](../adr/0006-campanas-acceso-e-invitaciones.md)
+- ADR relacionados: [ADR-0001: plataforma y observabilidad](../adr/0001-monorepositorio-y-monolito-modular.md), [ADR-0002: identidad e invitaciones](../adr/0002-identidad-invitaciones-y-correo-transaccional.md), [ADR-0006: campañas e invitaciones](../adr/0006-campanas-acceso-e-invitaciones.md) y [ADR-0007: imágenes privadas](../adr/0007-imagenes-privadas-de-personajes.md)
 - Vista lógica relacionada: [diagrama de componentes](diagrama-de-componentes.md)
 - Alcance: entorno local integrado y topología productiva serverless
 
-La primera vista muestra la distribución física del entorno local. La segunda concreta su despliegue productivo gratuito sin trasladar al navegador secretos ni responsabilidades del backend.
+La primera vista muestra la distribución física del entorno local. La segunda concreta su despliegue productivo con coste acotado sin trasladar al navegador secretos ni responsabilidades del backend.
 
 ```mermaid
 flowchart TB
@@ -19,7 +19,8 @@ flowchart TB
         subgraph network["Red interna de Docker Compose"]
             web["Contenedor web<br/>Nginx + build Angular<br/>puerto interno 80"]
             api["Contenedor api<br/>ASP.NET Core 10<br/>puerto interno 8080"]
-            postgres["Contenedor postgres<br/>PostgreSQL 18<br/>esquemas access · campaigns"]
+            postgres["Contenedor postgres<br/>PostgreSQL 18<br/>esquemas access · campaigns · characters"]
+            azurite["Contenedor Azurite<br/>Blob privado"]
             postgres_exporter["Contenedor postgres-exporter<br/>métricas Prometheus<br/>puerto interno 9187"]
             lgtm["Contenedor observability<br/>Grafana OpenTelemetry LGTM<br/>OTLP 4317/4318 · Grafana 3000"]
             tests["Contenedor api-tests<br/>perfil test"]
@@ -28,11 +29,13 @@ flowchart TB
 
         postgres_volume[("Volumen<br/>postgres18-data")]
         telemetry_volume[("Volumen<br/>observability-data")]
+        image_volume[("Volumen<br/>character-images-data")]
     end
 
     browser -->|"HTTP localhost:4200"| web
     web -->|"proxy HTTP /api y /health"| api
     api -->|"TCP 5432"| postgres
+    api -->|"HTTP interno Blob"| azurite
     api -->|"OTLP gRPC 4317"| lgtm
     api -.->|"HTTPS cuando se prueba el envío"| brevo
     postgres_exporter -->|"consultas de monitorización"| postgres
@@ -51,6 +54,7 @@ flowchart TB
     browser -.->|"Grafana localhost:3000"| lgtm
     postgres --> postgres_volume
     lgtm --> telemetry_volume
+    azurite --> image_volume
 ```
 
 ## Unidades de despliegue
@@ -60,6 +64,7 @@ flowchart TB
 | `web` | `apps/web/Dockerfile` | `4200 → 80` | API saludable | Sin estado |
 | `api` | `apps/api/Dockerfile`, target `runtime` | `8080 → 8080` | PostgreSQL y observabilidad saludables | Mediante PostgreSQL |
 | `postgres` | `postgres:18-alpine` | `5432 → 5432` | Ninguna | `postgres18-data`, montado en `/var/lib/postgresql` |
+| `azurite` | `mcr.microsoft.com/azure-storage/azurite:3.36.0` | No publicado | Ninguna | `character-images-data` |
 | `postgres-exporter` | `quay.io/prometheuscommunity/postgres-exporter:v0.20.1` | No publicado | PostgreSQL saludable | Sin estado |
 | `observability` | `grafana/otel-lgtm:0.30.0` | `3000 → 3000`, `4317 → 4317`, `4318 → 4318` | Ninguna | `observability-data` |
 | `api-tests` | `apps/api/Dockerfile`, target `tests` | No publicado | PostgreSQL saludable | Efímera |
@@ -82,7 +87,7 @@ flowchart TB
 - La imagen LGTM local no se utiliza como backend productivo.
 - La API key de Brevo se carga desde el `.env` local ignorado por Git y nunca llega al contenedor web.
 
-## Producción serverless gratuita
+## Producción serverless con coste acotado
 
 ```mermaid
 flowchart TB
@@ -93,10 +98,12 @@ flowchart TB
     neon[("Neon Free<br/>PostgreSQL con TLS")]
     grafana["Grafana Cloud Free<br/>métricas · logs · trazas · dashboards"]
     brevo["Brevo Free<br/>correo transaccional"]
+    blob[("Azure Blob Storage<br/>contenedor privado · LRS")]
 
     subgraph azure["Azure · Spain Central"]
         environment["Container Apps Environment<br/>Consumption"]
-        api_prod["ASP.NET Core 10<br/>0.25 vCPU · 0.5 GiB<br/>0–1 réplicas"]
+        api_prod["ASP.NET Core 10<br/>0.25 vCPU · 0.5 GiB<br/>1 réplica"]
+        identity["Identidad administrada<br/>Blob Data Contributor"]
         secrets["Container Apps secrets<br/>DB · OTLP · Brevo<br/>bootstrap · cifrado outbox"]
     end
 
@@ -106,6 +113,8 @@ flowchart TB
     api_prod -->|"Npgsql + TLS"| neon
     api_prod -->|"OTLP HTTPS"| grafana
     api_prod -->|"HTTPS · correo transaccional"| brevo
+    api_prod -->|"HTTPS · RBAC"| blob
+    identity -.-> api_prod
     secrets -.-> api_prod
     github -->|"publica Angular"| pages
     github -->|"revisión inmutable"| api_prod
@@ -114,4 +123,4 @@ flowchart TB
 
 GitHub Pages contiene únicamente HTML, CSS, JavaScript y `config.js` con la URL pública de la API. La API admite CORS exclusivamente desde `https://peterbfoo.github.io`. La sesión opaca vive en `sessionStorage` y PostgreSQL conserva solo su resumen; los secretos de bootstrap, outbox, Brevo y base de datos no llegan al navegador. Azure y GitHub proporcionan TLS administrado.
 
-La infraestructura se describe en `infra/azure`. Terraform crea el grupo de recursos, el entorno Consumption y la Container App, pero no recibe secretos. GitHub Actions configura cada revisión mediante OIDC y secrets del environment `production`. Al escalar a cero no existe una VM reservada ni una dependencia de capacidad Always Free concreta.
+La infraestructura se describe en `infra/azure`. Terraform crea el grupo de recursos, el entorno Consumption, la Container App, su identidad administrada y la cuenta Blob privada, pero no recibe secretos funcionales. GitHub Actions configura cada revisión mediante OIDC y secrets del environment `production`.

@@ -7,7 +7,8 @@ namespace DndCampaign.Modules.Access.Infrastructure.Persistence;
 
 internal sealed class CampaignAccessRepository(AccessDbContext database) :
     ICampaignAccessRepository,
-    IPlayerCampaignAccessReader
+    IPlayerCampaignAccessReader,
+    ICampaignPlayerReader
 {
     public Task<bool> IsMemberAsync(
         Guid campaignId,
@@ -42,6 +43,16 @@ internal sealed class CampaignAccessRepository(AccessDbContext database) :
             && membership.UserId == userId
             && membership.Role == CampaignRole.Player,
             cancellationToken);
+
+    public async Task<IReadOnlyList<CampaignPlayer>> ListPlayersAsync(
+        Guid campaignId,
+        CancellationToken cancellationToken = default) =>
+        await (from membership in database.CampaignMemberships.AsNoTracking()
+               join user in database.Users.AsNoTracking() on membership.UserId equals user.Id
+               where membership.CampaignId == campaignId && membership.Role == CampaignRole.Player
+               orderby user.DisplayName, user.Id
+               select new CampaignPlayer(user.Id, user.DisplayName))
+            .ToArrayAsync(cancellationToken);
 
     public void Add(CampaignMembership membership) => database.CampaignMemberships.Add(membership);
 }

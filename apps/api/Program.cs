@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using DndCampaign.Modules.Access;
 using DndCampaign.Modules.Campaigns;
+using DndCampaign.Modules.Characters;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -21,6 +22,7 @@ var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get
 builder.Services.AddProblemDetails();
 builder.Services.AddAccessModule(builder.Configuration, builder.Environment);
 builder.Services.AddCampaignsModule(builder.Configuration, builder.Environment);
+builder.Services.AddCharactersModule(builder.Configuration, builder.Environment);
 if (builder.Environment.IsDevelopment())
 {
     builder.Services.AddEndpointsApiExplorer();
@@ -37,7 +39,7 @@ if (allowedOrigins.Length > 0)
 {
     builder.Services.AddCors(options => options.AddPolicy("frontend", policy => policy
         .WithOrigins(allowedOrigins)
-        .WithMethods("GET", "POST", "DELETE")
+        .WithMethods("GET", "POST", "PUT", "DELETE")
         .WithHeaders("Accept", "Content-Type", "Authorization")
         .WithExposedHeaders("X-Correlation-Id")));
 }
@@ -120,11 +122,13 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 });
 app.MapAccessModule();
 app.MapCampaignsModule();
+app.MapCharactersModule();
 
 if (builder.Configuration.GetValue("Database:ApplyMigrations", false))
 {
     await app.Services.ApplyAccessMigrationsAsync();
     await app.Services.ApplyCampaignsMigrationsAsync();
+    await app.Services.ApplyCharactersMigrationsAsync();
 }
 
 app.Run();

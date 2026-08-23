@@ -12,6 +12,11 @@ export const routes: Routes = [
   },
   {
     path: '',
+    loadChildren: () => import('./modules/characters/characters.routes')
+      .then((module) => module.CHARACTERS_ROUTES),
+  },
+  {
+    path: '',
     loadChildren: () => import('./modules/campaigns/campaigns.routes')
       .then((module) => module.CAMPAIGNS_ROUTES),
   },

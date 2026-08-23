@@ -2,7 +2,9 @@
   <Project Path="apps/api/DndCampaign.Api.csproj" />
   <Project Path="apps/api/Modules/Access/DndCampaign.Modules.Access/DndCampaign.Modules.Access.csproj" />
   <Project Path="apps/api/Modules/Campaigns/DndCampaign.Modules.Campaigns/DndCampaign.Modules.Campaigns.csproj" />
+  <Project Path="apps/api/Modules/Characters/DndCampaign.Modules.Characters/DndCampaign.Modules.Characters.csproj" />
   <Project Path="tests/Modules/Access/DndCampaign.Modules.Access.Tests/DndCampaign.Modules.Access.Tests.csproj" />
   <Project Path="tests/Modules/Campaigns/DndCampaign.Modules.Campaigns.Tests/DndCampaign.Modules.Campaigns.Tests.csproj" />
+  <Project Path="tests/Modules/Characters/DndCampaign.Modules.Characters.Tests/DndCampaign.Modules.Characters.Tests.csproj" />
   <Project Path="tests/DndCampaign.ArchitectureTests/DndCampaign.ArchitectureTests.csproj" />
 </Solution>

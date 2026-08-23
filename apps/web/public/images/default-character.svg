@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 440" role="img" aria-labelledby="title description">
+  <title id="title">Avatar de personaje</title>
+  <desc id="description">Silueta genérica sobre un emblema circular.</desc>
+  <defs>
+    <radialGradient id="background" cx="50%" cy="35%" r="75%">
+      <stop offset="0" stop-color="#40342a"/>
+      <stop offset="1" stop-color="#17130f"/>
+    </radialGradient>
+  </defs>
+  <rect width="640" height="440" fill="url(#background)"/>
+  <circle cx="320" cy="205" r="145" fill="none" stroke="#c6a15b" stroke-opacity=".45" stroke-width="3"/>
+  <circle cx="320" cy="165" r="68" fill="#c6a15b" fill-opacity=".58"/>
+  <path d="M175 360c13-91 69-137 145-137s132 46 145 137" fill="#c6a15b" fill-opacity=".58"/>
+  <path d="M124 388h392" stroke="#c66746" stroke-width="4" stroke-linecap="round"/>
+</svg>

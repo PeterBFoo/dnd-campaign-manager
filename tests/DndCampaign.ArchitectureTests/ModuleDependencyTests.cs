@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Xml.Linq;
 using DndCampaign.Modules.Access;
 using DndCampaign.Modules.Campaigns;
+using DndCampaign.Modules.Characters;
 using Xunit;
 
 namespace DndCampaign.ArchitectureTests;
@@ -10,6 +11,7 @@ public sealed class ModuleDependencyTests
 {
     private static readonly Assembly Access = typeof(AccessModule).Assembly;
     private static readonly Assembly Campaigns = typeof(CampaignsModule).Assembly;
+    private static readonly Assembly Characters = typeof(CharactersModule).Assembly;
     private static readonly Assembly Host = typeof(Program).Assembly;
 
     [Fact]
@@ -53,9 +55,7 @@ public sealed class ModuleDependencyTests
                     Project = Path.GetRelativePath(modulesDirectory, project),
                     Reference = reference!,
                 }))
-            .Where(edge =>
-                !edge.Project.StartsWith($"Campaigns{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                || !edge.Reference.Contains($"{Path.DirectorySeparatorChar}Access{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .Where(edge => !IsApprovedEdge(edge.Project, edge.Reference))
             .Select(edge => $"{edge.Project} -> {edge.Reference}")
             .ToArray();
 
@@ -64,29 +64,35 @@ public sealed class ModuleDependencyTests
 
     [Fact]
     public void Modules_do_not_reference_the_host() => Assert.DoesNotContain(
-        new[] { Access, Campaigns }.SelectMany(module => module.GetReferencedAssemblies()),
+        new[] { Access, Campaigns, Characters }.SelectMany(module => module.GetReferencedAssemblies()),
         reference => reference.Name == Host.GetName().Name);
 
     [Fact]
     public void Modules_do_not_reference_other_module_implementations()
     {
-        var modules = new[] { Access, Campaigns };
+        var modules = new[] { Access, Campaigns, Characters };
         var moduleNames = modules.Select(module => module.GetName().Name!).ToHashSet(StringComparer.Ordinal);
 
         foreach (var module in modules)
         {
-            var unexpected = module.GetReferencedAssemblies().FirstOrDefault(reference =>
+            var dependencies = module.GetReferencedAssemblies().Where(reference =>
                 reference.Name is not null
                 && reference.Name.StartsWith("DndCampaign.Modules.", StringComparison.Ordinal)
                 && moduleNames.Contains(reference.Name)
-                && reference.Name != module.GetName().Name);
+                && reference.Name != module.GetName().Name)
+                .Select(reference => reference.Name!)
+                .ToHashSet(StringComparer.Ordinal);
             if (module == Campaigns)
             {
-                Assert.True(unexpected is null || unexpected.Name == Access.GetName().Name);
+                Assert.Subset(new HashSet<string>([Access.GetName().Name!]), dependencies);
+            }
+            else if (module == Characters)
+            {
+                Assert.Subset(new HashSet<string>([Access.GetName().Name!, Campaigns.GetName().Name!]), dependencies);
             }
             else
             {
-                Assert.Null(unexpected);
+                Assert.Empty(dependencies);
             }
         }
     }
@@ -108,6 +114,11 @@ public sealed class ModuleDependencyTests
             "DndCampaign.Modules.Campaigns.Domain",
             "DndCampaign.Modules.Campaigns.Infrastructure",
             "CampaignsDbContext",
+            "DndCampaign.Modules.Characters.Api",
+            "DndCampaign.Modules.Characters.Application",
+            "DndCampaign.Modules.Characters.Domain",
+            "DndCampaign.Modules.Characters.Infrastructure",
+            "CharactersDbContext",
         };
         var violations = Directory.EnumerateFiles(hostDirectory, "*.cs", SearchOption.AllDirectories)
             .Where(file => !file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
@@ -128,7 +139,7 @@ public sealed class ModuleDependencyTests
     [Fact]
     public void Module_graph_is_acyclic()
     {
-        var modules = new[] { Access, Campaigns };
+        var modules = new[] { Access, Campaigns, Characters };
         var names = modules.ToDictionary(module => module.GetName().Name!, StringComparer.Ordinal);
         var edges = modules.ToDictionary(
             module => module.GetName().Name!,
@@ -173,6 +184,13 @@ public sealed class ModuleDependencyTests
         visiting.Remove(current);
         return false;
     }
+
+    private static bool IsApprovedEdge(string project, string reference) =>
+        (project.StartsWith($"Campaigns{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+            && reference.Contains($"{Path.DirectorySeparatorChar}Access{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+        || (project.StartsWith($"Characters{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+            && (reference.Contains($"{Path.DirectorySeparatorChar}Campaigns{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                || reference.Contains($"{Path.DirectorySeparatorChar}Access{Path.DirectorySeparatorChar}", StringComparison.Ordinal)));
 
     private static string FindRepositoryRoot()
     {

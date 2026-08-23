@@ -67,6 +67,9 @@ function resolveInternalImport(source: string, specifier: string): string | null
   if (specifier === '@modules/campaigns') {
     return join(appRoot, 'modules/campaigns/public-api.ts');
   }
+  if (specifier === '@modules/characters') {
+    return join(appRoot, 'modules/characters/public-api.ts');
+  }
   if (specifier.startsWith('@shared/')) {
     return existingTypeScriptFile(join(appRoot, 'shared', specifier.slice('@shared/'.length)));
   }
@@ -121,7 +124,9 @@ function boundaryViolation(source: string, target: string): string | null {
   const sourceIsRoot = !sourcePath.includes('/');
   if (sourceIsRoot && targetModule && !targetPath.endsWith('/public-api.ts')) {
     const isRouteEntrypoint = sourcePath === 'app.routes.ts'
-      && (targetPath.endsWith('/access.routes.ts') || targetPath.endsWith('/campaigns.routes.ts'));
+      && (targetPath.endsWith('/access.routes.ts')
+        || targetPath.endsWith('/campaigns.routes.ts')
+        || targetPath.endsWith('/characters.routes.ts'));
     if (!isRouteEntrypoint) {
       return `${sourcePath} must use the public API of ${targetModule}`;
     }

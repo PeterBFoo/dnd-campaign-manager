@@ -1,0 +1,50 @@
+<main class="page-shell">
+  <a class="back-link" [routerLink]="['/campaigns', campaignId]">← Volver a la campaña</a>
+  <section class="page-heading characters-heading">
+    <div>
+      <p class="eyebrow">Elenco de campaña</p>
+      <h1>Personajes</h1>
+      <p>{{ campaign()?.role === 'dm' ? 'Crea personajes vinculados o sin jugador y administra todo el elenco.' : 'Crea tus personajes y elige con cuál participas.' }}</p>
+    </div>
+    <a class="button-link" [routerLink]="['/campaigns', campaignId, 'characters', 'new']">Crear personaje</a>
+  </section>
+
+  @if (error()) { <p class="form-error message" role="alert">{{ error() }}</p> }
+  @if (loading()) { <p class="muted">Cargando personajes…</p> }
+  @else if (characters().length === 0) {
+    <section class="empty-state">
+      <h2>Todavía no hay personajes</h2>
+      <p>Crea el primero para preparar la campaña.</p>
+    </section>
+  } @else {
+    <section class="character-grid" aria-label="Personajes de la campaña">
+      @for (character of characters(); track character.id) {
+        <article class="character-card" [class.active-character]="character.isActive">
+          <img [src]="imageSource(character)" [alt]="'Retrato de ' + character.name" />
+          <div class="character-body">
+            <div class="character-title">
+              <div>
+                <p class="eyebrow">{{ character.ownerDisplayName ?? 'Sin jugador vinculado' }}</p>
+                <h2>{{ character.name }}</h2>
+              </div>
+              @if (character.isActive) { <span class="active-badge">Activo</span> }
+            </div>
+            <dl class="character-stats">
+              <div><dt>CA</dt><dd>{{ character.armorClass }}</dd></div>
+              <div><dt>Iniciativa</dt><dd>{{ character.initiative >= 0 ? '+' : '' }}{{ character.initiative }}</dd></div>
+            </dl>
+            <div class="character-actions">
+              @if (canActivate(character)) {
+                <button type="button" (click)="activate(character)" [disabled]="changing() !== null">Marcar activo</button>
+              }
+              @if (canManage(character)) {
+                <a class="text-link" [routerLink]="['/campaigns', campaignId, 'characters', character.id, 'edit']">Editar</a>
+                <button class="danger-button" type="button" (click)="remove(character)" [disabled]="changing() !== null">Eliminar</button>
+              }
+            </div>
+          </div>
+        </article>
+      }
+    </section>
+  }
+</main>

@@ -22,6 +22,7 @@
       "@modules/access": ["./src/app/modules/access/public-api.ts"],
       "@modules/access/entry": ["./src/app/modules/access/access-entry/public-api.ts"],
       "@modules/campaigns": ["./src/app/modules/campaigns/public-api.ts"],
+      "@modules/characters": ["./src/app/modules/characters/public-api.ts"],
       "@modules/platform": ["./src/app/modules/platform/public-api.ts"],
       "@shared/*": ["./src/app/shared/*"]
     },

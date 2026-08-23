@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-required_variables="AZURE_RESOURCE_GROUP AZURE_CONTAINER_APP API_IMAGE DATABASE_CONNECTION_STRING BREVO_API_KEY BREVO_SENDER_EMAIL IDENTITY_BOOTSTRAP_TOKEN OUTBOX_ENCRYPTION_KEY FRONTEND_ORIGIN FRONTEND_BASE_URL GRAFANA_CLOUD_OTLP_ENDPOINT GRAFANA_CLOUD_OTLP_HEADERS"
+required_variables="AZURE_RESOURCE_GROUP AZURE_CONTAINER_APP API_IMAGE DATABASE_CONNECTION_STRING BREVO_API_KEY BREVO_SENDER_EMAIL IDENTITY_BOOTSTRAP_TOKEN OUTBOX_ENCRYPTION_KEY CHARACTER_STORAGE_SERVICE_URI FRONTEND_ORIGIN FRONTEND_BASE_URL GRAFANA_CLOUD_OTLP_ENDPOINT GRAFANA_CLOUD_OTLP_HEADERS"
 for variable_name in $required_variables; do
   eval "variable_value=\${$variable_name:-}"
   if [ -z "$variable_value" ]; then
@@ -40,6 +40,7 @@ az containerapp update \
     Identity__BootstrapToken=secretref:identity-bootstrap-token \
     Identity__OutboxEncryptionKey=secretref:outbox-encryption-key \
     Database__ApplyMigrations=true \
+    "Storage__Characters__ServiceUri=$CHARACTER_STORAGE_SERVICE_URI" \
     "Frontend__BaseUrl=$FRONTEND_BASE_URL" \
     "Email__Brevo__SenderName=${BREVO_SENDER_NAME:-D&D Campaign Manager}" \
     "Cors__AllowedOrigins__0=$FRONTEND_ORIGIN" \

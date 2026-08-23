@@ -1,6 +1,15 @@
 name: dnd-campaign-companion
 
 services:
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.36.0
+    command: azurite-blob --blobHost 0.0.0.0 --location /data
+    environment:
+      AZURITE_ACCOUNTS: dndlocal:MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=
+    volumes:
+      - character-images-data:/data
+    restart: unless-stopped
+
   postgres:
     image: postgres:18-alpine
     environment:
@@ -74,6 +83,7 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://observability:4317
       OTEL_EXPORTER_OTLP_PROTOCOL: grpc
       OTEL_RESOURCE_ATTRIBUTES: deployment.environment=production
+      Storage__Characters__ConnectionString: DefaultEndpointsProtocol=http;AccountName=dndlocal;AccountKey=MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=;BlobEndpoint=http://azurite:10000/dndlocal;
     secrets:
       - postgres_password
       - brevo_api_key
@@ -85,6 +95,8 @@ services:
         condition: service_healthy
       observability:
         condition: service_healthy
+      azurite:
+        condition: service_started
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/health/live"]
       interval: 10s
@@ -129,3 +141,4 @@ secrets:
 volumes:
   postgres18-data:
   observability-data:
+  character-images-data:

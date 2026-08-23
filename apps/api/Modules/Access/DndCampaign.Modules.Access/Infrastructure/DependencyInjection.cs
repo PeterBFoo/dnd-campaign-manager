@@ -58,6 +58,9 @@ internal static class DependencyInjection
         services.AddScoped<IPlayerCampaignAccessReader>(provider =>
             provider.GetRequiredService<ICampaignAccessRepository>() as IPlayerCampaignAccessReader
             ?? throw new InvalidOperationException("Campaign access repository must implement player access reads."));
+        services.AddScoped<ICampaignPlayerReader>(provider =>
+            provider.GetRequiredService<ICampaignAccessRepository>() as ICampaignPlayerReader
+            ?? throw new InvalidOperationException("Campaign access repository must implement campaign player reads."));
         services.AddScoped<IAccessUnitOfWork, AccessUnitOfWork>();
         services.AddSingleton<InvitationEmailComposer>();
         if (configuration.GetValue("Email:OutboxWorkerEnabled", false))

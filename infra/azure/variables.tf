@@ -22,6 +22,12 @@ variable "api_name" {
   default     = "dnd-campaign-api"
 }
 
+variable "character_storage_account_name" {
+  description = "Globally unique Azure Storage account used for private character images."
+  type        = string
+  default     = "dndcampaignpbfimages"
+}
+
 variable "frontend_origin" {
   description = "Public Angular origin allowed by the API CORS policy."
   type        = string
