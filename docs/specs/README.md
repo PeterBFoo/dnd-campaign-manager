@@ -54,8 +54,9 @@ Descompone el plan aprobado en tareas pequeñas, ordenadas y verificables. Cada 
 | [003: modularización del frontend](003-modularizacion-frontend/spec.md) | Completada | Organización Angular por capacidades, APIs públicas y crecimiento alineado semánticamente con la API |
 | [004: creación de campañas](004-creacion-campanas/spec.md) | Completada | Creación sin módulo, DM único, búsqueda de usuarios activos e invitaciones integradas |
 | [005: personajes de campaña](005-personajes-campana/spec.md) | Completada | CRUD autorizado, vínculo opcional, imágenes privadas y selección activa por jugador y campaña |
+| [006: resumen de personajes activos](006-resumen-personajes-activos/spec.md) | Completada | Portada de campaña con personajes activos y gestión diferenciada para jugador y DM |
 
-El antiguo documento `001` se conserva como origen histórico de requisitos, pero ahora es el [roadmap de producto](../roadmap/product-roadmap.md) y no forma parte de la cola de specs ejecutables. El siguiente identificador disponible es `006`.
+El antiguo documento `001` se conserva como origen histórico de requisitos, pero ahora es el [roadmap de producto](../roadmap/product-roadmap.md) y no forma parte de la cola de specs ejecutables. El siguiente identificador disponible es `007`.
 
 ## Definición de terminado
 

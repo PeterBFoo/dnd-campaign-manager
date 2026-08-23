@@ -21,10 +21,10 @@ La tabla distingue comportamiento disponible de extremo a extremo de infraestruc
 |---|---|---|---|
 | Identidad y sesión | RF-001 | Implementado | Login, logout, sesión bearer y usuario actual existen en web y API. |
 | Roles, aislamiento e incorporación a campaña | RF-002 a RF-004 | Implementado | Campaigns conserva el DM único; Access concede `Jugador` tras aceptación y la API aplica aislamiento en consultas y gestión de invitaciones. |
-| Personajes y contexto activo | RF-005 a RF-008 | Implementado | Spec 005 aporta CRUD autorizado, vínculo opcional, imagen privada y un único personaje activo por jugador y campaña. |
+| Personajes y contexto activo | RF-005 a RF-008 | Implementado | Spec 005 aporta CRUD autorizado, vínculo opcional, imagen privada y un único personaje activo por jugador y campaña; spec 006 presenta los activos en la portada y separa la gestión por rol. |
 | DM único | RF-009 | Implementado | `DmUserId` es obligatorio en el agregado Campaign y se fija atómicamente al crearla. |
 | Campañas y catálogo de módulos | RF-010 a RF-015 | Parcial | El spec 004 implementa creación, persistencia y pantallas de campañas sin módulo; catálogo, asociación posterior y contenido del módulo siguen pendientes. |
-| Librería y NPC | RF-020 a RF-026 | Parcial | El elenco de personajes de RF-020 está disponible; NPC y desbloqueos siguen pendientes. |
+| Librería y NPC | RF-020 a RF-026 | Parcial | El elenco de RF-020 y su resumen de activos están disponibles; NPC y desbloqueos siguen pendientes. |
 | Bitácora | RF-030 a RF-035 | Pendiente | Sin implementación productiva. |
 | Calendario y misiones | RF-040 a RF-045 | Pendiente | Sin implementación productiva. |
 | Iniciativa de combate | RF-050 a RF-057 | Pendiente | Sin implementación productiva. |
@@ -52,7 +52,7 @@ Esta secuencia orienta los próximos specs, pero no sustituye sus decisiones ni 
 | 8 | Missions | Calendario, misiones y unicidad de la misión principal | RF-040 a RF-045 | Campaigns, Characters |
 | 9 | Combat | Iniciativa, turnos, rondas, enemigos y proyección segura para jugadores | RF-050 a RF-057 | Campaigns, Characters |
 
-Las filas 1 y 2 quedaron completadas por el [spec 004](../specs/004-creacion-campanas/spec.md) y la fila 4 por el [spec 005](../specs/005-personajes-campana/spec.md) el 2026-08-23. La fila 3 permanece para un incremento posterior independiente. El siguiente identificador disponible es `006`; no se crean de antemano specs vacíos para las demás filas.
+Las filas 1 y 2 quedaron completadas por el [spec 004](../specs/004-creacion-campanas/spec.md) y la fila 4 por el [spec 005](../specs/005-personajes-campana/spec.md), refinado por el [spec 006](../specs/006-resumen-personajes-activos/spec.md), el 2026-08-23. La fila 3 permanece para un incremento posterior independiente. El siguiente identificador disponible es `007`; no se crean de antemano specs vacíos para las demás filas.
 
 ## Restricciones tecnológicas aceptadas
 

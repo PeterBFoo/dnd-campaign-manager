@@ -29,6 +29,9 @@ export class CharacterListPage implements OnInit, OnDestroy {
   readonly error = signal<string | null>(null);
   readonly imageUrls = signal<Record<string, string>>({});
   readonly currentUserId = computed(() => this.session.user()?.id ?? '');
+  readonly visibleCharacters = computed(() => this.campaign()?.role === 'dm'
+    ? this.characters()
+    : this.characters().filter((character) => character.ownerUserId === this.currentUserId()));
 
   ngOnInit(): void {
     forkJoin({ campaign: this.campaigns.get(this.campaignId), characters: this.client.list(this.campaignId) })
@@ -37,7 +40,7 @@ export class CharacterListPage implements OnInit, OnDestroy {
         next: ({ campaign, characters }) => {
           this.campaign.set(campaign);
           this.characters.set(characters);
-          this.loadImages(characters);
+          this.loadImages(this.charactersForManagement(campaign, characters));
         },
         error: (error) => this.error.set(apiErrorMessage(error, 'No se han podido cargar los personajes.')),
       });
@@ -95,7 +98,7 @@ export class CharacterListPage implements OnInit, OnDestroy {
     this.client.list(this.campaignId).subscribe({
       next: (characters) => {
         this.characters.set(characters);
-        this.loadImages(characters);
+        this.loadImages(this.charactersForManagement(this.campaign(), characters));
       },
       error: (error) => this.error.set(apiErrorMessage(error, 'No se han podido recargar los personajes.')),
     });
@@ -112,6 +115,15 @@ export class CharacterListPage implements OnInit, OnDestroy {
         },
       });
     }
+  }
+
+  private charactersForManagement(
+    campaign: CampaignSummary | null,
+    characters: CampaignCharacter[],
+  ): CampaignCharacter[] {
+    return campaign?.role === 'dm'
+      ? characters
+      : characters.filter((character) => character.ownerUserId === this.currentUserId());
   }
 
 }

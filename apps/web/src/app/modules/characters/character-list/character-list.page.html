@@ -11,14 +11,14 @@
 
   @if (error()) { <p class="form-error message" role="alert">{{ error() }}</p> }
   @if (loading()) { <p class="muted">Cargando personajes…</p> }
-  @else if (characters().length === 0) {
+  @else if (visibleCharacters().length === 0) {
     <section class="empty-state">
-      <h2>Todavía no hay personajes</h2>
+      <h2>{{ campaign()?.role === 'dm' ? 'Todavía no hay personajes' : 'Todavía no tienes personajes' }}</h2>
       <p>Crea el primero para preparar la campaña.</p>
     </section>
   } @else {
-    <section class="character-grid" aria-label="Personajes de la campaña">
-      @for (character of characters(); track character.id) {
+    <section class="character-grid" [attr.aria-label]="campaign()?.role === 'dm' ? 'Personajes de la campaña' : 'Mis personajes'">
+      @for (character of visibleCharacters(); track character.id) {
         <article class="character-card" [class.active-character]="character.isActive">
           <img [src]="imageSource(character)" [alt]="'Retrato de ' + character.name" />
           <div class="character-body">

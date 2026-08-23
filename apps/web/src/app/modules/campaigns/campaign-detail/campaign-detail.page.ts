@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 
+import { ActiveCharactersPanelComponent } from '@modules/characters';
 import { apiErrorMessage } from '@shared/http/problem-details';
 
 import { CampaignSummary } from '../api/campaign.contracts';
@@ -9,7 +10,7 @@ import { CampaignsClient } from '../api/campaigns.client';
 
 @Component({
   selector: 'dnd-campaign-detail-page',
-  imports: [RouterLink],
+  imports: [RouterLink, ActiveCharactersPanelComponent],
   templateUrl: './campaign-detail.page.html',
   styleUrl: '../campaigns.pages.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

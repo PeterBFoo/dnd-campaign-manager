@@ -1,0 +1,36 @@
+<section class="active-characters-section" aria-labelledby="active-characters-title">
+  <header class="active-characters-heading">
+    <div>
+      <p class="eyebrow">Grupo de campaña</p>
+      <h2 id="active-characters-title">Personajes activos</h2>
+      <p>Los personajes que representan ahora mismo a los jugadores de esta campaña.</p>
+    </div>
+    <a class="button-link" [routerLink]="['/campaigns', campaignId(), 'characters']">
+      {{ role() === 'dm' ? 'Gestionar personajes' : 'Gestionar mis personajes' }}
+    </a>
+  </header>
+
+  @if (error()) {
+    <p class="form-error message" role="alert">{{ error() }}</p>
+  }
+  @if (loading()) {
+    <p class="muted active-characters-status">Cargando personajes activos…</p>
+  } @else if (!error() && characters().length === 0) {
+    <div class="active-characters-empty">
+      <h3>Todavía no hay personajes activos</h3>
+      <p>Crea un personaje o activa uno existente desde la gestión de personajes.</p>
+    </div>
+  } @else if (characters().length > 0) {
+    <div class="active-character-grid">
+      @for (character of characters(); track character.id) {
+        <article class="active-character-summary">
+          <img [src]="imageSource(character)" [alt]="'Retrato de ' + character.name" />
+          <div>
+            <p class="eyebrow">Personaje activo</p>
+            <h3>{{ character.name }}</h3>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>

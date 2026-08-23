@@ -2,6 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 
+import { CharactersClient } from '@modules/characters';
+
 import { CampaignsClient } from './api/campaigns.client';
 import { CampaignCreatePage } from './campaign-create/campaign-create.page';
 import { CampaignDetailPage } from './campaign-detail/campaign-detail.page';
@@ -54,11 +56,24 @@ describe('campaign pages', () => {
 
   it('shows invitation management only for a campaign directed by the actor', async () => {
     const clientStub = { get: vi.fn(() => of(campaign)) };
+    const charactersStub = { list: vi.fn(() => of([
+      {
+        id: 'character-active', campaignId: 'campaign-1', ownerUserId: 'player-1', ownerDisplayName: 'Jugador',
+        name: 'Exploradora', armorClass: 16, initiative: 3, imageUrl: '/images/default-character.svg',
+        isActive: true, createdAt: '2026-08-23T00:00:00Z',
+      },
+      {
+        id: 'character-inactive', campaignId: 'campaign-1', ownerUserId: 'player-1', ownerDisplayName: 'Jugador',
+        name: 'Guerrera', armorClass: 18, initiative: 1, imageUrl: '/images/default-character.svg',
+        isActive: false, createdAt: '2026-08-23T00:00:00Z',
+      },
+    ])) };
     await TestBed.configureTestingModule({
       imports: [CampaignDetailPage],
       providers: [
         provideRouter([]),
         { provide: CampaignsClient, useValue: clientStub },
+        { provide: CharactersClient, useValue: charactersStub },
         {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: convertToParamMap({ campaignId: 'campaign-1' }) } },
@@ -70,6 +85,10 @@ describe('campaign pages', () => {
     fixture.detectChanges();
 
     expect(clientStub.get).toHaveBeenCalledWith('campaign-1');
+    expect(charactersStub.list).toHaveBeenCalledWith('campaign-1');
     expect(fixture.nativeElement.textContent).toContain('Invitar jugadores');
+    expect(fixture.nativeElement.textContent).toContain('Exploradora');
+    expect(fixture.nativeElement.textContent).not.toContain('Guerrera');
+    expect(fixture.nativeElement.textContent).toContain('Gestionar personajes');
   });
 });
