@@ -72,6 +72,17 @@ describe('InvitationsClient', () => {
     expect(issue.request.body).toEqual({ email: 'new@example.com' });
     issue.flush({});
 
+    client.eligibleCampaignUsers('campaign-1', 'pla').subscribe();
+    const eligible = http.expectOne('/api/v1/campaigns/campaign-1/eligible-users?query=pla');
+    expect(eligible.request.method).toBe('GET');
+    eligible.flush({ items: [], nextCursor: null });
+
+    client.issueCampaignUser('campaign-1', 'user-1').subscribe();
+    const issueUser = http.expectOne('/api/v1/campaigns/campaign-1/invitations');
+    expect(issueUser.request.method).toBe('POST');
+    expect(issueUser.request.body).toEqual({ recipientUserId: 'user-1' });
+    issueUser.flush({});
+
     client.resendCampaign('campaign-1', 'invitation-1').subscribe();
     const resend = http.expectOne('/api/v1/campaigns/campaign-1/invitations/invitation-1/resend');
     expect(resend.request.method).toBe('POST');

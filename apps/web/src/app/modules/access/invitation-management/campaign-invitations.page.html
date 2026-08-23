@@ -1,10 +1,20 @@
 <main class="page-shell">
   <section class="page-heading split-heading">
     <div><p class="eyebrow">Gestión del DM</p><h1>Invitaciones de campaña</h1><p>Las personas aceptadas se incorporarán exclusivamente con rol de jugador.</p></div>
-    <form class="panel inline-form" [formGroup]="form" (ngSubmit)="issue()"><label>Correo del jugador<input type="email" formControlName="email" /></label><button type="submit" [disabled]="busy()">Invitar</button></form>
+    <div class="panel inline-form"><label>Buscar usuario activo<input type="search" [formControl]="search" placeholder="Nombre o correo" autocomplete="off" /></label><p class="form-hint">Los correos aparecen enmascarados y la selección se valida de nuevo al invitar.</p></div>
   </section>
   @if (error()) { <p class="form-error message" role="alert">{{ error() }}</p> }
   @if (message()) { <p class="success-message message">{{ message() }}</p> }
+  <section class="table-section">
+    <div class="section-title"><h2>Usuarios elegibles</h2><span>{{ eligibleUsers().length }}</span></div>
+    @if (usersLoading()) { <p class="muted">Buscando usuarios…</p> }
+    @else if (eligibleUsers().length === 0) { <div class="empty-state"><h3>No hay usuarios elegibles</h3><p>Prueba otra búsqueda o revisa las invitaciones pendientes.</p></div> }
+    @else {
+      <div class="table-wrap"><table><thead><tr><th>Usuario</th><th>Cuenta</th><th></th></tr></thead><tbody>
+        @for (user of eligibleUsers(); track user.userId) { <tr><td><strong>{{ user.displayName }}</strong></td><td>{{ user.maskedEmail }}</td><td class="row-actions"><button type="button" class="text-button" [disabled]="busy()" (click)="issue(user)">Invitar</button></td></tr> }
+      </tbody></table></div>
+    }
+  </section>
   <section class="table-section">
     <div class="section-title"><h2>Invitaciones</h2><span>{{ invitations().length }}</span></div>
     @if (loading()) { <p class="muted">Cargando…</p> }

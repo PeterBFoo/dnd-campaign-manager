@@ -6,6 +6,7 @@ using DndCampaign.Modules.Access.Application.Ports.Persistence;
 using DndCampaign.Modules.Access.Application.Ports.Observability;
 using DndCampaign.Modules.Access.Application.Ports.Security;
 using DndCampaign.Modules.Access.Domain.Accounts;
+using DndCampaign.Modules.Access.Contracts.CampaignAccess;
 using DndCampaign.Modules.Access.Infrastructure.Authentication;
 using DndCampaign.Modules.Access.Infrastructure.Email;
 using DndCampaign.Modules.Access.Infrastructure.Persistence;
@@ -44,6 +45,9 @@ internal static class DependencyInjection
         services.AddDbContext<AccessDbContext>(options => options.UseNpgsql(
             connectionString));
         services.AddScoped<IUserAccountRepository, UserAccountRepository>();
+        services.AddScoped<IEligibleUserReadStore>(provider =>
+            provider.GetRequiredService<IUserAccountRepository>() as IEligibleUserReadStore
+            ?? throw new InvalidOperationException("User account repository must implement eligible user reads."));
         services.AddScoped<IUserSessionRepository, UserSessionRepository>();
         services.AddScoped<IInvitationRepository, InvitationRepository>();
         services.AddScoped<IInvitationReadStore>(provider =>
@@ -51,6 +55,9 @@ internal static class DependencyInjection
             ?? throw new InvalidOperationException("Invitation repository must implement the read store."));
         services.AddScoped<IInvitationOutboxRepository, InvitationOutboxRepository>();
         services.AddScoped<ICampaignAccessRepository, CampaignAccessRepository>();
+        services.AddScoped<IPlayerCampaignAccessReader>(provider =>
+            provider.GetRequiredService<ICampaignAccessRepository>() as IPlayerCampaignAccessReader
+            ?? throw new InvalidOperationException("Campaign access repository must implement player access reads."));
         services.AddScoped<IAccessUnitOfWork, AccessUnitOfWork>();
         services.AddSingleton<InvitationEmailComposer>();
         if (configuration.GetValue("Email:OutboxWorkerEnabled", false))

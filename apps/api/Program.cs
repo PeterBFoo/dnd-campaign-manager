@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using DndCampaign.Modules.Access;
+using DndCampaign.Modules.Campaigns;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -19,6 +20,7 @@ var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get
 
 builder.Services.AddProblemDetails();
 builder.Services.AddAccessModule(builder.Configuration, builder.Environment);
+builder.Services.AddCampaignsModule(builder.Configuration, builder.Environment);
 if (builder.Environment.IsDevelopment())
 {
     builder.Services.AddEndpointsApiExplorer();
@@ -50,6 +52,14 @@ builder.Services
         {
             options.Filter = context => !context.Request.Path.StartsWithSegments("/health");
             options.RecordException = true;
+            options.EnrichWithHttpRequest = (activity, request) =>
+            {
+                if (request.Path.Value?.EndsWith("/eligible-users", StringComparison.Ordinal) == true)
+                {
+                    activity.SetTag("url.query", null);
+                    activity.SetTag("http.target", request.Path.Value);
+                }
+            };
         })
         .AddHttpClientInstrumentation()
         .AddOtlpExporter())
@@ -109,10 +119,12 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
     ResponseWriter = WriteHealthResponseAsync,
 });
 app.MapAccessModule();
+app.MapCampaignsModule();
 
 if (builder.Configuration.GetValue("Database:ApplyMigrations", false))
 {
     await app.Services.ApplyAccessMigrationsAsync();
+    await app.Services.ApplyCampaignsMigrationsAsync();
 }
 
 app.Run();

@@ -6,11 +6,13 @@ namespace DndCampaign.Modules.Access.Tests.Architecture;
 public sealed class LayerBoundaryTests
 {
     [Fact]
-    public void Public_surface_only_exposes_the_module_facade()
+    public void Public_surface_only_exposes_the_module_facade_and_deliberate_contracts()
     {
         var exportedTypes = typeof(AccessModule).Assembly.GetExportedTypes();
 
-        Assert.Equal([typeof(AccessModule)], exportedTypes);
+        Assert.Contains(typeof(AccessModule), exportedTypes);
+        Assert.All(exportedTypes.Where(type => type != typeof(AccessModule)), type =>
+            Assert.StartsWith("DndCampaign.Modules.Access.Contracts.", type.Namespace, StringComparison.Ordinal));
     }
 
     [Fact]

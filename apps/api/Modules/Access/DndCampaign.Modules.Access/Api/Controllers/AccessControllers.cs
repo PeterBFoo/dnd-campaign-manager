@@ -192,6 +192,7 @@ internal sealed class PlatformInvitationsController(
         var result = await invitationCommands.HandleAsync(new IssueInvitationCommand(
             InvitationKind.Platform,
             request.Email,
+            request.RecipientUserId,
             CampaignId: null,
             AccessControllerMappings.ToActor(User)), cancellationToken);
         return result.IsSuccess
@@ -262,6 +263,7 @@ internal sealed class CampaignInvitationsController(
         var result = await invitationCommands.HandleAsync(new IssueInvitationCommand(
             InvitationKind.Campaign,
             request.Email,
+            request.RecipientUserId,
             campaignId,
             AccessControllerMappings.ToActor(User)), cancellationToken);
         return result.IsSuccess
@@ -302,12 +304,46 @@ internal sealed class CampaignInvitationsController(
     }
 }
 
+[ApiController]
+[Authorize]
+[Route("api/v1/campaigns/{campaignId:guid}/eligible-users")]
+internal sealed class EligibleCampaignUsersController(
+    SearchEligibleUsersHandler searchEligibleUsers) : ControllerBase
+{
+    [HttpGet]
+    [EnableRateLimiting("eligible-users")]
+    [ProducesResponseType<EligibleUsersPageResponse>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> SearchAsync(
+        Guid campaignId,
+        [FromQuery] string? query,
+        [FromQuery] string? cursor,
+        [FromQuery] int? limit,
+        CancellationToken cancellationToken)
+    {
+        var result = await searchEligibleUsers.HandleAsync(new SearchEligibleUsersQuery(
+            campaignId,
+            query,
+            cursor,
+            limit,
+            AccessControllerMappings.ToActor(User)), cancellationToken);
+        return result.IsSuccess
+            ? Ok(new EligibleUsersPageResponse(
+                result.Value!.Items.Select(item => new EligibleUserResponse(
+                    item.UserId,
+                    item.DisplayName,
+                    item.MaskedEmail)),
+                result.Value.NextCursor))
+            : AccessControllerMappings.MapError(result.Error!);
+    }
+}
+
 internal static class AccessControllerMappings
 {
     internal static IActionResult MapError(ApplicationError error) => error.Type switch
     {
         ApplicationErrorType.Validation => new BadRequestObjectResult(new ValidationProblemDetails(
-            error.ValidationErrors!.ToDictionary(entry => entry.Key, entry => entry.Value))
+            error.ValidationErrors?.ToDictionary(entry => entry.Key, entry => entry.Value)
+                ?? new Dictionary<string, string[]>())
         {
             Status = StatusCodes.Status400BadRequest,
         }),
@@ -373,7 +409,13 @@ internal sealed record InvitationTokenRequest(string? Token);
 
 internal sealed record AcceptInvitationRequest(string? Token, string? DisplayName, string? Password);
 
-internal sealed record IssueInvitationRequest(string? Email);
+internal sealed record IssueInvitationRequest(string? Email, Guid? RecipientUserId);
+
+internal sealed record EligibleUserResponse(Guid UserId, string DisplayName, string MaskedEmail);
+
+internal sealed record EligibleUsersPageResponse(
+    IEnumerable<EligibleUserResponse> Items,
+    string? NextCursor);
 
 internal sealed record UserResponse(Guid Id, string Email, string DisplayName, bool IsPlatformAdmin);
 

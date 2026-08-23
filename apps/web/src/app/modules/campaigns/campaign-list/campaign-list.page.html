@@ -1,0 +1,32 @@
+<main class="page-shell">
+  <section class="page-heading campaigns-heading">
+    <div>
+      <p class="eyebrow">Tus mesas</p>
+      <h1>Campañas</h1>
+      <p>Dirige una mesa propia o vuelve a las campañas en las que participas.</p>
+    </div>
+    <a class="button-link" routerLink="/campaigns/new">Crear campaña</a>
+  </section>
+
+  @if (error()) { <p class="form-error message" role="alert">{{ error() }}</p> }
+  @if (loading()) { <p class="muted">Cargando campañas…</p> }
+  @else if (campaigns().length === 0) {
+    <section class="empty-state">
+      <h2>Todavía no tienes campañas</h2>
+      <p>Crea la primera sin necesidad de tener un módulo cargado.</p>
+      <a class="button-link" routerLink="/campaigns/new">Crear campaña</a>
+    </section>
+  } @else {
+    <section class="campaign-grid" aria-label="Campañas accesibles">
+      @for (campaign of campaigns(); track campaign.id) {
+        <a class="campaign-card" [routerLink]="['/campaigns', campaign.id]">
+          <span class="badge" [attr.data-state]="campaign.role === 'dm' ? 'accepted' : 'pending'">
+            {{ campaign.role === 'dm' ? 'DM' : 'Jugador' }}
+          </span>
+          <h2>{{ campaign.name }}</h2>
+          <p>{{ campaign.adventureModuleId ? 'Módulo asociado' : 'Sin módulo' }}</p>
+        </a>
+      }
+    </section>
+  }
+</main>

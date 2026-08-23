@@ -1,8 +1,8 @@
 # Diagrama de componentes
 
 - Estado: vigente
-- ADR relacionados: [ADR-0001: plataforma y observabilidad](../adr/0001-monorepositorio-y-monolito-modular.md), [ADR-0002: identidad e invitaciones](../adr/0002-identidad-invitaciones-y-correo-transaccional.md), [ADR-0004: modularización backend](../adr/0004-arquitectura-modular-cqrs-y-limites-de-dependencia.md) y [ADR-0005: modularización frontend](../adr/0005-frontend-modular-por-capacidades.md)
-- Alcance: componentes lógicos de la plataforma y flujo funcional de identidad e invitaciones
+- ADR relacionados: [ADR-0001: plataforma y observabilidad](../adr/0001-monorepositorio-y-monolito-modular.md), [ADR-0002: identidad e invitaciones](../adr/0002-identidad-invitaciones-y-correo-transaccional.md), [ADR-0004: modularización backend](../adr/0004-arquitectura-modular-cqrs-y-limites-de-dependencia.md), [ADR-0005: modularización frontend](../adr/0005-frontend-modular-por-capacidades.md) y [ADR-0006: campañas e invitaciones](../adr/0006-campanas-acceso-e-invitaciones.md)
+- Alcance: componentes lógicos de la plataforma, identidad, campañas e invitaciones
 
 Esta vista describe las responsabilidades y dependencias de la plataforma. No define todavía componentes de dominio ni incorpora información específica de ninguna campaña.
 
@@ -20,20 +20,27 @@ flowchart LR
             status_ui --> status_client
         end
         subgraph access_front["Módulo Access"]
-            access_ui["Login · bootstrap · aceptación<br/>gestión de invitaciones"]
+            access_ui["Login · bootstrap · aceptación<br/>invitaciones · usuarios elegibles"]
             session["SessionStore<br/>guards · interceptor bearer"]
             access_clients["IdentityClient · InvitationsClient<br/>contratos HTTP"]
             access_ui --> session
             access_ui --> access_clients
             session --> access_clients
         end
+        subgraph campaigns_front["Módulo Campaigns"]
+            campaigns_ui["Listado · creación · detalle"]
+            campaigns_client["CampaignsClient<br/>contratos HTTP"]
+            campaigns_ui --> campaigns_client
+        end
 
         composition --> shell
         composition --> session
         shell -->|"API pública"| status_ui
         shell -->|"API pública"| access_ui
+        shell -->|"API pública"| campaigns_ui
         status_client --> shared
         access_clients --> shared
+        campaigns_client --> shared
     end
 
     subgraph edge["Entrada web"]
@@ -49,22 +56,39 @@ flowchart LR
             identity_endpoints["Api<br/>contratos y endpoints"]
             application["Application<br/>commands · queries · puertos"]
             domain["Domain<br/>cuentas · sesiones · invitaciones · acceso"]
+            access_contracts["Contracts públicos<br/>contexto DM · acceso jugador"]
             infrastructure["Infrastructure<br/>EF Core · auth · outbox · correo"]
             identity_endpoints --> application
             application --> domain
+            application --> access_contracts
             infrastructure --> application
             infrastructure --> domain
+            infrastructure --> access_contracts
+        end
+        subgraph campaigns["Módulo Campaigns · un proyecto"]
+            campaigns_api["Api<br/>campañas"]
+            campaigns_app["Application<br/>crear · listar · detalle"]
+            campaigns_domain["Domain<br/>Campaign · DM único"]
+            campaigns_infra["Infrastructure<br/>EF Core · contratos Access"]
+            campaigns_api --> campaigns_app
+            campaigns_app --> campaigns_domain
+            campaigns_app --> access_contracts
+            campaigns_infra --> campaigns_app
+            campaigns_infra --> campaigns_domain
+            campaigns_infra --> access_contracts
         end
         telemetry["Instrumentación<br/>OpenTelemetry"]
 
         middleware --> host
         host --> identity_endpoints
+        host --> campaigns_api
         middleware --> status_endpoint
         middleware --> health
         status_endpoint --> health
         middleware --> telemetry
         status_endpoint --> telemetry
         infrastructure --> telemetry
+        campaigns_infra --> telemetry
     end
 
     database[("PostgreSQL")]
@@ -76,8 +100,10 @@ flowchart LR
     nginx -->|"recursos estáticos"| frontend
     status_client -->|"GET /api/v1/platform/status"| nginx
     access_clients -->|"JSON · Authorization Bearer"| nginx
+    campaigns_client -->|"JSON · Authorization Bearer"| nginx
     nginx -->|"proxy /api y /health"| middleware
     infrastructure -->|"conexión SQL"| database
+    campaigns_infra -->|"conexión SQL"| database
     database -->|"estadísticas operativas"| postgres_exporter
     observability -->|"scrape Prometheus"| postgres_exporter
     telemetry -->|"OTLP: logs, métricas y trazas"| observability
@@ -91,16 +117,18 @@ flowchart LR
 | Composition root y shell Angular | Configurar providers y routing; componer módulos mediante APIs públicas | Clientes HTTP, estado o detalles internos de módulos |
 | Módulo frontend Platform | Consultar y presentar el estado técnico con estado limitado a la home | Sesión, identidad o reglas de Access |
 | Módulo frontend Access | Login, sesión, bootstrap, invitaciones, guards, interceptor y contratos HTTP propios | Autoridad de seguridad o internals de módulos futuros |
+| Módulo frontend Campaigns | Listar, crear y consultar campañas; navegar a la ruta pública de invitaciones | Usuarios, invitaciones o internals de Access |
 | Shared frontend | Runtime config y traducción genérica de `ProblemDetails` | Usuarios, sesiones, campañas, invitaciones o UI funcional |
 | Nginx | Servir el build y mantener `/api` y `/health` bajo el mismo origen | Reglas de dominio |
 | Api Host | Composición de módulos, middleware transversal, health y diagnóstico | Casos de uso, EF Core o contratos funcionales de Access |
-| Módulo Access | Propiedad de cuentas, sesiones, invitaciones y concesiones actuales de acceso | Consumir internals o tablas de futuros módulos |
+| Módulo Access | Propiedad de cuentas, sesiones, invitaciones, búsqueda elegible y concesiones `Jugador` | Persistir campañas o consultar tablas de Campaigns |
+| Módulo Campaigns | Propiedad de campañas, `DmUserId`, módulo opcional y consultas autorizadas | Persistir usuarios, invitaciones o concesiones de jugador |
 | Dominio de invitaciones | Estados, caducidad de siete días y validación del token de un solo uso | Enviar correo o exponer el token persistido |
 | Identidad y sesiones | Validar credenciales, emitir y revocar sesiones opacas | Permitir autorregistro o guardar tokens de sesión en claro |
 | Worker de outbox | Entregar invitaciones con reintentos y eliminar el ciphertext tras procesarlo | Conceder permisos o registrar destinatarios y tokens |
 | Puerto y adaptador Brevo | Aislar el proveedor y enviar correo transaccional por HTTPS | Decidir si una invitación concede acceso |
 | EF Core/Npgsql | Acceso transaccional a PostgreSQL | Definir por adelantado el modelo de dominio |
-| PostgreSQL | Persistencia primaria | Exposición directa al navegador |
+| PostgreSQL | Persistencia primaria con esquemas `access` y `campaigns` | Exposición directa al navegador o foreign keys entre módulos |
 | PostgreSQL exporter | Exponer métricas operativas de la base de datos a Prometheus | Servir tráfico público o almacenar credenciales en la imagen |
 | OpenTelemetry | Instrumentación neutral respecto del proveedor | Registrar secretos o contenido sensible |
 | Stack Grafana LGTM | Recibir, almacenar y consultar telemetría local | Ser la topología de producción |
@@ -109,11 +137,13 @@ flowchart LR
 
 - El navegador solo accede a la API a través de Nginx en el recorrido integrado.
 - Angular no se conecta directamente a PostgreSQL ni al collector de telemetría.
-- El shell Angular consume únicamente entrypoints públicos de Platform y Access.
+- El shell Angular consume únicamente entrypoints públicos de Platform, Access y Campaigns.
 - Shared frontend no depende del shell ni de módulos funcionales.
 - Los clientes HTTP no conservan estado de pantalla; sesión y stores tienen ownership y alcance explícitos.
 - La suite Vitest verifica deep imports, dirección de dependencias y ciclos TypeScript.
 - El host solo accede a la fachada pública de cada módulo; no conoce sus capas internas.
+- `Campaigns -> Access` es la única dependencia funcional entre módulos: usa contratos públicos para consultar concesiones de jugador y aporta el contexto autoritativo del DM.
+- Access y Campaigns no comparten entidades, `DbContext`, transacciones ni consultas entre esquemas.
 - Los tests globales impiden dependencias entre implementaciones de módulos y cada proyecto de tests modular protege sus propias capas.
 - Api depende de Application; Application de Domain; Infrastructure implementa los puertos de Application y persiste Domain.
 - El dominio de invitaciones no depende de Brevo; el adaptador implementa un puerto de aplicación.

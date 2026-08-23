@@ -52,8 +52,9 @@ Descompone el plan aprobado en tareas pequeñas, ordenadas y verificables. Cada 
 |---|---|---|
 | [002: modularización de Access](002-modularizacion-access/spec.md) | Aceptada; implementación en curso | Extracción modular de la API actual, CQRS ligero y límites arquitectónicos verificables |
 | [003: modularización del frontend](003-modularizacion-frontend/spec.md) | Completada | Organización Angular por capacidades, APIs públicas y crecimiento alineado semánticamente con la API |
+| [004: creación de campañas](004-creacion-campanas/spec.md) | Completada | Creación sin módulo, DM único, búsqueda de usuarios activos e invitaciones integradas |
 
-El antiguo documento `001` se conserva como origen histórico de requisitos, pero ahora es el [roadmap de producto](../roadmap/product-roadmap.md) y no forma parte de la cola de specs ejecutables. El siguiente identificador disponible es `004`.
+El antiguo documento `001` se conserva como origen histórico de requisitos, pero ahora es el [roadmap de producto](../roadmap/product-roadmap.md) y no forma parte de la cola de specs ejecutables. El siguiente identificador disponible es `005`.
 
 ## Definición de terminado
 

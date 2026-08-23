@@ -10,5 +10,10 @@ export const routes: Routes = [
     path: '',
     loadChildren: () => import('./modules/access/access.routes').then((module) => module.ACCESS_ROUTES),
   },
+  {
+    path: '',
+    loadChildren: () => import('./modules/campaigns/campaigns.routes')
+      .then((module) => module.CAMPAIGNS_ROUTES),
+  },
   { path: '**', redirectTo: '' },
 ];

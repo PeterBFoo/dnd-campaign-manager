@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using DndCampaign.Modules.Access.Application.Ports.Observability;
 
@@ -14,6 +15,10 @@ internal sealed class AccessMetrics : IAccessMetrics
     private static readonly Counter<long> InvitationsIssued = Meter.CreateCounter<long>("identity.invitations.issued");
     private static readonly Counter<long> InvitationsAccepted = Meter.CreateCounter<long>("identity.invitations.accepted");
     private static readonly Counter<long> InvitationsRevoked = Meter.CreateCounter<long>("identity.invitations.revoked");
+    private static readonly Counter<long> EligibleUserSearches =
+        Meter.CreateCounter<long>("access.eligible_users.searches");
+    private static readonly Histogram<double> EligibleUserSearchDuration =
+        Meter.CreateHistogram<double>("access.eligible_users.search.duration", "ms");
 
     public void BootstrapCompleted() => BootstrapCompletions.Add(1);
 
@@ -33,4 +38,11 @@ internal sealed class AccessMetrics : IAccessMetrics
     public void InvitationRevoked(string kind) => InvitationsRevoked.Add(
         1,
         new KeyValuePair<string, object?>("invitation.kind", kind));
+
+    public void EligibleUsersSearched(string outcome, double elapsedMilliseconds)
+    {
+        var tags = new TagList { { "search.outcome", outcome } };
+        EligibleUserSearches.Add(1, tags);
+        EligibleUserSearchDuration.Record(elapsedMilliseconds, tags);
+    }
 }

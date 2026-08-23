@@ -1,7 +1,7 @@
 # Diagrama de despliegue
 
 - Estado: vigente
-- ADR relacionados: [ADR-0001: plataforma y observabilidad](../adr/0001-monorepositorio-y-monolito-modular.md) y [ADR-0002: identidad e invitaciones](../adr/0002-identidad-invitaciones-y-correo-transaccional.md)
+- ADR relacionados: [ADR-0001: plataforma y observabilidad](../adr/0001-monorepositorio-y-monolito-modular.md), [ADR-0002: identidad e invitaciones](../adr/0002-identidad-invitaciones-y-correo-transaccional.md) y [ADR-0006: campañas e invitaciones](../adr/0006-campanas-acceso-e-invitaciones.md)
 - Vista lógica relacionada: [diagrama de componentes](diagrama-de-componentes.md)
 - Alcance: entorno local integrado y topología productiva serverless
 
@@ -19,10 +19,11 @@ flowchart TB
         subgraph network["Red interna de Docker Compose"]
             web["Contenedor web<br/>Nginx + build Angular<br/>puerto interno 80"]
             api["Contenedor api<br/>ASP.NET Core 10<br/>puerto interno 8080"]
-            postgres["Contenedor postgres<br/>PostgreSQL 18<br/>puerto interno 5432"]
+            postgres["Contenedor postgres<br/>PostgreSQL 18<br/>esquemas access · campaigns"]
             postgres_exporter["Contenedor postgres-exporter<br/>métricas Prometheus<br/>puerto interno 9187"]
             lgtm["Contenedor observability<br/>Grafana OpenTelemetry LGTM<br/>OTLP 4317/4318 · Grafana 3000"]
             tests["Contenedor api-tests<br/>perfil test"]
+            postgres_tests["Contenedor postgres-tests<br/>base efímera"]
         end
 
         postgres_volume[("Volumen<br/>postgres18-data")]
@@ -44,7 +45,7 @@ flowchart TB
     compose --> postgres_exporter
     compose --> lgtm
     compose -.->|"perfil test"| tests
-    tests -->|"TCP 5432"| postgres
+    tests -->|"TCP 5432"| postgres_tests
 
     browser -.->|"diagnóstico localhost:8080"| api
     browser -.->|"Grafana localhost:3000"| lgtm
@@ -62,6 +63,7 @@ flowchart TB
 | `postgres-exporter` | `quay.io/prometheuscommunity/postgres-exporter:v0.20.1` | No publicado | PostgreSQL saludable | Sin estado |
 | `observability` | `grafana/otel-lgtm:0.30.0` | `3000 → 3000`, `4317 → 4317`, `4318 → 4318` | Ninguna | `observability-data` |
 | `api-tests` | `apps/api/Dockerfile`, target `tests` | No publicado | PostgreSQL saludable | Efímera |
+| `postgres-tests` | `postgres:18-alpine`, perfil `test` | No publicado | Ninguna | `tmpfs` efímero |
 
 ## Flujo de una petición
 

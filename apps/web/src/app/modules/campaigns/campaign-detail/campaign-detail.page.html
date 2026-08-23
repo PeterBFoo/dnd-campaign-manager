@@ -1,0 +1,21 @@
+<main class="page-shell">
+  <a class="back-link" routerLink="/campaigns">← Volver a campañas</a>
+  @if (error()) { <p class="form-error message" role="alert">{{ error() }}</p> }
+  @if (loading()) { <p class="muted">Cargando campaña…</p> }
+  @else if (campaign(); as current) {
+    <section class="page-heading campaigns-heading">
+      <div>
+        <p class="eyebrow">{{ current.role === 'dm' ? 'Dirección de campaña' : 'Campaña de jugador' }}</p>
+        <h1>{{ current.name }}</h1>
+        <p>{{ current.adventureModuleId ? 'Módulo asociado' : 'Sin módulo asociado' }}</p>
+      </div>
+      @if (current.role === 'dm') {
+        <a class="button-link" [routerLink]="['/campaigns', current.id, 'invitations']">Invitar jugadores</a>
+      }
+    </section>
+    <section class="empty-state">
+      <h2>La mesa está preparada</h2>
+      <p>Los personajes y herramientas de juego llegarán en incrementos posteriores.</p>
+    </section>
+  }
+</main>

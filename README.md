@@ -4,14 +4,16 @@ Aplicación web para preparar y dirigir campañas con estado narrativo persisten
 
 ## Estado
 
-La fundación técnica y el primer flujo de identidad están implementados: bootstrap del administrador, acceso con credenciales e invitaciones de plataforma y campaña. El [roadmap de producto](docs/roadmap/product-roadmap.md) mantiene el alcance completo y cada capacidad se implementa mediante un incremento independiente siguiendo [la guía de especificaciones](docs/specs/README.md).
+La fundación técnica, identidad y el primer recorrido de campañas están implementados: bootstrap, acceso con credenciales, invitaciones, creación de campañas sin módulo y selección de usuarios existentes. El [roadmap de producto](docs/roadmap/product-roadmap.md) mantiene el alcance completo y cada capacidad se implementa mediante un incremento independiente siguiendo [la guía de especificaciones](docs/specs/README.md).
 
 ## Arquitectura actual
 
-- `apps/web`: Angular 22 modular; composition root y shell separados de los módulos frontend `Access` y `Platform`, con primitivas técnicas en `shared`.
+- `apps/web`: Angular 22 modular; composition root y shell separados de los módulos frontend `Access`, `Campaigns` y `Platform`, con primitivas técnicas en `shared`.
 - `apps/api`: aplicación ASP.NET Core 10 LTS; contiene el host y sus módulos desplegados conjuntamente.
 - `apps/api/Modules/Access/DndCampaign.Modules.Access`: módulo de acceso; un único proyecto con capas internas.
+- `apps/api/Modules/Campaigns/DndCampaign.Modules.Campaigns`: campañas, DM único, consultas autorizadas y persistencia en esquema propio.
 - `tests/Modules/Access/DndCampaign.Modules.Access.Tests`: tests unitarios, integración, componente y arquitectura propios de Access.
+- `tests/Modules/Campaigns/DndCampaign.Modules.Campaigns.Tests`: tests de dominio, aplicación y arquitectura propios de Campaigns.
 - `tests/DndCampaign.ArchitectureTests`: fitness functions globales entre módulos y host.
 - PostgreSQL 18 como persistencia primaria.
 - OpenTelemetry para logs, métricas y trazas.
@@ -25,6 +27,7 @@ La decisión de plataforma está documentada en:
 - [ADR-0003: bootstrap, sesiones y flujo funcional](docs/adr/0003-bootstrap-sesiones-y-flujo-de-invitaciones.md)
 - [ADR-0004: arquitectura modular, CQRS y límites](docs/adr/0004-arquitectura-modular-cqrs-y-limites-de-dependencia.md)
 - [ADR-0005: frontend modular por capacidades](docs/adr/0005-frontend-modular-por-capacidades.md)
+- [ADR-0006: campañas, acceso e invitaciones](docs/adr/0006-campanas-acceso-e-invitaciones.md)
 
 La arquitectura resultante se representa, de lo lógico a lo físico, en:
 
@@ -32,6 +35,7 @@ La arquitectura resultante se representa, de lo lógico a lo físico, en:
 2. [Diagrama de despliegue](docs/architecture/diagrama-de-despliegue.md)
 
 La preparación operativa de credenciales está en [Secretos de despliegue](docs/operations/secretos-de-despliegue.md).
+El orden y la reversibilidad de los cambios de datos están en [Migraciones de base de datos](docs/operations/migraciones-de-base-de-datos.md).
 La selección, contenido y uso de los paneles está en [Dashboards de observabilidad](docs/operations/dashboards-de-observabilidad.md).
 El procedimiento productivo gratuito está en [Despliegue en Azure](docs/operations/despliegue-azure.md).
 

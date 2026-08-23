@@ -1,6 +1,7 @@
 using DndCampaign.Modules.Access.Application.Bootstrap;
 using DndCampaign.Modules.Access.Application.Identity;
 using DndCampaign.Modules.Access.Application.Invitations;
+using DndCampaign.Modules.Access.Application.Users;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DndCampaign.Modules.Access.Api;
@@ -28,6 +29,7 @@ internal static class DependencyInjection
         services.AddScoped<ListInvitationsHandler>();
         services.AddScoped<InvitationCommandHandler>();
         services.AddScoped<AcceptInvitationHandler>();
+        services.AddScoped<SearchEligibleUsersHandler>();
         return services;
     }
 }

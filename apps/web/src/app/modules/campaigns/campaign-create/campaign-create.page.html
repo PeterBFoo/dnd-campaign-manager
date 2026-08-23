@@ -1,0 +1,23 @@
+<main class="page-shell narrow-page">
+  <a class="back-link" routerLink="/campaigns">← Volver a campañas</a>
+  <section class="page-heading">
+    <p class="eyebrow">Nueva mesa</p>
+    <h1>Crear campaña</h1>
+    <p>Solo necesitas un nombre. Podrás asociar un módulo cuando esté disponible.</p>
+  </section>
+
+  <form class="panel stacked-form" [formGroup]="form" (ngSubmit)="submit()">
+    <label>
+      Nombre de la campaña
+      <input type="text" formControlName="name" maxlength="100" autocomplete="off" />
+    </label>
+    @if (form.controls.name.touched && form.controls.name.invalid) {
+      <p class="form-error">El nombre debe contener entre 3 y 100 caracteres.</p>
+    }
+    <p class="form-hint">Se creará sin módulo y tú serás su único DM.</p>
+    @if (error()) { <p class="form-error" role="alert">{{ error() }}</p> }
+    <button type="submit" [disabled]="submitting()">
+      {{ submitting() ? 'Creando…' : 'Crear campaña' }}
+    </button>
+  </form>
+</main>

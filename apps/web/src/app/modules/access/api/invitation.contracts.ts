@@ -26,3 +26,14 @@ export interface InvitationSummary {
   expiresAt: string;
   lastSentAt: string | null;
 }
+
+export interface EligibleUser {
+  userId: string;
+  displayName: string;
+  maskedEmail: string;
+}
+
+export interface EligibleUsersPage {
+  items: EligibleUser[];
+  nextCursor: string | null;
+}

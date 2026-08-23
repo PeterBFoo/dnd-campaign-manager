@@ -20,6 +20,8 @@ internal sealed class AccessDbContext(DbContextOptions<AccessDbContext> options)
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.HasDefaultSchema("access");
+
         modelBuilder.Entity<UserAccount>(entity =>
         {
             entity.ToTable("users");

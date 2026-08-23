@@ -4,7 +4,12 @@ import { Observable } from 'rxjs';
 
 import { apiBaseUrl } from '@shared/config/runtime-config';
 
-import { InvitationAcceptance, InvitationPreview, InvitationSummary } from './invitation.contracts';
+import {
+  EligibleUsersPage,
+  InvitationAcceptance,
+  InvitationPreview,
+  InvitationSummary,
+} from './invitation.contracts';
 
 @Injectable()
 export class InvitationsClient {
@@ -49,6 +54,20 @@ export class InvitationsClient {
     return this.http.post<InvitationSummary>(
       `${apiBaseUrl()}/api/v1/campaigns/${campaignId}/invitations`,
       { email },
+    );
+  }
+
+  eligibleCampaignUsers(campaignId: string, query?: string): Observable<EligibleUsersPage> {
+    const encodedQuery = query ? `?query=${encodeURIComponent(query)}` : '';
+    return this.http.get<EligibleUsersPage>(
+      `${apiBaseUrl()}/api/v1/campaigns/${campaignId}/eligible-users${encodedQuery}`,
+    );
+  }
+
+  issueCampaignUser(campaignId: string, recipientUserId: string): Observable<InvitationSummary> {
+    return this.http.post<InvitationSummary>(
+      `${apiBaseUrl()}/api/v1/campaigns/${campaignId}/invitations`,
+      { recipientUserId },
     );
   }
 

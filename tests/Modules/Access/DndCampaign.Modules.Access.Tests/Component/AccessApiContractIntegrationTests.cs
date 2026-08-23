@@ -2,8 +2,9 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using DndCampaign.Modules.Access.Domain.CampaignAccess;
 using DndCampaign.Modules.Access.Infrastructure.Persistence;
+using DndCampaign.Modules.Access.Infrastructure.Security;
+using DndCampaign.Modules.Campaigns;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -91,21 +92,18 @@ public sealed class AccessApiContractIntegrationTests
 
         try
         {
-            var admin = await BootstrapAsync(client, cancellationToken);
-            var adminId = admin.GetProperty("id").GetGuid();
+            await BootstrapAsync(client, cancellationToken);
             var accessToken = await LoginAsync(client, cancellationToken);
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-            var campaignId = Guid.NewGuid();
-            await using (var scope = factory.Services.CreateAsyncScope())
-            {
-                var database = scope.ServiceProvider.GetRequiredService<AccessDbContext>();
-                database.CampaignMemberships.Add(CampaignMembership.CreateDm(
-                    campaignId,
-                    adminId,
-                    DateTimeOffset.UtcNow));
-                await database.SaveChangesAsync(cancellationToken);
-            }
+            using var createCampaign = await client.PostAsJsonAsync(
+                "/api/v1/campaigns",
+                new { name = "Contract Campaign" },
+                cancellationToken);
+            Assert.Equal(HttpStatusCode.Created, createCampaign.StatusCode);
+            var campaignId = (await createCampaign.Content.ReadFromJsonAsync<JsonElement>(cancellationToken))
+                .GetProperty("id")
+                .GetGuid();
 
             var platformInvitationId = await IssueInvitationAsync(
                 client,
@@ -165,6 +163,158 @@ public sealed class AccessApiContractIntegrationTests
                 new { email = "forbidden.contract@example.com" },
                 cancellationToken);
             Assert.Equal(HttpStatusCode.Forbidden, foreignIssue.StatusCode);
+        }
+        finally
+        {
+            await DeleteDatabaseAsync(factory.Services, cancellationToken);
+        }
+    }
+
+    [Fact]
+    public async Task Existing_user_can_be_selected_invited_and_see_the_campaign_after_acceptance()
+    {
+        var connectionString = RequireIntegrationDatabase();
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var factory = CreateFactory(connectionString);
+        using var client = factory.CreateClient();
+        await ResetDatabaseAsync(factory.Services, cancellationToken);
+
+        try
+        {
+            var admin = await BootstrapAsync(client, cancellationToken);
+            var adminToken = await LoginAsync(client, cancellationToken);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+
+            using (var invalidPlatformRecipient = await client.PostAsJsonAsync(
+                "/api/v1/platform/invitations",
+                new { recipientUserId = admin.GetProperty("id").GetGuid() },
+                cancellationToken))
+            {
+                Assert.Equal(HttpStatusCode.BadRequest, invalidPlatformRecipient.StatusCode);
+            }
+
+            var platformInvitationId = await IssueInvitationAsync(
+                client,
+                "/api/v1/platform/invitations",
+                "existing.player@example.com",
+                cancellationToken);
+            var platformToken = await ReadInvitationTokenAsync(
+                factory.Services,
+                platformInvitationId,
+                cancellationToken);
+
+            client.DefaultRequestHeaders.Authorization = null;
+            using (var acceptAccount = await client.PostAsJsonAsync("/api/v1/invitations/accept", new
+            {
+                token = platformToken,
+                displayName = "Existing Player",
+                password = "A-valid-player-password-123!",
+            }, cancellationToken))
+            {
+                Assert.Equal(HttpStatusCode.OK, acceptAccount.StatusCode);
+            }
+
+            var playerToken = await LoginAsync(
+                client,
+                "existing.player@example.com",
+                "A-valid-player-password-123!",
+                cancellationToken);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", playerToken);
+            using var me = await client.GetAsync("/api/v1/identity/me", cancellationToken);
+            var playerId = (await me.Content.ReadFromJsonAsync<JsonElement>(cancellationToken))
+                .GetProperty("id")
+                .GetGuid();
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            using var createCampaign = await client.PostAsJsonAsync(
+                "/api/v1/campaigns",
+                new { name = "Integrated Campaign" },
+                cancellationToken);
+            Assert.Equal(HttpStatusCode.Created, createCampaign.StatusCode);
+            Assert.NotNull(createCampaign.Headers.Location);
+            var campaign = await createCampaign.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+            var campaignId = campaign.GetProperty("id").GetGuid();
+            Assert.NotEqual(Guid.Empty, admin.GetProperty("id").GetGuid());
+            Assert.Equal("dm", campaign.GetProperty("role").GetString());
+            Assert.Equal(JsonValueKind.Null, campaign.GetProperty("adventureModuleId").ValueKind);
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", playerToken);
+            using (var playerCampaignsBeforeAcceptance = await client.GetAsync(
+                "/api/v1/campaigns",
+                cancellationToken))
+            {
+                Assert.Equal(HttpStatusCode.OK, playerCampaignsBeforeAcceptance.StatusCode);
+                Assert.Empty((await playerCampaignsBeforeAcceptance.Content.ReadFromJsonAsync<JsonElement>(cancellationToken))
+                    .EnumerateArray());
+            }
+            using (var forbiddenDetail = await client.GetAsync(
+                $"/api/v1/campaigns/{campaignId}",
+                cancellationToken))
+            {
+                Assert.Equal(HttpStatusCode.Forbidden, forbiddenDetail.StatusCode);
+            }
+            using (var forbiddenSearch = await client.GetAsync(
+                $"/api/v1/campaigns/{campaignId}/eligible-users",
+                cancellationToken))
+            {
+                Assert.Equal(HttpStatusCode.Forbidden, forbiddenSearch.StatusCode);
+            }
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            using var eligible = await client.GetAsync(
+                $"/api/v1/campaigns/{campaignId}/eligible-users?query=player",
+                cancellationToken);
+            Assert.Equal(HttpStatusCode.OK, eligible.StatusCode);
+            var eligiblePage = await eligible.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+            var eligibleUser = Assert.Single(eligiblePage.GetProperty("items").EnumerateArray());
+            Assert.Equal(playerId, eligibleUser.GetProperty("userId").GetGuid());
+            Assert.Equal("Existing Player", eligibleUser.GetProperty("displayName").GetString());
+            Assert.NotEqual("existing.player@example.com", eligibleUser.GetProperty("maskedEmail").GetString());
+
+            using var issueCampaign = await client.PostAsJsonAsync(
+                $"/api/v1/campaigns/{campaignId}/invitations",
+                new { recipientUserId = playerId },
+                cancellationToken);
+            Assert.Equal(HttpStatusCode.Accepted, issueCampaign.StatusCode);
+            var campaignInvitationId = (await issueCampaign.Content.ReadFromJsonAsync<JsonElement>(cancellationToken))
+                .GetProperty("id")
+                .GetGuid();
+
+            using (var duplicate = await client.PostAsJsonAsync(
+                $"/api/v1/campaigns/{campaignId}/invitations",
+                new { recipientUserId = playerId },
+                cancellationToken))
+            {
+                Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode);
+            }
+
+            var campaignToken = await ReadInvitationTokenAsync(
+                factory.Services,
+                campaignInvitationId,
+                cancellationToken);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", playerToken);
+            using (var acceptance = await client.PostAsJsonAsync("/api/v1/invitations/accept", new
+            {
+                token = campaignToken,
+            }, cancellationToken))
+            {
+                Assert.Equal(HttpStatusCode.OK, acceptance.StatusCode);
+            }
+
+            using var playerCampaigns = await client.GetAsync("/api/v1/campaigns", cancellationToken);
+            Assert.Equal(HttpStatusCode.OK, playerCampaigns.StatusCode);
+            var accessibleCampaign = Assert.Single(
+                (await playerCampaigns.Content.ReadFromJsonAsync<JsonElement>(cancellationToken)).EnumerateArray());
+            Assert.Equal(campaignId, accessibleCampaign.GetProperty("id").GetGuid());
+            Assert.Equal("player", accessibleCampaign.GetProperty("role").GetString());
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            using var eligibleAfterAcceptance = await client.GetAsync(
+                $"/api/v1/campaigns/{campaignId}/eligible-users?query=player",
+                cancellationToken);
+            Assert.Empty((await eligibleAfterAcceptance.Content.ReadFromJsonAsync<JsonElement>(cancellationToken))
+                .GetProperty("items")
+                .EnumerateArray());
         }
         finally
         {
@@ -260,15 +410,36 @@ public sealed class AccessApiContractIntegrationTests
     private static async Task<string> LoginAsync(
         HttpClient client,
         CancellationToken cancellationToken)
+        => await LoginAsync(client, AdminEmail, AdminPassword, cancellationToken);
+
+    private static async Task<string> LoginAsync(
+        HttpClient client,
+        string email,
+        string password,
+        CancellationToken cancellationToken)
     {
         using var response = await client.PostAsJsonAsync("/api/v1/identity/login", new
         {
-            email = AdminEmail,
-            password = AdminPassword,
+            email,
+            password,
         }, cancellationToken);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var payload = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
         return payload.GetProperty("accessToken").GetString()!;
+    }
+
+    private static async Task<string> ReadInvitationTokenAsync(
+        IServiceProvider services,
+        Guid invitationId,
+        CancellationToken cancellationToken)
+    {
+        await using var scope = services.CreateAsyncScope();
+        var database = scope.ServiceProvider.GetRequiredService<AccessDbContext>();
+        var protector = scope.ServiceProvider.GetRequiredService<InvitationTokenProtector>();
+        var outbox = await database.InvitationOutbox.AsNoTracking().SingleAsync(
+            message => message.InvitationId == invitationId,
+            cancellationToken);
+        return protector.Unprotect(outbox.EncryptedToken);
     }
 
     private static async Task<Guid> IssueInvitationAsync(
@@ -291,6 +462,7 @@ public sealed class AccessApiContractIntegrationTests
         await using var scope = services.CreateAsyncScope();
         var database = scope.ServiceProvider.GetRequiredService<AccessDbContext>();
         await database.Database.MigrateAsync(cancellationToken);
+        await services.ApplyCampaignsMigrationsAsync(cancellationToken);
     }
 
     private static async Task DeleteDatabaseAsync(

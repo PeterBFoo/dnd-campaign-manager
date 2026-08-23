@@ -89,6 +89,8 @@ public sealed class PlatformHealthTests : IClassFixture<WebApplicationFactory<Pr
         Assert.Contains("/api/v1/identity/bootstrap", document, StringComparison.Ordinal);
         Assert.Contains("/api/v1/invitations/accept", document, StringComparison.Ordinal);
         Assert.Contains("/api/v1/platform/invitations", document, StringComparison.Ordinal);
+        Assert.Contains("/api/v1/campaigns", document, StringComparison.Ordinal);
+        Assert.Contains("eligible-users", document, StringComparison.Ordinal);
 
         using var ui = await client.GetAsync(
             "/swagger/index.html",

@@ -45,7 +45,11 @@ describe('invitation management pages', () => {
     const campaignInvitation = { ...invitation, kind: 'campaign' as const, campaignId: 'campaign-1' };
     const clientStub = {
       listCampaign: vi.fn(() => of([campaignInvitation])),
-      issueCampaign: vi.fn(() => of(campaignInvitation)),
+      eligibleCampaignUsers: vi.fn(() => of({
+        items: [{ userId: 'user-1', displayName: 'New Player', maskedEmail: 'ne***@example.com' }],
+        nextCursor: null,
+      })),
+      issueCampaignUser: vi.fn(() => of(campaignInvitation)),
       resendCampaign: vi.fn(() => of(campaignInvitation)),
       revokeCampaign: vi.fn(() => of(undefined)),
     };
@@ -58,14 +62,17 @@ describe('invitation management pages', () => {
     }).compileComponents();
     const fixture = TestBed.createComponent(CampaignInvitationsPage);
     fixture.detectChanges();
-    fixture.componentInstance.form.setValue({ email: 'new@example.com' });
 
-    fixture.componentInstance.issue();
+    fixture.componentInstance.issue({
+      userId: 'user-1',
+      displayName: 'New Player',
+      maskedEmail: 'ne***@example.com',
+    });
     fixture.componentInstance.resend(campaignInvitation);
     fixture.componentInstance.revoke(campaignInvitation);
 
     expect(clientStub.listCampaign).toHaveBeenCalledWith('campaign-1');
-    expect(clientStub.issueCampaign).toHaveBeenCalledWith('campaign-1', 'new@example.com');
+    expect(clientStub.issueCampaignUser).toHaveBeenCalledWith('campaign-1', 'user-1');
     expect(clientStub.resendCampaign).toHaveBeenCalledWith('campaign-1', 'invitation-1');
     expect(clientStub.revokeCampaign).toHaveBeenCalledWith('campaign-1', 'invitation-1');
   });

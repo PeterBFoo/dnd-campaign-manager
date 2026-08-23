@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Claims;
 using System.Threading.RateLimiting;
 using DndCampaign.Modules.Access.Api;
 using DndCampaign.Modules.Access.Infrastructure;
@@ -80,6 +81,21 @@ public static class AccessModule
         AddFixedWindowPolicy(options, "bootstrap", permitLimit: 10, TimeSpan.FromMinutes(5));
         AddFixedWindowPolicy(options, "login", permitLimit: 10, TimeSpan.FromMinutes(1));
         AddFixedWindowPolicy(options, "invitation-acceptance", permitLimit: 20, TimeSpan.FromMinutes(1));
+        options.AddPolicy("eligible-users", context =>
+        {
+            var actor = context.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? context.Connection.RemoteIpAddress?.ToString()
+                ?? "anonymous";
+            var campaign = context.Request.RouteValues["campaignId"]?.ToString() ?? "unknown";
+            return RateLimitPartition.GetFixedWindowLimiter(
+                $"{actor}:{campaign}",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 30,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0,
+                });
+        });
     }
 
     private static void AddFixedWindowPolicy(

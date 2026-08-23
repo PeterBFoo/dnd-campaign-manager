@@ -3,9 +3,9 @@
 - Tipo: fuente de roadmap; no es una especificación ejecutable
 - Origen: antigua Especificación 001 de requisitos funcionales base
 - Creado: 2026-08-19
-- Última auditoría de implementación: 2026-08-22
+- Última actualización funcional: 2026-08-23
 - Alcance: identidad, alta por invitación, campañas, módulos de aventura y herramientas comunes de juego
-- ADR relacionados: [ADR-0002](../adr/0002-identidad-invitaciones-y-correo-transaccional.md) y [ADR-0003](../adr/0003-bootstrap-sesiones-y-flujo-de-invitaciones.md), limitados a las decisiones de identidad e invitaciones ya confirmadas
+- ADR relacionados: [ADR-0002](../adr/0002-identidad-invitaciones-y-correo-transaccional.md), [ADR-0003](../adr/0003-bootstrap-sesiones-y-flujo-de-invitaciones.md) y [ADR-0006](../adr/0006-campanas-acceso-e-invitaciones.md)
 
 ## Objetivo
 
@@ -20,17 +20,18 @@ La tabla distingue comportamiento disponible de extremo a extremo de infraestruc
 | Área del roadmap | Requisitos | Estado | Evidencia y límite actual |
 |---|---|---|---|
 | Identidad y sesión | RF-001 | Implementado | Login, logout, sesión bearer y usuario actual existen en web y API. |
-| Roles, aislamiento e incorporación a campaña | RF-002 a RF-004 | Parcial | Access modela membresías `DM`/`Jugador`, autoriza la gestión de invitaciones y concede membresía de jugador; todavía no existe el módulo Campaigns ni un recorrido productivo que cree al DM. |
-| Personajes y contexto activo | RF-005 a RF-009 | Pendiente | No hay modelo, API ni interfaz de personajes; la unicidad del DM tampoco está integrada con el ciclo de vida de una campaña. |
-| Campañas y catálogo de módulos | RF-010 a RF-015 | Pendiente | No hay endpoints, persistencia ni pantallas de campañas o módulos de aventura. |
+| Roles, aislamiento e incorporación a campaña | RF-002 a RF-004 | Implementado | Campaigns conserva el DM único; Access concede `Jugador` tras aceptación y la API aplica aislamiento en consultas y gestión de invitaciones. |
+| Personajes y contexto activo | RF-005 a RF-008 | Pendiente | No hay modelo, API ni interfaz de personajes o selección de contexto activo. |
+| DM único | RF-009 | Implementado | `DmUserId` es obligatorio en el agregado Campaign y se fija atómicamente al crearla. |
+| Campañas y catálogo de módulos | RF-010 a RF-015 | Parcial | El spec 004 implementa creación, persistencia y pantallas de campañas sin módulo; catálogo, asociación posterior y contenido del módulo siguen pendientes. |
 | Librería y NPC | RF-020 a RF-026 | Pendiente | Sin implementación productiva. |
 | Bitácora | RF-030 a RF-035 | Pendiente | Sin implementación productiva. |
 | Calendario y misiones | RF-040 a RF-045 | Pendiente | Sin implementación productiva. |
 | Iniciativa de combate | RF-050 a RF-057 | Pendiente | Sin implementación productiva. |
 | Capítulos y recursos | RF-060 a RF-066 | Pendiente | Solo están documentadas las restricciones editoriales y legales; no existe capacidad funcional. |
 | Alta e invitaciones de plataforma | RF-069 a RF-072 | Implementado | Bootstrap inicial, panel de administración, registro por invitación y alta sin acceso a campañas están disponibles. El bootstrap de la primera cuenta es la excepción deliberada a RF-069 definida por ADR-0003. |
-| Creación y DM de campaña | RF-073 y RF-074 | Pendiente | Depende del futuro módulo Campaigns. |
-| Invitaciones de campaña | RF-075 a RF-082 | Parcial | API, UI, estados, tokens, aceptación y controles de rol están implementados y probados con membresías preparadas en tests; falta conectarlos a campañas creadas por el producto. |
+| Creación y DM de campaña | RF-073 y RF-074 | Implementado | Cualquier cuenta autenticada crea una campaña sin módulo y queda como su único DM. |
+| Invitaciones de campaña | RF-075 a RF-083 | Implementado | El DM busca cuentas elegibles con datos minimizados, invita por identificador y Access concede exclusivamente `Jugador` tras aceptación. Se conserva la invitación compatible por correo. |
 
 La arquitectura Angular por capacidades del [spec 003](../specs/003-modularizacion-frontend/spec.md) está completada. La extracción modular de Access del [spec 002](../specs/002-modularizacion-access/spec.md) continúa en curso y debe cerrarse según sus propias tareas antes de considerar terminada esa mejora técnica.
 
@@ -41,9 +42,9 @@ Esta secuencia orienta los próximos specs, pero no sustituye sus decisiones ni 
 | Orden | Módulo de software | Capacidad candidata | Requisitos principales | Dependencias |
 |---:|---|---|---|---|
 | 0 | Access | Terminar su modularización técnica y verificación | Sin ampliar alcance funcional | Spec 002 |
-| 1 | AdventureModules | Catálogo mínimo de módulos seleccionables, sin contenido editorial protegido | RF-013 y base de RF-010/RF-011 | Access estable |
-| 2 | Campaigns | Crear y consultar campañas, asociarlas a un módulo y asignar un único DM | RF-009 a RF-011, RF-014, RF-015, RF-073, RF-074 | AdventureModules |
-| 3 | Access + Campaigns | Integrar las invitaciones existentes con campañas reales y cerrar su recorrido end-to-end | RF-002 a RF-004, RF-075 a RF-082 | Campaigns |
+| 1 | Campaigns | Crear y consultar campañas sin exigir módulo y asignar un único DM | RF-009 a RF-011, RF-014, RF-073, RF-074 | Access estable |
+| 2 | Access + Campaigns | Buscar usuarios activos elegibles e integrar las invitaciones existentes con campañas reales | RF-002 a RF-004, RF-075 a RF-083 | Campaigns |
+| 3 | AdventureModules | Incorporar un catálogo y permitir asociar posteriormente como máximo un módulo | RF-010, RF-011, RF-013, RF-015 | Campaigns |
 | 4 | Characters | Crear, asociar, listar y seleccionar el personaje activo | RF-005 a RF-008, RF-012, RF-020 | Campaigns |
 | 5 | Library | Catálogo de NPC, desbloqueo por campaña y vistas diferenciadas | RF-021 a RF-026 | Campaigns, AdventureModules |
 | 6 | AdventureContent | Capítulos y recursos de dirección con procedencia verificable | RF-060 a RF-066 | Campaigns, AdventureModules |
@@ -51,7 +52,7 @@ Esta secuencia orienta los próximos specs, pero no sustituye sus decisiones ni 
 | 8 | Missions | Calendario, misiones y unicidad de la misión principal | RF-040 a RF-045 | Campaigns, Characters |
 | 9 | Combat | Iniciativa, turnos, rondas, enemigos y proyección segura para jugadores | RF-050 a RF-057 | Campaigns, Characters |
 
-El siguiente spec disponible es el `004`. Debe elegirse a partir del primer incremento preparado para comenzar; no se crean de antemano specs vacíos para todas las filas.
+Las filas 1 y 2 quedaron completadas por el [spec 004](../specs/004-creacion-campanas/spec.md) el 2026-08-23. La fila 3 permanece para un incremento posterior. El siguiente identificador disponible es `005`; no se crean de antemano specs vacíos para las demás filas.
 
 ## Restricciones tecnológicas aceptadas
 
@@ -66,8 +67,8 @@ El siguiente spec disponible es el `004`. Debe elegirse a partir del primer incr
 - **DM**: usuario que ocupa el rol de dirección dentro de una campaña concreta. Cada campaña tiene exactamente un DM.
 - **Jugador**: usuario que ocupa el rol de jugador dentro de una campaña concreta y participa mediante uno de sus personajes.
 - **Personaje**: identidad de juego controlada por un usuario y vinculada a una única campaña.
-- **Módulo de aventura**: plantilla de contenido seleccionable al crear una campaña. No debe confundirse con un módulo de software.
-- **Campaña**: ejecución independiente de un módulo de aventura para un grupo concreto.
+- **Módulo de aventura**: plantilla de contenido que puede asociarse a una campaña. No debe confundirse con un módulo de software.
+- **Campaña**: espacio independiente de juego para un grupo concreto, con o sin módulo de aventura asociado.
 - **NPC**: personaje no jugador definido por el módulo y cuyo conocimiento se desbloquea independientemente en cada campaña.
 - **Capítulo**: sección del módulo que agrupa recursos de dirección como mapas, localizaciones e información relevante.
 - **Personaje activo**: personaje con el que un usuario ha decidido participar durante su sesión actual.
@@ -86,7 +87,7 @@ erDiagram
     USUARIO o|--o{ INVITACION_CAMPANA : recibe
     CAMPANA ||--o{ MEMBRESIA_CAMPANA : autoriza
     CAMPANA ||--o{ INVITACION_CAMPANA : incorpora
-    MODULO_AVENTURA ||--o{ CAMPANA : sirve_de_plantilla
+    MODULO_AVENTURA o|--o{ CAMPANA : sirve_de_plantilla
     MODULO_AVENTURA ||--|{ CAPITULO : contiene
     MODULO_AVENTURA ||--o{ NPC_PLANTILLA : define
     CAMPANA ||--o{ PERSONAJE : incluye
@@ -111,7 +112,7 @@ Las relaciones anteriores son funcionales. No prescriben tablas, agregados, endp
 | Iniciar sesión | Sí | Sí |
 | Enviar una invitación genérica al ecosistema | Sí | No |
 | Consultar y revocar invitaciones genéricas | Sí | No |
-| Crear una campaña seleccionando un módulo | Sí, si actúa como usuario | Sí |
+| Crear una campaña con o sin módulo | Sí, si actúa como usuario | Sí |
 | Convertirse en DM de la campaña creada | Sí | Sí |
 
 ### Capacidades dentro de una campaña
@@ -153,8 +154,8 @@ Ningún permiso del frontend sustituye la autorización del backend. Toda operac
 
 ### Campañas y módulos de aventura
 
-- **RF-010 — Creación de campaña.** Cualquier usuario registrado podrá crear una campaña nueva indicando como mínimo un nombre y seleccionando un módulo de aventura disponible. Al completarse la creación, se convertirá en el único DM de esa campaña.
-- **RF-011 — Asociación única.** Cada campaña estará asociada a exactamente un módulo de aventura. Un mismo módulo podrá servir de plantilla para varias campañas independientes.
+- **RF-010 — Creación de campaña.** Cualquier usuario registrado podrá crear una campaña nueva indicando como mínimo un nombre. La selección de un módulo de aventura será opcional. Al completarse la creación, se convertirá en el único DM de esa campaña.
+- **RF-011 — Asociación opcional y única.** Cada campaña podrá no tener módulo o estar asociada como máximo a uno. Un mismo módulo podrá servir de plantilla para varias campañas independientes y podrá asociarse posteriormente cuando esté disponible en el ecosistema.
 - **RF-012 — Asociación del personaje.** Cada personaje pertenecerá a exactamente una campaña y a exactamente un usuario responsable.
 - **RF-013 — Contenido independiente por módulo.** Cada módulo dispondrá de sus propios capítulos, NPC y recursos editoriales.
 - **RF-014 — Estado independiente por campaña.** El progreso, NPC desbloqueados, bitácora, misiones y combates no se compartirán entre campañas aunque utilicen el mismo módulo.
@@ -217,7 +218,7 @@ La referencia de cumplimiento será la [Política de contenido de fans de Wizard
 - **RF-070 — Panel de invitaciones.** El administrador de plataforma dispondrá de un panel para enviar, consultar y revocar invitaciones de acceso al ecosistema.
 - **RF-071 — Registro por invitación.** Una persona sin cuenta podrá aceptar una invitación válida y crear sus credenciales de usuario.
 - **RF-072 — Invitación genérica.** Aceptar una invitación de plataforma creará la cuenta, pero no concederá acceso automático a ninguna campaña.
-- **RF-073 — Creación abierta a usuarios.** Cualquier usuario registrado podrá crear una campaña seleccionando uno de los módulos disponibles.
+- **RF-073 — Creación abierta a usuarios.** Cualquier usuario registrado podrá crear una campaña indicando un nombre, con o sin un módulo disponible.
 - **RF-074 — DM creador.** El creador de una campaña se convertirá automáticamente en su único DM.
 - **RF-075 — Invitación a usuario registrado.** El DM podrá invitar a un usuario ya registrado para que se incorpore a su campaña con rol `Jugador`.
 - **RF-076 — Invitación a persona no registrada.** El DM podrá enviar una invitación de campaña a una persona sin cuenta. Al aceptarla, primero creará su usuario y después se incorporará a esa campaña como jugador.
@@ -227,10 +228,11 @@ La referencia de cumplimiento será la [Política de contenido de fans de Wizard
 - **RF-080 — Token de invitación.** La aceptación utilizará un token impredecible, con caducidad y de un solo uso. El token no concederá por sí solo acceso a datos privados antes de completar la autenticación o el registro.
 - **RF-081 — Gestión por el DM.** El DM podrá consultar el estado, revocar y volver a enviar las invitaciones de su campaña, pero no administrar invitaciones o usuarios ajenos a ella.
 - **RF-082 — Sin escalado de rol.** Las invitaciones de campaña incorporarán únicamente jugadores; aceptar una invitación nunca podrá crear otro DM ni sustituir al DM existente.
+- **RF-083 — Selección de usuarios activos.** El DM podrá listar o buscar, dentro del contexto de su campaña, usuarios activos elegibles para invitación. La selección usará un identificador estable, no expondrá correos completos y excluirá al DM, miembros e invitaciones pendientes.
 
 ## Criterios de aceptación transversales
 
-1. Un usuario registrado crea una campaña seleccionando un módulo, se convierte en su único DM y puede consultar sus capítulos; un jugador de esa campaña no puede acceder a ellos.
+1. Un usuario registrado crea una campaña con o sin módulo y se convierte en su único DM; si posteriormente tiene un módulo asociado, el DM puede consultar sus capítulos y un jugador no.
 2. Cada campaña conserva exactamente un DM; ese DM incorpora un jugador, se asocia una cuenta de usuario y se le asigna al menos un personaje de la campaña.
 3. Al iniciar sesión con varios personajes, el usuario debe escoger uno y todas sus acciones posteriores quedan limitadas a ese contexto.
 4. Un NPC bloqueado es visible para el DM pero no para los jugadores; después del desbloqueo aparece con toda su información pública, pero nunca muestra a los jugadores sus estadísticas de combate.
@@ -241,7 +243,7 @@ La referencia de cumplimiento será la [Política de contenido de fans de Wizard
 9. Un DM puede ordenar personajes y enemigos, avanzar turnos y modificar la vida de los enemigos sin que el estado se mezcle con otra campaña.
 10. Un usuario no puede acceder a datos de otra campaña modificando identificadores o rutas.
 11. El administrador invita a una persona al ecosistema; al aceptar, esta crea sus credenciales, pero no obtiene acceso a ninguna campaña.
-12. Un usuario registrado crea una campaña seleccionando un módulo y queda asignado automáticamente como su único DM.
+12. Un usuario registrado crea una campaña indicando un nombre, sin necesidad de que el módulo esté cargado, y queda asignado automáticamente como su único DM.
 13. El DM invita a un usuario registrado; el destinatario inicia sesión, acepta y entra exclusivamente como jugador de esa campaña.
 14. El DM invita a una persona no registrada; el destinatario crea su cuenta, acepta la invitación y entra como jugador sin generar un usuario duplicado.
 15. Una invitación caducada, revocada o ya aceptada no puede volver a utilizarse ni revelar información privada de la campaña.
@@ -264,10 +266,13 @@ Cada pregunta debe resolverse en el primer spec que dependa de ella y, si la dec
 12. ¿Cómo se resuelven exactamente empates, sorpresa y participantes con la misma iniciativa en D&D 5.5?
 13. ¿Los capítulos tienen progreso o desbloqueo, o son únicamente una biblioteca completa para el DM?
 14. ¿Qué catálogo de fuentes, licencias y atribuciones se aceptará para cada texto e imagen de un módulo?
+15. **Resuelto en ADR-0006.** Una campaña puede crearse sin módulo y asociar como máximo uno cuando esa capacidad exista.
+16. **Resuelto en ADR-0006.** Consultar una campaña existente sin autorización responde `403`.
+17. **Resuelto en ADR-0006.** Access mantiene invitaciones y ofrece al DM una búsqueda contextual de usuarios activos elegibles con datos minimizados.
 
 ## Fuera de alcance por ahora
 
-- implementación técnica de autenticación y autorización;
+- ampliaciones de autenticación y autorización distintas de las ya implementadas;
 - hojas de personaje completas, creación de estadísticas, inventario, subida de nivel o tiradas de dados;
 - tablero virtual, movimiento de fichas, chat, audio o vídeo;
 - compra, descarga o edición colaborativa de módulos;

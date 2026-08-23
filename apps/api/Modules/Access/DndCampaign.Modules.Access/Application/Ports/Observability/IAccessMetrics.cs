@@ -13,6 +13,8 @@ internal interface IAccessMetrics
     void InvitationAccepted(string kind);
 
     void InvitationRevoked(string kind);
+
+    void EligibleUsersSearched(string outcome, double elapsedMilliseconds);
 }
 
 internal enum InvitationOperation

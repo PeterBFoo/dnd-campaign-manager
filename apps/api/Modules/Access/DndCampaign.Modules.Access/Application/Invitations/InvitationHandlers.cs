@@ -6,6 +6,7 @@ using DndCampaign.Modules.Access.Application.Ports.Persistence;
 using DndCampaign.Modules.Access.Application.Ports.Security;
 using DndCampaign.Modules.Access.Application.Security;
 using DndCampaign.Modules.Access.Application.Users;
+using DndCampaign.Modules.Access.Contracts.CampaignAccess;
 using DndCampaign.Modules.Access.Domain.Accounts;
 using DndCampaign.Modules.Access.Domain.CampaignAccess;
 using DndCampaign.Modules.Access.Domain.Invitations;
@@ -38,7 +39,7 @@ internal sealed record ListInvitationsQuery(
 
 internal sealed class ListInvitationsHandler(
     IInvitationReadStore invitations,
-    ICampaignAccessRepository campaignAccess,
+    ICampaignInvitationContext campaigns,
     TimeProvider timeProvider)
     : IQueryHandler<ListInvitationsQuery, Result<IReadOnlyList<InvitationListItemDto>>>
 {
@@ -54,10 +55,10 @@ internal sealed class ListInvitationsHandler(
         if (query.Kind == InvitationKind.Campaign
             && (!query.Actor.UserId.HasValue
                 || !query.CampaignId.HasValue
-                || !await campaignAccess.IsDmAsync(
+                || !(await campaigns.GetAccessAsync(
                     query.CampaignId.Value,
                     query.Actor.UserId.Value,
-                    cancellationToken)))
+                    cancellationToken)).IsDm))
         {
             return Forbidden();
         }
@@ -79,6 +80,7 @@ internal sealed class ListInvitationsHandler(
 internal sealed record IssueInvitationCommand(
     InvitationKind Kind,
     string? RecipientEmail,
+    Guid? RecipientUserId,
     Guid? CampaignId,
     AccessActor Actor);
 
@@ -98,6 +100,8 @@ internal sealed class InvitationCommandHandler(
     IInvitationRepository invitations,
     IInvitationOutboxRepository outbox,
     ICampaignAccessRepository campaignAccess,
+    IUserAccountRepository users,
+    ICampaignInvitationContext campaigns,
     IInvitationTokenProtector tokenProtector,
     IAccessUnitOfWork unitOfWork,
     IAccessMetrics metrics,
@@ -120,21 +124,18 @@ internal sealed class InvitationCommandHandler(
             return Result<InvitationListItemDto>.Failure(authorization);
         }
 
-        string email;
-        try
-        {
-            email = UserAccount.NormalizeEmail(command.RecipientEmail ?? string.Empty);
-        }
-        catch (ArgumentException exception)
-        {
-            return Validation(exception.Message);
-        }
-
         try
         {
             return await unitOfWork.ExecuteSerializableAsync(async transactionCancellationToken =>
             {
                 var now = timeProvider.GetUtcNow();
+                var recipient = await ResolveRecipientAsync(command, transactionCancellationToken);
+                if (!recipient.IsSuccess)
+                {
+                    return Result<InvitationListItemDto>.Failure(recipient.Error!);
+                }
+
+                var email = recipient.Value!;
                 if (await invitations.HasPendingAsync(
                     command.Kind,
                     command.CampaignId,
@@ -267,10 +268,10 @@ internal sealed class InvitationCommandHandler(
             || (kind == InvitationKind.Platform && !actor.IsPlatformAdmin)
             || (kind == InvitationKind.Campaign
                 && (!campaignId.HasValue
-                    || !await campaignAccess.IsDmAsync(
+                    || !(await campaigns.GetAccessAsync(
                         campaignId.Value,
                         actor.UserId.Value,
-                        cancellationToken))))
+                        cancellationToken)).IsDm)))
         {
             return new ApplicationError(
                 "access.forbidden",
@@ -280,6 +281,75 @@ internal sealed class InvitationCommandHandler(
 
         return null;
     }
+
+    private async Task<Result<string>> ResolveRecipientAsync(
+        IssueInvitationCommand command,
+        CancellationToken cancellationToken)
+    {
+        var hasEmail = !string.IsNullOrWhiteSpace(command.RecipientEmail);
+        var hasUserId = command.RecipientUserId.HasValue;
+        if (hasEmail == hasUserId
+            || (command.Kind != InvitationKind.Campaign && hasUserId))
+        {
+            return Result<string>.Failure(new ApplicationError(
+                "invitation.invalid_recipient",
+                ApplicationErrorType.Validation,
+                command.Kind == InvitationKind.Campaign
+                    ? "Indica un correo o un usuario, pero no ambos."
+                    : "Las invitaciones de plataforma requieren un correo."));
+        }
+
+        if (hasUserId)
+        {
+            var recipient = await users.FindByIdAsync(command.RecipientUserId!.Value, cancellationToken);
+            if (recipient is null)
+            {
+                return Result<string>.Failure(new ApplicationError(
+                    "invitation.recipient_not_found",
+                    ApplicationErrorType.NotFound,
+                    "No se ha encontrado el usuario destinatario."));
+            }
+
+            if (await IsAlreadyCampaignMemberAsync(command, recipient, cancellationToken))
+            {
+                return RecipientAlreadyMember();
+            }
+
+            return Result<string>.Success(recipient.Email);
+        }
+
+        try
+        {
+            var email = UserAccount.NormalizeEmail(command.RecipientEmail!);
+            var recipient = await users.FindByEmailAsync(email, cancellationToken);
+            return recipient is not null
+                && await IsAlreadyCampaignMemberAsync(command, recipient, cancellationToken)
+                    ? RecipientAlreadyMember()
+                    : Result<string>.Success(email);
+        }
+        catch (ArgumentException exception)
+        {
+            return Result<string>.Failure(Validation(exception.Message).Error!);
+        }
+    }
+
+    private async Task<bool> IsAlreadyCampaignMemberAsync(
+        IssueInvitationCommand command,
+        UserAccount recipient,
+        CancellationToken cancellationToken) =>
+        command.Kind == InvitationKind.Campaign
+        && (command.Actor.UserId == recipient.Id
+            || (command.CampaignId.HasValue
+                && await campaignAccess.IsMemberAsync(
+                    command.CampaignId.Value,
+                    recipient.Id,
+                    cancellationToken)));
+
+    private static Result<string> RecipientAlreadyMember() =>
+        Result<string>.Failure(new ApplicationError(
+            "invitation.recipient_already_member",
+            ApplicationErrorType.Conflict,
+            "El usuario ya pertenece a la campaña."));
 
     private static IssuedInvitation CreateInvitation(
         InvitationKind kind,

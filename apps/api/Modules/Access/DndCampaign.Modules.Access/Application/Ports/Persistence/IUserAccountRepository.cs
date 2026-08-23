@@ -8,5 +8,7 @@ internal interface IUserAccountRepository
 
     Task<UserAccount?> FindByEmailAsync(string normalizedEmail, CancellationToken cancellationToken = default);
 
+    Task<UserAccount?> FindByIdAsync(Guid userId, CancellationToken cancellationToken = default);
+
     void Add(UserAccount user);
 }
