@@ -2,7 +2,7 @@
 
 La suscripción usa el endpoint interno de la Container App y la API valida un token
 de Microsoft Entra ID con la audiencia configurada en `EventGrid__Audience` y el rol
-`EventGrid.EventDelivery`. La App Registration se crea una sola vez por entorno:
+`AzureEventGridSecureWebhookSubscriber`. La App Registration se crea una sola vez por entorno:
 
 ```sh
 app_id=$(az ad app create --display-name dnd-campaign-eventgrid-delivery --query appId --output tsv)
@@ -10,7 +10,7 @@ az ad sp create --id "$app_id"
 az ad app update --id "$app_id" --identifier-uris "api://dnd-campaign-eventgrid"
 ```
 
-El propietario debe definir un app role con valor `EventGrid.EventDelivery`, asignarlo
+El propietario debe definir un app role con valor `AzureEventGridSecureWebhookSubscriber`, asignarlo
 al service principal de Event Grid y guardar únicamente el `tenantId` y el identificador
 de audiencia como configuración no secreta. Los secretos de Brevo y PostgreSQL siguen
 siendo referencias secretas de Container Apps. La identidad administrada de la API

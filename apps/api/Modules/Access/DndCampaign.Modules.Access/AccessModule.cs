@@ -45,7 +45,7 @@ public static class AccessModule
             "event-grid-delivery",
             policy => policy.AddAuthenticationSchemes("EventGrid")
                 .RequireAuthenticatedUser()
-                .RequireClaim("roles", configuration["EventGrid:DeliveryRole"] ?? "EventGrid.EventDelivery")));
+                .RequireClaim("roles", configuration["EventGrid:DeliveryRole"] ?? "AzureEventGridSecureWebhookSubscriber")));
         services.AddRateLimiter(ConfigureRateLimits);
         services.AddHealthChecks()
             .AddCheck<AccessPostgresHealthCheck>("postgres", tags: ["ready"]);

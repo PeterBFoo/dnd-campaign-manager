@@ -9,5 +9,5 @@ internal sealed class EventGridOptions
     public string KeyVersion { get; set; } = "v1";
     public string? TenantId { get; set; }
     public string? Audience { get; set; }
-    public string DeliveryRole { get; set; } = "EventGrid.EventDelivery";
+    public string DeliveryRole { get; set; } = "AzureEventGridSecureWebhookSubscriber";
 }
