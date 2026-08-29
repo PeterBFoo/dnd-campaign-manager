@@ -25,7 +25,7 @@ otelcol.exporter.otlphttp "grafana_cloud" {
   client {
     endpoint = sys.env("GRAFANA_CLOUD_OTLP_ENDPOINT")
     headers = {
-      "Authorization" = sys.env("GRAFANA_CLOUD_AUTHORIZATION")
+      "Authorization" = sys.env("GRAFANA_CLOUD_AUTHORIZATION"),
     }
   }
 }
