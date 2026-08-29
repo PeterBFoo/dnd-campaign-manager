@@ -38,8 +38,7 @@ internal sealed class InvitationEventPublisher(
             var token = await credential.GetTokenAsync(Scope, cancellationToken);
             using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(endpoint, "/api/events"));
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.Token);
-            request.Content = JsonContent.Create(new[]
-            {
+            request.Content = JsonContent.Create(
                 new CloudEventEnvelope(
                     "1.0",
                     "access.invitation-email.requested.v1",
@@ -51,7 +50,7 @@ internal sealed class InvitationEventPublisher(
                         message.EncryptedToken,
                         string.IsNullOrWhiteSpace(message.KeyVersion) ? settings.KeyVersion : message.KeyVersion,
                         message.SchemaVersion)),
-            });
+                new MediaTypeHeaderValue("application/cloudevents+json"));
             using var response = await httpClient.SendAsync(request, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
