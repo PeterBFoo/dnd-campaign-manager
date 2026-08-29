@@ -43,6 +43,24 @@ public sealed class AccessApiContractIntegrationTests
             Array.Empty<object>(),
             TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, malformed.StatusCode);
+
+        using var validationRequest = new HttpRequestMessage(
+            HttpMethod.Options,
+            "/internal/events/invitation-email");
+        validationRequest.Headers.TryAddWithoutValidation(
+            "WebHook-Request-Origin",
+            "eventgrid.azure.net");
+        using var validationResponse = await client.SendAsync(
+            validationRequest,
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, validationResponse.StatusCode);
+        Assert.Equal(
+            "eventgrid.azure.net",
+            Assert.Single(validationResponse.Headers.GetValues("WebHook-Allowed-Origin")));
+        Assert.Equal(
+            "*",
+            Assert.Single(validationResponse.Headers.GetValues("WebHook-Allowed-Rate")));
+        Assert.Contains("POST", validationResponse.Headers.GetValues("Allow"));
     }
 
     [Fact]

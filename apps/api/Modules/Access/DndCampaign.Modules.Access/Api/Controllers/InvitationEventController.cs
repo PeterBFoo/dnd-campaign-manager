@@ -15,6 +15,23 @@ internal sealed class InvitationEventController(
     IInvitationEmailDeliveryService deliveryService,
     IInvitationPendingEventReplayer replayService) : ControllerBase
 {
+    [HttpOptions("invitation-email")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public IActionResult ValidateCloudEventsWebhook()
+    {
+        if (!Request.Headers.TryGetValue("WebHook-Request-Origin", out var requestOrigin)
+            || string.IsNullOrWhiteSpace(requestOrigin.ToString()))
+        {
+            return BadRequest();
+        }
+
+        Response.Headers["WebHook-Allowed-Origin"] = requestOrigin.ToString();
+        Response.Headers["WebHook-Allowed-Rate"] = "*";
+        Response.Headers.Allow = "POST";
+        return Ok();
+    }
+
     [HttpPost("invitation-email")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
