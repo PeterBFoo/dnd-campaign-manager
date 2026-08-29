@@ -19,6 +19,7 @@ case "$GRAFANA_CLOUD_OTLP_HEADERS" in
 esac
 
 grafana_cloud_authorization=$(printf '%s' "${GRAFANA_CLOUD_OTLP_HEADERS#Authorization=}" | sed 's/%20/ /g')
+deploy_revision_id=$(printf '%s' "${DEPLOY_SHA:-$(date +%s)}" | cut -c1-12)
 
 az containerapp secret set \
   --resource-group "$AZURE_RESOURCE_GROUP" \
@@ -50,7 +51,7 @@ az containerapp update \
     GRAFANA_CLOUD_AUTHORIZATION=secretref:grafana-cloud-authorization \
   --min-replicas 1 \
   --max-replicas 1 \
-  --revision-suffix "metrics-${DEPLOY_SHA:-$(date +%s)}" \
+  --revision-suffix "metrics-$deploy_revision_id" \
   --output none
 
 az containerapp update \
