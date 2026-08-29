@@ -124,7 +124,7 @@ public sealed class MissionsApiContractTests
             builder.UseSetting("OTEL_SDK_DISABLED", "true");
             builder.UseSetting("ConnectionStrings:Campaigns", connectionString);
             builder.UseSetting("Database:ApplyMigrations", "false");
-            builder.UseSetting("Email:OutboxWorkerEnabled", "false");
+            builder.UseSetting("EventGrid:Enabled", "false");
             builder.UseSetting("Identity:BootstrapToken", "missions-tests-bootstrap-token-000000");
             builder.UseSetting(
                 "Identity:OutboxEncryptionKey",

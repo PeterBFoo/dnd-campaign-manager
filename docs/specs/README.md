@@ -69,6 +69,7 @@ Descompone el plan aprobado en tareas pequeñas, ordenadas y verificables. Cada 
 | [018: NPC del módulo](018-npc-modulo/spec.md) | Propuesta | Autoría de NPC, relaciones reutilizables y catálogo completo para el DM |
 | [019: visibilidad de NPC por campaña](019-visibilidad-npc-campana/spec.md) | Propuesta | Desbloqueo independiente y proyección pública segura para jugadores |
 | [020: contenido de Brujaluz](020-contenido-brujaluz/spec.md) | Propuesta | Carga editorial autorizada, trazable y sin excepciones específicas en el producto |
+| [021: broker de eventos y entrega asíncrona de correo](021-broker-eventos-correo/spec.md) | Implementada; verificación de build/despliegue pendiente | Sustitución del sondeo PostgreSQL por eventos push, entrega de correo con Brevo, escala a cero y observabilidad Grafana en Azure |
 | [022: métricas de PostgreSQL en Grafana Cloud](022-exporter-postgresql-grafana-cloud/spec.md) | Implementada; verificación productiva pendiente | Exporter privado y pipeline Alloy/OTLP para publicar métricas PostgreSQL de producción |
 
 El antiguo documento `001` se conserva como origen histórico de requisitos, pero ahora es el [roadmap de producto](../roadmap/product-roadmap.md) y no forma parte de la cola de specs ejecutables. El siguiente identificador libre es `023`.

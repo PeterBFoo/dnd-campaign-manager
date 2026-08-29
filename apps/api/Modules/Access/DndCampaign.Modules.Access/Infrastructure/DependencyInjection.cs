@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using DndCampaign.Modules.Access.Application.Ports.Email;
+using DndCampaign.Modules.Access.Application.Ports.Events;
 using DndCampaign.Modules.Access.Application.Ports.Persistence;
 using DndCampaign.Modules.Access.Application.Ports.Observability;
 using DndCampaign.Modules.Access.Application.Ports.Security;
@@ -12,8 +13,11 @@ using DndCampaign.Modules.Access.Infrastructure.Email;
 using DndCampaign.Modules.Access.Infrastructure.Persistence;
 using DndCampaign.Modules.Access.Infrastructure.Observability;
 using DndCampaign.Modules.Access.Infrastructure.Security;
-using DndCampaign.Modules.Access.Infrastructure.Outbox;
+using DndCampaign.Modules.Access.Infrastructure.Events;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Azure.Core;
+using Azure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -41,6 +45,10 @@ internal static class DependencyInjection
         services.AddSingleton<IPasswordService, AspNetPasswordService>();
         services.AddSingleton<IBootstrapTokenVerifier, BootstrapTokenVerifier>();
         services.AddSingleton<IAccessMetrics, AccessMetrics>();
+        services.Configure<EventGridOptions>(configuration.GetSection(EventGridOptions.SectionName));
+        services.AddSingleton<EventBrokerMetrics>();
+        services.AddScoped<IInvitationEmailDeliveryService, InvitationEmailDeliveryService>();
+        services.AddScoped<IInvitationPendingEventReplayer, InvitationPendingEventReplayService>();
 
         services.AddDbContext<AccessDbContext>(options => options.UseNpgsql(
             connectionString));
@@ -63,9 +71,19 @@ internal static class DependencyInjection
             ?? throw new InvalidOperationException("Campaign access repository must implement campaign player reads."));
         services.AddScoped<IAccessUnitOfWork, AccessUnitOfWork>();
         services.AddSingleton<InvitationEmailComposer>();
-        if (configuration.GetValue("Email:OutboxWorkerEnabled", false))
+        if (configuration.GetValue("EventGrid:Enabled", false))
         {
-            services.AddHostedService<InvitationOutboxWorker>();
+            if (string.IsNullOrWhiteSpace(configuration["EventGrid:TopicEndpoint"]))
+            {
+                throw new InvalidOperationException(
+                    "EventGrid:TopicEndpoint is required when EventGrid is enabled.");
+            }
+            services.AddSingleton<TokenCredential>(_ => new DefaultAzureCredential());
+            services.AddHttpClient<IInvitationEventPublisher, InvitationEventPublisher>();
+        }
+        else
+        {
+            services.AddSingleton<IInvitationEventPublisher, NullInvitationEventPublisher>();
         }
 
         services
@@ -73,6 +91,25 @@ internal static class DependencyInjection
             .AddScheme<AuthenticationSchemeOptions, SessionAuthenticationHandler>(
                 SessionAuthenticationHandler.AuthenticationScheme,
                 _ => { });
+
+        var tenantId = configuration["EventGrid:TenantId"];
+        if (!string.IsNullOrWhiteSpace(tenantId))
+        {
+            services.AddAuthentication()
+                .AddJwtBearer("EventGrid", options =>
+                {
+                    options.Authority = $"https://login.microsoftonline.com/{tenantId}/v2.0";
+                    options.Audience = configuration["EventGrid:Audience"];
+                    options.MapInboundClaims = false;
+                });
+        }
+        else
+        {
+            services.AddAuthentication()
+                .AddScheme<AuthenticationSchemeOptions, EventGridDevelopmentAuthenticationHandler>(
+                    "EventGrid",
+                    _ => { });
+        }
 
         services.Configure<BrevoOptions>(configuration.GetSection(BrevoOptions.SectionName));
         services.AddHttpClient<ITransactionalEmailSender, BrevoEmailSender>(client =>

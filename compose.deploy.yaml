@@ -75,7 +75,10 @@ services:
       Email__Brevo__ApiKeyFile: /run/secrets/brevo_api_key
       Email__Brevo__SenderEmailFile: /run/secrets/brevo_sender_email
       Email__Brevo__SenderName: ${BREVO_SENDER_NAME:-D&D Campaign Manager}
-      Email__OutboxWorkerEnabled: "true"
+      EventGrid__Enabled: "true"
+      EventGrid__TopicEndpoint: ${EVENTGRID_TOPIC_ENDPOINT:-}
+      EventGrid__TenantId: ${EVENTGRID_TENANT_ID:-}
+      EventGrid__Audience: ${EVENTGRID_AUDIENCE:-}
       Identity__BootstrapTokenFile: /run/secrets/identity_bootstrap_token
       Identity__OutboxEncryptionKeyFile: /run/secrets/outbox_encryption_key
       Frontend__BaseUrl: ${FRONTEND_BASE_URL:-http://localhost/}

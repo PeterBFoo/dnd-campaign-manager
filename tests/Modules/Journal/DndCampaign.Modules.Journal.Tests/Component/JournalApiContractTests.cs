@@ -109,7 +109,7 @@ public sealed class JournalApiContractTests
             builder.UseSetting("OTEL_SDK_DISABLED", "true");
             builder.UseSetting("ConnectionStrings:Campaigns", connectionString);
             builder.UseSetting("Database:ApplyMigrations", "false");
-            builder.UseSetting("Email:OutboxWorkerEnabled", "false");
+            builder.UseSetting("EventGrid:Enabled", "false");
             builder.UseSetting("Identity:BootstrapToken", "journal-tests-bootstrap-token-00000000");
             builder.UseSetting(
                 "Identity:OutboxEncryptionKey",

@@ -45,6 +45,18 @@ variable "frontend_origin" {
   }
 }
 
+variable "eventgrid_webhook_tenant_id" {
+  description = "Microsoft Entra tenant ID used to authenticate Event Grid webhook delivery."
+  type        = string
+  default     = ""
+}
+
+variable "eventgrid_webhook_audience" {
+  description = "App ID URI/audience of the Event Grid webhook App Registration."
+  type        = string
+  default     = ""
+}
+
 variable "tags" {
   description = "Common resource tags."
   type        = map(string)

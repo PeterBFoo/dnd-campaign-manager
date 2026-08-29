@@ -53,6 +53,15 @@ Vista de infraestructura de datos:
 
 UID estable: `dnd-postgresql`.
 
+### Event broker · correo
+
+UID estable: `dnd-event-broker`. Combina métricas OTel de la API (`event.processed`,
+`event.failed`, `event.duplicate`, `event.discarded`) con Azure Monitor para el
+tópico y la suscripción de Event Grid (`PublishFailCount`, `DeliveryAttemptFailCount`,
+`DeadLetteredCount` y latencia). Las alertas recomendadas son: fallos de publicación
+o entrega sostenidos durante 5 minutos, cualquier incremento de dead-letter y ausencia
+de eventos procesados durante 15 minutos cuando existan invitaciones emitidas.
+
 ## Referencias utilizadas
 
 La selección toma como base los dashboards de ASP.NET Core y endpoint publicados por el equipo .NET en Grafana, las métricas integradas de ASP.NET Core y la integración oficial de PostgreSQL de Grafana. Los JSON del proyecto son propios porque fijan el datasource `prometheus`, los nombres de servicio y las etiquetas que realmente produce este repositorio.
@@ -78,7 +87,8 @@ En local, Prometheus recibe las métricas OpenTelemetry de la API y consulta `po
 1. Empezar en **Plataforma · Disponibilidad y rendimiento** para determinar alcance y momento de la degradación.
 2. Si aumentan latencia o colas, abrir **ASP.NET Core · Runtime y saturación** para diferenciar presión de CPU, memoria, GC o thread pool.
 3. Si readiness falla o la latencia coincide con presión de datos, abrir **PostgreSQL · Salud y rendimiento** y revisar conexiones, caché, bloqueos y rollbacks.
-4. Usar las trazas de Tempo y los logs correlacionados en Loki para investigar peticiones concretas sin añadir datos sensibles a los dashboards.
+4. Para invitaciones, abrir **Event broker · correo** y separar publicación, entrega, endpoint, Brevo y dead letters antes de revisar una invitación concreta.
+5. Usar las trazas de Tempo y los logs correlacionados en Loki para investigar peticiones concretas sin añadir datos sensibles a los dashboards.
 
 ## Límites y producción
 

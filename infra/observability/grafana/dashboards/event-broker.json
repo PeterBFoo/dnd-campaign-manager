@@ -1,0 +1,65 @@
+{
+  "annotations": { "list": [] },
+  "editable": false,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green" }, { "color": "orange", "value": 1 }, { "color": "red", "value": 5 }] } }, "overrides": [] },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "editorMode": "code", "expr": "sum(rate(event_processed_total{service_name=\"dnd-campaign-api\"}[$__rate_interval]))", "legendFormat": "procesados/s", "range": true, "refId": "A" }],
+      "title": "Eventos procesados",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green" }, { "color": "orange", "value": 1 }, { "color": "red", "value": 5 }] } }, "overrides": [] },
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "editorMode": "code", "expr": "sum(rate(event_failed_total{service_name=\"dnd-campaign-api\"}[$__rate_interval]))", "legendFormat": "fallos/s", "range": true, "refId": "A" }],
+      "title": "Fallos de entrega",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "id": 3,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "editorMode": "code", "expr": "sum(rate(event_processed_total{service_name=\"dnd-campaign-api\"}[$__rate_interval]))", "legendFormat": "procesados", "range": true, "refId": "A" },
+        { "editorMode": "code", "expr": "sum(rate(event_failed_total{service_name=\"dnd-campaign-api\"}[$__rate_interval]))", "legendFormat": "fallos", "range": true, "refId": "B" },
+        { "editorMode": "code", "expr": "sum(rate(event_duplicate_total{service_name=\"dnd-campaign-api\"}[$__rate_interval]))", "legendFormat": "duplicados", "range": true, "refId": "C" }
+      ],
+      "title": "Tasa de eventos del broker",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "id": 4,
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "editorMode": "code", "expr": "sum(azure_eventgrid_eventsubscription_delivery_success_count{resource_name=~\".*invitation.*\"})", "legendFormat": "Event Grid entregas OK", "range": true, "refId": "A" },
+        { "editorMode": "code", "expr": "sum(azure_eventgrid_eventsubscription_delivery_attempt_fail_count{resource_name=~\".*invitation.*\"})", "legendFormat": "intentos fallidos", "range": true, "refId": "B" },
+        { "editorMode": "code", "expr": "sum(azure_eventgrid_eventsubscription_dead_lettered_count{resource_name=~\".*invitation.*\"})", "legendFormat": "dead-letter", "range": true, "refId": "C" }
+      ],
+      "title": "Azure Event Grid (Azure Monitor)",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["dnd", "event-broker", "azure"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "browser",
+  "title": "Event broker · correo",
+  "uid": "dnd-event-broker",
+  "version": 1
+}

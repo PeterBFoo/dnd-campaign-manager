@@ -47,6 +47,8 @@ Se crea una aplicación de Microsoft Entra con credencial federada limitada al e
 - `AZURE_POSTGRES_EXPORTER_APP=dnd-postgres-observability`
 - `GRAFANA_CLOUD_OTLP_ENDPOINT`
 - `CHARACTER_STORAGE_SERVICE_URI`, con el output Terraform del mismo nombre;
+- `EVENTGRID_TOPIC_ENDPOINT`, con el output `eventgrid_topic_endpoint` de Terraform;
+- `EVENTGRID_AUDIENCE`, con la audiencia de la App Registration del webhook;
 - `ADVENTURE_CATALOG_STORAGE_SERVICE_URI`, con el output Terraform `adventure_catalog_storage_service_uri`;
 - `API_BASE_URL`, con el output `api_url` de Terraform
 

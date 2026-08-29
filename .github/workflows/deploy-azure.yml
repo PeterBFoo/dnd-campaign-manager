@@ -87,6 +87,9 @@ jobs:
           ADVENTURE_CATALOG_STORAGE_SERVICE_URI: ${{ vars.ADVENTURE_CATALOG_STORAGE_SERVICE_URI }}
           FRONTEND_ORIGIN: https://peterbfoo.github.io
           FRONTEND_BASE_URL: https://peterbfoo.github.io/dnd-campaign-manager/
+          EVENTGRID_TOPIC_ENDPOINT: ${{ vars.EVENTGRID_TOPIC_ENDPOINT }}
+          EVENTGRID_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          EVENTGRID_AUDIENCE: ${{ vars.EVENTGRID_AUDIENCE }}
           GRAFANA_CLOUD_OTLP_ENDPOINT: ${{ vars.GRAFANA_CLOUD_OTLP_ENDPOINT }}
           GRAFANA_CLOUD_OTLP_HEADERS: ${{ secrets.GRAFANA_CLOUD_OTLP_HEADERS }}
         run: sh scripts/deploy-azure.sh

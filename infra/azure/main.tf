@@ -26,7 +26,7 @@ resource "azurerm_container_app" "api" {
   }
 
   template {
-    min_replicas = 1
+    min_replicas = 0
     max_replicas = 1
 
     container {
@@ -163,4 +163,52 @@ resource "azurerm_role_assignment" "api_character_images" {
   scope                = azurerm_storage_account.character_images.id
   role_definition_name = "Storage Blob Data Contributor"
   principal_id         = azurerm_container_app.api.identity[0].principal_id
+}
+
+resource "azurerm_eventgrid_topic" "invitation_events" {
+  name                = "dnd-campaign-invitation-events"
+  location            = azurerm_resource_group.production.location
+  resource_group_name = azurerm_resource_group.production.name
+  input_schema        = "CloudEventSchemaV1_0"
+  tags                = var.tags
+}
+
+resource "azurerm_storage_container" "eventgrid_deadletters" {
+  name                  = "eventgrid-deadletters"
+  storage_account_id    = azurerm_storage_account.character_images.id
+  container_access_type = "private"
+}
+
+resource "azurerm_eventgrid_event_subscription" "invitation_events" {
+  name  = "dnd-campaign-api-invitation-email"
+  scope = azurerm_eventgrid_topic.invitation_events.id
+
+  included_event_types = ["All"]
+
+  webhook_endpoint {
+    url                            = "https://${azurerm_container_app.api.ingress[0].fqdn}/internal/events/invitation-email"
+    active_directory_tenant_id     = var.eventgrid_webhook_tenant_id
+    active_directory_app_id_or_uri = var.eventgrid_webhook_audience
+  }
+
+  retry_policy {
+    max_delivery_attempts = 30
+    event_time_to_live    = 1440
+  }
+
+  storage_blob_dead_letter_destination {
+    storage_account_id          = azurerm_storage_account.character_images.id
+    storage_blob_container_name = azurerm_storage_container.eventgrid_deadletters.name
+  }
+}
+
+resource "azurerm_role_assignment" "api_eventgrid_sender" {
+  scope                = azurerm_eventgrid_topic.invitation_events.id
+  role_definition_name = "EventGrid Data Sender"
+  principal_id         = azurerm_container_app.api.identity[0].principal_id
+}
+
+output "eventgrid_topic_endpoint" {
+  value       = azurerm_eventgrid_topic.invitation_events.endpoint
+  description = "Event Grid topic endpoint used by the API publisher."
 }

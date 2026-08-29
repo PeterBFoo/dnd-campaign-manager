@@ -21,3 +21,4 @@ Los ADR registran decisiones que afectan a la estructura, tecnología, seguridad
 | [ADR-0006](0006-campanas-acceso-e-invitaciones.md) | Aceptado | Campaigns posee campañas y DM; Access conserva invitaciones, jugadores y selección de usuarios elegibles |
 | [ADR-0007](0007-imagenes-privadas-de-personajes.md) | Aceptado | Imágenes privadas en Azure Blob/Azurite, metadatos relacionales y entrega autorizada por API |
 | [ADR-0008](0008-asociacion-campanas-modulos.md) | Aceptado | Contrato dirigido Campaigns → AdventureCatalog y desasociación atómica entre esquemas |
+| [ADR-0009](0009-broker-eventos-y-observabilidad-grafana.md) | Aceptado | Azure Event Grid Basic para entrega push de correo y observabilidad combinada en Grafana |
