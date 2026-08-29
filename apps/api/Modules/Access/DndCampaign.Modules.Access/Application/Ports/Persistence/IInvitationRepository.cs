@@ -1,4 +1,5 @@
 using DndCampaign.Modules.Access.Domain.Invitations;
+using DndCampaign.Modules.Access.Application.Ports.Events;
 
 namespace DndCampaign.Modules.Access.Application.Ports.Persistence;
 
@@ -27,7 +28,7 @@ internal interface IInvitationRepository
 
 internal interface IInvitationOutboxRepository
 {
-    void Add(Guid invitationId, string protectedToken, DateTimeOffset createdAt);
+    InvitationEmailRequested Add(Guid invitationId, string protectedToken, DateTimeOffset createdAt);
 }
 
 internal interface IInvitationReadStore

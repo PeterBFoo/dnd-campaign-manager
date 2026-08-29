@@ -3,6 +3,7 @@ using DndCampaign.Modules.Access.Application.Abstractions.Results;
 using DndCampaign.Modules.Access.Application.Identity;
 using DndCampaign.Modules.Access.Application.Ports.Observability;
 using DndCampaign.Modules.Access.Application.Ports.Persistence;
+using DndCampaign.Modules.Access.Application.Ports.Events;
 using DndCampaign.Modules.Access.Application.Ports.Security;
 using DndCampaign.Modules.Access.Application.Security;
 using DndCampaign.Modules.Access.Application.Users;
@@ -103,6 +104,7 @@ internal sealed class InvitationCommandHandler(
     IUserAccountRepository users,
     ICampaignInvitationContext campaigns,
     IInvitationTokenProtector tokenProtector,
+    IInvitationEventPublisher eventPublisher,
     IAccessUnitOfWork unitOfWork,
     IAccessMetrics metrics,
     TimeProvider timeProvider)
@@ -153,7 +155,8 @@ internal sealed class InvitationCommandHandler(
                     command.Actor.UserId!.Value,
                     now);
                 invitations.Add(issued.Invitation);
-                outbox.Add(issued.Invitation.Id, tokenProtector.Protect(issued.Token), now);
+                var eventMessage = outbox.Add(issued.Invitation.Id, tokenProtector.Protect(issued.Token), now);
+                await eventPublisher.PublishAsync(eventMessage, transactionCancellationToken);
                 metrics.InvitationIssued(InvitationOperation.Initial, Kind(command.Kind));
                 return Result<InvitationListItemDto>.Success(ToDto(issued.Invitation));
             }, cancellationToken);
@@ -161,6 +164,13 @@ internal sealed class InvitationCommandHandler(
         catch (ConcurrentOperationException)
         {
             return Conflict();
+        }
+        catch (InvitationEventPublishException exception)
+        {
+            return Result<InvitationListItemDto>.Failure(new ApplicationError(
+                "invitation.event_broker_unavailable",
+                ApplicationErrorType.Unavailable,
+                exception.Message));
         }
     }
 
@@ -178,7 +188,9 @@ internal sealed class InvitationCommandHandler(
             return Result<InvitationListItemDto>.Failure(authorization);
         }
 
-        return await unitOfWork.ExecuteSerializableAsync(async transactionCancellationToken =>
+        try
+        {
+            return await unitOfWork.ExecuteSerializableAsync(async transactionCancellationToken =>
         {
             var invitation = await invitations.FindByIdAsync(
                 command.InvitationId,
@@ -219,10 +231,19 @@ internal sealed class InvitationCommandHandler(
                 invitation.IssuedByUserId,
                 now);
             invitations.Add(replacement.Invitation);
-            outbox.Add(replacement.Invitation.Id, tokenProtector.Protect(replacement.Token), now);
+            var eventMessage = outbox.Add(replacement.Invitation.Id, tokenProtector.Protect(replacement.Token), now);
+            await eventPublisher.PublishAsync(eventMessage, transactionCancellationToken);
             metrics.InvitationIssued(InvitationOperation.Resend, Kind(invitation.Kind));
             return Result<InvitationListItemDto>.Success(ToDto(replacement.Invitation));
-        }, cancellationToken);
+            }, cancellationToken);
+        }
+        catch (InvitationEventPublishException exception)
+        {
+            return Result<InvitationListItemDto>.Failure(new ApplicationError(
+                "invitation.event_broker_unavailable",
+                ApplicationErrorType.Unavailable,
+                exception.Message));
+        }
     }
 
     public async Task<Result<bool>> HandleAsync(

@@ -60,8 +60,9 @@ Descompone el plan aprobado en tareas pequeñas, ordenadas y verificables. Cada 
 | [009: encuentros e iniciativa de combate](009-encuentros-iniciativa/spec.md) | Completada | Preparación de encuentros, iniciativa, turnos, rondas, enemigos y proyección segura para jugadores |
 | [010: grupos de enemigos y eliminación de encuentros](010-grupos-enemigos-eliminacion-encuentros/spec.md) | En implementación | Turno compartido con vida individual por criatura y eliminación segura de encuentros no activos |
 | [011: eliminación de campañas](011-eliminacion-campanas/spec.md) | Completada | Baja irreversible por el DM, revocación inmediata de acceso e invalidación de invitaciones pendientes |
+| [021: broker de eventos y entrega asíncrona de correo](021-broker-eventos-correo/spec.md) | Implementada; verificación de build/despliegue pendiente | Sustitución del sondeo PostgreSQL por eventos push, entrega de correo con Brevo, escala a cero y observabilidad Grafana en Azure |
 
-El antiguo documento `001` se conserva como origen histórico de requisitos, pero ahora es el [roadmap de producto](../roadmap/product-roadmap.md) y no forma parte de la cola de specs ejecutables. El siguiente identificador libre es `012`.
+El antiguo documento `001` se conserva como origen histórico de requisitos, pero ahora es el [roadmap de producto](../roadmap/product-roadmap.md) y no forma parte de la cola de specs ejecutables. Los identificadores `012` a `020` están reservados por incrementos paralelos que todavía no aparecen en este worktree; no deben reutilizarse. El siguiente identificador libre es `022`.
 
 ## Definición de terminado
 

@@ -9,6 +9,7 @@ internal enum ApplicationErrorType
     Conflict,
     Gone,
     RateLimited,
+    Unavailable,
 }
 
 internal sealed record ApplicationError(

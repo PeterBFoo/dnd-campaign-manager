@@ -75,7 +75,10 @@ services:
       Email__Brevo__ApiKey: ${BREVO_API_KEY:-}
       Email__Brevo__SenderEmail: ${BREVO_SENDER_EMAIL:-}
       Email__Brevo__SenderName: ${BREVO_SENDER_NAME:-D&D Campaign Manager}
-      Email__OutboxWorkerEnabled: "true"
+      EventGrid__Enabled: ${EVENTGRID_ENABLED:-false}
+      EventGrid__TopicEndpoint: ${EVENTGRID_TOPIC_ENDPOINT:-}
+      EventGrid__TenantId: ${EVENTGRID_TENANT_ID:-}
+      EventGrid__Audience: ${EVENTGRID_AUDIENCE:-}
       Identity__BootstrapToken: ${IDENTITY_BOOTSTRAP_TOKEN:-local-bootstrap-only-change-before-use}
       Identity__OutboxEncryptionKey: ${OUTBOX_ENCRYPTION_KEY:-}
       Frontend__BaseUrl: http://localhost:4200/

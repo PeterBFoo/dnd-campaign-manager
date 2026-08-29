@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-required_variables="AZURE_RESOURCE_GROUP AZURE_CONTAINER_APP API_IMAGE DATABASE_CONNECTION_STRING BREVO_API_KEY BREVO_SENDER_EMAIL IDENTITY_BOOTSTRAP_TOKEN OUTBOX_ENCRYPTION_KEY CHARACTER_STORAGE_SERVICE_URI FRONTEND_ORIGIN FRONTEND_BASE_URL GRAFANA_CLOUD_OTLP_ENDPOINT GRAFANA_CLOUD_OTLP_HEADERS"
+required_variables="AZURE_RESOURCE_GROUP AZURE_CONTAINER_APP API_IMAGE DATABASE_CONNECTION_STRING BREVO_API_KEY BREVO_SENDER_EMAIL IDENTITY_BOOTSTRAP_TOKEN OUTBOX_ENCRYPTION_KEY CHARACTER_STORAGE_SERVICE_URI FRONTEND_ORIGIN FRONTEND_BASE_URL EVENTGRID_TOPIC_ENDPOINT EVENTGRID_TENANT_ID EVENTGRID_AUDIENCE GRAFANA_CLOUD_OTLP_ENDPOINT GRAFANA_CLOUD_OTLP_HEADERS"
 for variable_name in $required_variables; do
   eval "variable_value=\${$variable_name:-}"
   if [ -z "$variable_value" ]; then
@@ -26,7 +26,7 @@ az containerapp update \
   --resource-group "$AZURE_RESOURCE_GROUP" \
   --name "$AZURE_CONTAINER_APP" \
   --image "$API_IMAGE" \
-  --min-replicas 1 \
+  --min-replicas 0 \
   --max-replicas 1 \
   --cpu 0.25 \
   --memory 0.5Gi \
@@ -36,7 +36,10 @@ az containerapp update \
     ConnectionStrings__Campaigns=secretref:database-connection-string \
     Email__Brevo__ApiKey=secretref:brevo-api-key \
     Email__Brevo__SenderEmail=secretref:brevo-sender-email \
-    Email__OutboxWorkerEnabled=true \
+    EventGrid__Enabled=true \
+    "EventGrid__TopicEndpoint=$EVENTGRID_TOPIC_ENDPOINT" \
+    "EventGrid__TenantId=$EVENTGRID_TENANT_ID" \
+    "EventGrid__Audience=$EVENTGRID_AUDIENCE" \
     Identity__BootstrapToken=secretref:identity-bootstrap-token \
     Identity__OutboxEncryptionKey=secretref:outbox-encryption-key \
     Database__ApplyMigrations=true \

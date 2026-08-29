@@ -24,6 +24,27 @@ public sealed class AccessApiContractIntegrationTests
     private const string AdminPassword = "A-valid-admin-password-123!";
 
     [Fact]
+    public async Task Invitation_event_endpoint_isolated_from_user_sessions()
+    {
+        var connectionString = RequireIntegrationDatabase();
+        using var factory = CreateFactory(connectionString);
+        using var client = factory.CreateClient();
+
+        using var anonymous = await client.PostAsJsonAsync(
+            "/internal/events/invitation-email",
+            Array.Empty<object>(),
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Unauthorized, anonymous.StatusCode);
+
+        client.DefaultRequestHeaders.TryAddWithoutValidation("X-Event-Grid-Test", "1");
+        using var malformed = await client.PostAsJsonAsync(
+            "/internal/events/invitation-email",
+            Array.Empty<object>(),
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.BadRequest, malformed.StatusCode);
+    }
+
+    [Fact]
     public async Task Identity_contract_supports_bootstrap_session_and_logout()
     {
         var connectionString = RequireIntegrationDatabase();
@@ -456,7 +477,7 @@ public sealed class AccessApiContractIntegrationTests
             builder.UseSetting("OTEL_SDK_DISABLED", "true");
             builder.UseSetting("ConnectionStrings:Campaigns", connectionString);
             builder.UseSetting("Database:ApplyMigrations", "false");
-            builder.UseSetting("Email:OutboxWorkerEnabled", "false");
+            builder.UseSetting("EventGrid:Enabled", "false");
             builder.UseSetting("Identity:BootstrapToken", BootstrapToken);
             builder.UseSetting(
                 "Identity:OutboxEncryptionKey",

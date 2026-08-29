@@ -166,7 +166,7 @@ public sealed class CombatApiContractTests
             builder.UseSetting("OTEL_SDK_DISABLED", "true");
             builder.UseSetting("ConnectionStrings:Campaigns", connectionString);
             builder.UseSetting("Database:ApplyMigrations", "false");
-            builder.UseSetting("Email:OutboxWorkerEnabled", "false");
+            builder.UseSetting("EventGrid:Enabled", "false");
             builder.UseSetting("Identity:BootstrapToken", "combat-tests-bootstrap-token-0000000");
             builder.UseSetting(
                 "Identity:OutboxEncryptionKey",

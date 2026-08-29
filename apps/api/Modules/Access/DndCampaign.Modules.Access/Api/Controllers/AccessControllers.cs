@@ -367,6 +367,12 @@ internal static class AccessControllerMappings
             Detail = $"Podrás volver a intentarlo a partir de {error.RetryAt:O}.",
             Extensions = { ["retryAt"] = error.RetryAt },
         }) { StatusCode = StatusCodes.Status429TooManyRequests },
+        ApplicationErrorType.Unavailable => new ObjectResult(new ProblemDetails
+        {
+            Status = StatusCodes.Status503ServiceUnavailable,
+            Title = "El servicio de correo no está disponible temporalmente.",
+            Detail = error.Description,
+        }) { StatusCode = StatusCodes.Status503ServiceUnavailable },
         _ => new ConflictObjectResult(new ProblemDetails
         {
             Status = StatusCodes.Status409Conflict,

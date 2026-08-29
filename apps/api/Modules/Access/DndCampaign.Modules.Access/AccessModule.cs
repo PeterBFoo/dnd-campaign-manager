@@ -16,6 +16,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Npgsql;
 using OpenTelemetry.Metrics;
+using DndCampaign.Modules.Access.Infrastructure.Events;
 
 namespace DndCampaign.Modules.Access;
 
@@ -40,12 +41,18 @@ public static class AccessModule
         services.AddAuthorization(options => options.AddPolicy(
             "platform-admin",
             policy => policy.RequireClaim("platform_admin", "true")));
+        services.AddAuthorization(options => options.AddPolicy(
+            "event-grid-delivery",
+            policy => policy.AddAuthenticationSchemes("EventGrid")
+                .RequireAuthenticatedUser()
+                .RequireClaim("roles", configuration["EventGrid:DeliveryRole"] ?? "EventGrid.EventDelivery")));
         services.AddRateLimiter(ConfigureRateLimits);
         services.AddHealthChecks()
             .AddCheck<AccessPostgresHealthCheck>("postgres", tags: ["ready"]);
         services.AddOpenTelemetry().WithMetrics(metrics => metrics
             .AddMeter(AccessMetrics.MeterName)
             .AddMeter("DndCampaign.Api.Email"));
+        services.AddOpenTelemetry().WithMetrics(metrics => metrics.AddMeter(EventBrokerMetrics.MeterName));
         return services;
     }
 
