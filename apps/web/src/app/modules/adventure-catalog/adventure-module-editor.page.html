@@ -1,0 +1,14 @@
+<main class="page-shell"><section class="page-heading"><p class="eyebrow">Biblioteca de módulos</p><h1>{{ editing() ? 'Editar módulo' : 'Nuevo módulo' }}</h1><p>Registra siempre la base de derechos que permite usar el contenido.</p></section>
+  @if (error()) { <p class="form-error message" role="alert">{{ error() }}</p> }
+  <form class="panel form-grid" [formGroup]="form" (ngSubmit)="save()">
+    <label>Nombre<input formControlName="name" autocomplete="off" /></label>
+    <label>Descripción<textarea formControlName="description" rows="4"></textarea></label>
+    <label>Origen<select formControlName="originKind">@for (origin of origins; track origin) { <option [value]="origin">{{ origin }}</option> }</select></label>
+    <label>Referencia de fuente<input formControlName="sourceReference" /></label>
+    <label>Base de derechos<input formControlName="rightsBasis" placeholder="Licencia, permiso o autoría propia" /></label>
+    <label>Atribución<input formControlName="attribution" /></label>
+    <label>Portada (PNG, JPEG o WebP)<input type="file" accept="image/png,image/jpeg,image/webp" (change)="chooseFile($event)" /></label>
+    @if (editing()?.coverUrl) { <label class="check"><input type="checkbox" formControlName="removeCover" /> Retirar portada actual</label> }
+    <div class="form-actions"><a class="text-button" routerLink="/admin/adventure-modules">Cancelar</a><button type="submit" [disabled]="submitting()">{{ submitting() ? 'Guardando…' : 'Guardar módulo' }}</button></div>
+  </form>
+</main>

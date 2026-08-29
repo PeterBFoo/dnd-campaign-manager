@@ -17,3 +17,8 @@ output "character_storage_service_uri" {
   description = "Private character image Blob service endpoint consumed with managed identity."
   value       = azurerm_storage_account.character_images.primary_blob_endpoint
 }
+
+output "adventure_catalog_storage_service_uri" {
+  description = "Private Blob service endpoint for adventure module covers."
+  value       = azurerm_storage_account.character_images.primary_blob_endpoint
+}
