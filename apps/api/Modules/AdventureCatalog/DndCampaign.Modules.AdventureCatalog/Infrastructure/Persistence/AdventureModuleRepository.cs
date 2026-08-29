@@ -19,6 +19,16 @@ internal sealed class AdventureModuleRepository(AdventureCatalogDbContext databa
     public Task<AdventureModule?> FindAsync(Guid id, CancellationToken cancellationToken = default) =>
         database.AdventureModules.SingleOrDefaultAsync(module => module.Id == id, cancellationToken);
 
+    public async Task<IReadOnlyList<AdventureModule>> ListByIdsAsync(
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken = default) =>
+        await database.AdventureModules
+            .AsNoTracking()
+            .Where(module => ids.Contains(module.Id))
+            .OrderBy(module => module.Name)
+            .ThenBy(module => module.Id)
+            .ToArrayAsync(cancellationToken);
+
     public Task<bool> NameExistsAsync(
         string normalizedName,
         Guid? excludedId = null,

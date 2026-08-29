@@ -14,7 +14,9 @@ internal sealed class CampaignsController(
     CreateCampaignHandler createCampaign,
     ListCampaignsHandler listCampaigns,
     GetCampaignHandler getCampaign,
-    DeleteCampaignHandler deleteCampaign) : ControllerBase
+    DeleteCampaignHandler deleteCampaign,
+    AssignAdventureModuleHandler assignAdventureModule,
+    RemoveAdventureModuleHandler removeAdventureModule) : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType<IEnumerable<CampaignResponse>>(StatusCodes.Status200OK)]
@@ -33,7 +35,7 @@ internal sealed class CampaignsController(
         CancellationToken cancellationToken)
     {
         var result = await createCampaign.HandleAsync(
-            new CreateCampaignCommand(GetUserId(), request.Name),
+            new CreateCampaignCommand(GetUserId(), request.Name, request.AdventureModuleId),
             cancellationToken);
         return result.IsSuccess
             ? Created(
@@ -70,6 +72,39 @@ internal sealed class CampaignsController(
         return result.IsSuccess ? NoContent() : MapError(result.Error!);
     }
 
+    [HttpPut("{campaignId:guid}/adventure-module")]
+    [ProducesResponseType<CampaignResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> AssignModuleAsync(
+        Guid campaignId,
+        AssignAdventureModuleRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await assignAdventureModule.HandleAsync(
+            new AssignAdventureModuleCommand(
+                GetUserId(), campaignId, request.AdventureModuleId, request.ExpectedVersion),
+            cancellationToken);
+        return result.IsSuccess ? Ok(ToResponse(result.Value!)) : MapError(result.Error!);
+    }
+
+    [HttpDelete("{campaignId:guid}/adventure-module")]
+    [ProducesResponseType<CampaignResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> RemoveModuleAsync(
+        Guid campaignId,
+        [FromQuery] long expectedVersion,
+        CancellationToken cancellationToken)
+    {
+        var result = await removeAdventureModule.HandleAsync(
+            new RemoveAdventureModuleCommand(GetUserId(), campaignId, expectedVersion),
+            cancellationToken);
+        return result.IsSuccess ? Ok(ToResponse(result.Value!)) : MapError(result.Error!);
+    }
+
     private Guid GetUserId() => Guid.TryParse(
         User.FindFirstValue(ClaimTypes.NameIdentifier),
         out var userId)
@@ -81,7 +116,9 @@ internal sealed class CampaignsController(
         campaign.Name,
         campaign.Role,
         campaign.AdventureModuleId,
-        campaign.CreatedAt);
+        campaign.CreatedAt,
+        campaign.AdventureModule,
+        campaign.Version);
 
     private static IActionResult MapError(CampaignError error) => error.Type switch
     {
@@ -94,15 +131,26 @@ internal sealed class CampaignsController(
         }),
         CampaignErrorType.Forbidden => new ForbidResult(),
         CampaignErrorType.NotFound => new NotFoundResult(),
+        CampaignErrorType.Conflict => new ConflictObjectResult(new ProblemDetails
+        {
+            Status = StatusCodes.Status409Conflict,
+            Title = "La campaña ha cambiado.",
+            Detail = error.Description,
+            Extensions = { ["code"] = error.Code },
+        }),
         _ => throw new ArgumentOutOfRangeException(nameof(error)),
     };
 }
 
-internal sealed record CreateCampaignRequest(string? Name);
+internal sealed record CreateCampaignRequest(string? Name, Guid? AdventureModuleId);
+
+internal sealed record AssignAdventureModuleRequest(Guid AdventureModuleId, long ExpectedVersion);
 
 internal sealed record CampaignResponse(
     Guid Id,
     string Name,
     string Role,
     Guid? AdventureModuleId,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    DndCampaign.Modules.AdventureCatalog.Contracts.Campaigns.AdventureModuleCampaignSummary? AdventureModule,
+    long Version);

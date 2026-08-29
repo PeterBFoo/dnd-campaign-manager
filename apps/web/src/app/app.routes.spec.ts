@@ -1,4 +1,5 @@
 import { ACCESS_ROUTES } from './modules/access/access.routes';
+import { ADVENTURE_CATALOG_ROUTES } from './modules/adventure-catalog/adventure-catalog.routes';
 import { routes } from './app.routes';
 
 describe('application routes', () => {
@@ -26,5 +27,10 @@ describe('application routes', () => {
     expect(ACCESS_ROUTES[2]?.canActivate).toHaveLength(1);
     expect(ACCESS_ROUTES[3]?.canActivate).toHaveLength(1);
     expect(ACCESS_ROUTES.every((route) => route.loadComponent)).toBe(true);
+  });
+
+  it('registers the platform adventure catalog routes', () => {
+    expect(ADVENTURE_CATALOG_ROUTES).toHaveLength(4);
+    expect(ADVENTURE_CATALOG_ROUTES.every((route) => route.canActivate)).toBe(true);
   });
 });

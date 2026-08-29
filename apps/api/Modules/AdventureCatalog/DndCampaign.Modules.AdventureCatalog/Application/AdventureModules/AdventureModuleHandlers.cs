@@ -452,7 +452,7 @@ internal sealed class GetAdventureModuleCoverHandler(
         var outcome = "failure";
         try
         {
-            if (!AdventureModuleHandlerSupport.IsAuthorized(query.Actor))
+            if (!AdventureModuleHandlerSupport.IsAuthenticated(query.Actor))
             {
                 outcome = "forbidden";
                 return AdventureModuleHandlerSupport.Forbidden<AdventureModuleCoverContent>();
@@ -487,6 +487,9 @@ internal static class AdventureModuleHandlerSupport
 
     public static bool IsAuthorized(AdventureCatalogActor actor) =>
         actor.UserId != Guid.Empty && actor.IsPlatformAdmin;
+
+    public static bool IsAuthenticated(AdventureCatalogActor actor) =>
+        actor.UserId != Guid.Empty;
 
     public static AdventureCatalogResult<ValidatedProvenance> ValidateInputs(
         AdventureCatalogActor actor,

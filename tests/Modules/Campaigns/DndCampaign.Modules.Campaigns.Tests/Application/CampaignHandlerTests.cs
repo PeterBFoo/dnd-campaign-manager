@@ -1,4 +1,6 @@
 using DndCampaign.Modules.Access.Contracts.CampaignAccess;
+using DndCampaign.Modules.AdventureCatalog.Contracts.Campaigns;
+using DndCampaign.Modules.Campaigns.Application.Abstractions;
 using DndCampaign.Modules.Campaigns.Application.Campaigns;
 using DndCampaign.Modules.Campaigns.Application.Ports;
 using DndCampaign.Modules.Campaigns.Domain.Campaigns;
@@ -66,6 +68,79 @@ public sealed class CampaignHandlerTests
         Assert.True(repository.Saved);
     }
 
+    [Fact]
+    public async Task Create_with_an_existing_module_returns_its_safe_summary()
+    {
+        var repository = new FakeCampaignRepository();
+        var module = new AdventureModuleCampaignSummary(Guid.NewGuid(), "Módulo compartido", "/api/v1/adventure-modules/cover");
+        var handler = new CreateCampaignHandler(
+            repository,
+            new FakeCampaignMetrics(),
+            TimeProvider.System,
+            new FakeAdventureModuleReader(module));
+
+        var result = await handler.HandleAsync(
+            new CreateCampaignCommand(Guid.NewGuid(), "Mesa con módulo", module.Id),
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(module.Id, result.Value!.AdventureModuleId);
+        Assert.Equal(module, result.Value.AdventureModule);
+        Assert.Equal(1, result.Value.Version);
+    }
+
+    [Fact]
+    public async Task Assignment_requires_the_dm_and_the_current_version()
+    {
+        var repository = new FakeCampaignRepository();
+        var dm = Guid.NewGuid();
+        var campaign = Campaign.Create("Mesa", dm, DateTimeOffset.UtcNow);
+        repository.Items.Add(campaign);
+        var module = new AdventureModuleCampaignSummary(Guid.NewGuid(), "Módulo", null);
+        var handler = new AssignAdventureModuleHandler(
+            repository,
+            new FakeAdventureModuleReader(module),
+            new FakeCampaignMetrics());
+
+        var forbidden = await handler.HandleAsync(
+            new AssignAdventureModuleCommand(Guid.NewGuid(), campaign.Id, module.Id, campaign.Version),
+            TestContext.Current.CancellationToken);
+        var conflict = await handler.HandleAsync(
+            new AssignAdventureModuleCommand(dm, campaign.Id, module.Id, campaign.Version + 1),
+            TestContext.Current.CancellationToken);
+        var assigned = await handler.HandleAsync(
+            new AssignAdventureModuleCommand(dm, campaign.Id, module.Id, campaign.Version),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(CampaignErrorType.Forbidden, forbidden.Error!.Type);
+        Assert.Equal(CampaignErrorType.Conflict, conflict.Error!.Type);
+        Assert.True(assigned.IsSuccess);
+        Assert.Equal(module.Id, campaign.AdventureModuleId);
+        Assert.Equal(2, campaign.Version);
+    }
+
+    [Fact]
+    public async Task Removing_a_module_is_idempotent_but_changes_the_version_only_once()
+    {
+        var repository = new FakeCampaignRepository();
+        var dm = Guid.NewGuid();
+        var campaign = Campaign.Create("Mesa", dm, DateTimeOffset.UtcNow);
+        repository.Items.Add(campaign);
+        var handler = new RemoveAdventureModuleHandler(repository, new FakeCampaignMetrics());
+
+        var first = await handler.HandleAsync(
+            new RemoveAdventureModuleCommand(dm, campaign.Id, campaign.Version),
+            TestContext.Current.CancellationToken);
+        var second = await handler.HandleAsync(
+            new RemoveAdventureModuleCommand(dm, campaign.Id, campaign.Version),
+            TestContext.Current.CancellationToken);
+
+        Assert.True(first.IsSuccess);
+        Assert.True(second.IsSuccess);
+        Assert.Null(campaign.AdventureModuleId);
+        Assert.Equal(1, campaign.Version);
+    }
+
     private sealed class FakeCampaignRepository : ICampaignRepository
     {
         public List<Campaign> Items { get; } = [];
@@ -109,6 +184,24 @@ public sealed class CampaignHandlerTests
             Guid userId,
             CancellationToken cancellationToken = default) =>
             Task.FromResult(false);
+    }
+
+    private sealed class FakeAdventureModuleReader(AdventureModuleCampaignSummary? module) : IAdventureModuleCampaignReader
+    {
+        public Task<IReadOnlyList<AdventureModuleCampaignSummary>> ListOptionsAsync(
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<AdventureModuleCampaignSummary>>(module is null ? [] : [module]);
+
+        public Task<AdventureModuleCampaignSummary?> FindAsync(
+            Guid moduleId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(module?.Id == moduleId ? module : null);
+
+        public Task<IReadOnlyList<AdventureModuleCampaignSummary>> ListAsync(
+            IReadOnlyCollection<Guid> moduleIds,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<AdventureModuleCampaignSummary>>(
+                module is not null && moduleIds.Contains(module.Id) ? [module] : []);
     }
 
     private sealed class FakeCampaignMetrics : ICampaignMetrics

@@ -92,7 +92,7 @@ public sealed class ModuleDependencyTests
                 .ToHashSet(StringComparer.Ordinal);
             if (module == Campaigns)
             {
-                Assert.Subset(new HashSet<string>([Access.GetName().Name!]), dependencies);
+                Assert.Subset(new HashSet<string>([Access.GetName().Name!, AdventureCatalog.GetName().Name!]), dependencies);
             }
             else if (module == Characters)
             {
@@ -129,6 +129,11 @@ public sealed class ModuleDependencyTests
             "DndCampaign.Modules.Access.Domain",
             "DndCampaign.Modules.Access.Infrastructure",
             "AccessDbContext",
+            "DndCampaign.Modules.AdventureCatalog.Api",
+            "DndCampaign.Modules.AdventureCatalog.Application",
+            "DndCampaign.Modules.AdventureCatalog.Domain",
+            "DndCampaign.Modules.AdventureCatalog.Infrastructure",
+            "AdventureCatalogDbContext",
             "DndCampaign.Modules.Campaigns.Api",
             "DndCampaign.Modules.Campaigns.Application",
             "DndCampaign.Modules.Campaigns.Domain",
@@ -227,7 +232,8 @@ public sealed class ModuleDependencyTests
 
     private static bool IsApprovedEdge(string project, string reference) =>
         (project.StartsWith($"Campaigns{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-            && reference.Contains($"{Path.DirectorySeparatorChar}Access{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            && (reference.Contains($"{Path.DirectorySeparatorChar}Access{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                || reference.Contains($"{Path.DirectorySeparatorChar}AdventureCatalog{Path.DirectorySeparatorChar}", StringComparison.Ordinal)))
         || (project.StartsWith($"Characters{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
             && (reference.Contains($"{Path.DirectorySeparatorChar}Campaigns{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
                 || reference.Contains($"{Path.DirectorySeparatorChar}Access{Path.DirectorySeparatorChar}", StringComparison.Ordinal)))
