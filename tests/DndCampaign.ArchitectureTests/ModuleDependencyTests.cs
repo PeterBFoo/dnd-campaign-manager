@@ -159,6 +159,11 @@ public sealed class ModuleDependencyTests
             "DndCampaign.Modules.Missions.Domain",
             "DndCampaign.Modules.Missions.Infrastructure",
             "MissionsDbContext",
+            "DndCampaign.Modules.AdventureCatalog.Api",
+            "DndCampaign.Modules.AdventureCatalog.Application",
+            "DndCampaign.Modules.AdventureCatalog.Domain",
+            "DndCampaign.Modules.AdventureCatalog.Infrastructure",
+            "AdventureCatalogDbContext",
         };
         var violations = Directory.EnumerateFiles(hostDirectory, "*.cs", SearchOption.AllDirectories)
             .Where(file => !file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
