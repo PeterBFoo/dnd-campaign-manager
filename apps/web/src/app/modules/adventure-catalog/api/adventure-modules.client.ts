@@ -4,12 +4,22 @@ import { Observable } from 'rxjs';
 
 import { apiBaseUrl } from '@shared/config/runtime-config';
 
-import { AdventureModule, EditorialProvenanceInput } from './adventure-modules.contracts';
+import { AdventureModule, AdventureModuleOption, EditorialProvenanceInput } from './adventure-modules.contracts';
 
 @Injectable()
 export class AdventureModulesClient {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${apiBaseUrl()}/api/v1/admin/adventure-modules`;
+  private readonly campaignBaseUrl = `${apiBaseUrl()}/api/v1/adventure-modules`;
+
+  options(): Observable<AdventureModuleOption[]> {
+    return this.http.get<AdventureModuleOption[]>(`${this.campaignBaseUrl}/options`);
+  }
+
+  campaignCoverUrl(id: string): string { return `${this.campaignBaseUrl}/${id}/cover`; }
+  campaignCover(id: string): Observable<Blob> {
+    return this.http.get(this.campaignCoverUrl(id), { responseType: 'blob' });
+  }
 
   list(): Observable<AdventureModule[]> { return this.http.get<AdventureModule[]>(this.baseUrl); }
   get(id: string): Observable<AdventureModule> { return this.http.get<AdventureModule>(`${this.baseUrl}/${id}`); }

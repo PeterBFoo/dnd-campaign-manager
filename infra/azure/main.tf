@@ -56,6 +56,75 @@ resource "azurerm_container_app" "api" {
   }
 }
 
+resource "azurerm_container_app" "postgres_exporter" {
+  name                         = var.postgres_exporter_name
+  container_app_environment_id = azurerm_container_app_environment.production.id
+  resource_group_name          = azurerm_resource_group.production.name
+  revision_mode                = "Single"
+  tags                         = var.tags
+
+  # GitHub Actions owns the runtime secrets and the immutable Alloy image.
+  # Terraform only establishes the private application boundary and safe
+  # placeholders for the first revision.
+  secret {
+    name  = "postgres-dsn"
+    value = "postgresql://placeholder:placeholder@example.invalid/postgres?sslmode=require"
+  }
+
+  secret {
+    name  = "grafana-cloud-authorization"
+    value = "Basic placeholder"
+  }
+
+  template {
+    min_replicas = 1
+    max_replicas = 1
+
+    container {
+      name   = "postgres-exporter"
+      image  = "quay.io/prometheuscommunity/postgres-exporter:v0.20.1"
+      cpu    = 0.25
+      memory = "0.5Gi"
+
+      env {
+        name        = "DATA_SOURCE_NAME"
+        secret_name = "postgres-dsn"
+      }
+
+      env {
+        name  = "PG_EXPORTER_COLLECTION_TIMEOUT"
+        value = "30s"
+      }
+
+      env {
+        name  = "PG_EXPORTER_DISABLE_DEFAULT_METRICS"
+        value = "false"
+      }
+    }
+
+    container {
+      name   = "alloy"
+      image  = "grafana/alloy:v1.19.2"
+      cpu    = 0.25
+      memory = "0.5Gi"
+
+      env {
+        name  = "GRAFANA_CLOUD_OTLP_ENDPOINT"
+        value = "https://invalid.example.invalid/otlp"
+      }
+
+      env {
+        name        = "GRAFANA_CLOUD_AUTHORIZATION"
+        secret_name = "grafana-cloud-authorization"
+      }
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [template, secret]
+  }
+}
+
 resource "azurerm_storage_account" "character_images" {
   name                            = var.character_storage_account_name
   resource_group_name             = azurerm_resource_group.production.name

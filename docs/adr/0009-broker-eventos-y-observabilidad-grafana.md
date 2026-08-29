@@ -1,4 +1,4 @@
-# ADR-0008: Broker de eventos push para correo y observabilidad en Grafana
+# ADR-0009: Broker de eventos push para correo y observabilidad en Grafana
 
 - Estado: Aceptado
 - Fecha: 2026-08-29

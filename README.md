@@ -114,7 +114,7 @@ Si Grafana es accesible desde el ejecutor de la prueba, añade `GRAFANA_URL`.
 
 ## Producción con coste acotado
 
-La topología de referencia utiliza GitHub Pages para Angular, Azure Container Apps Consumption para ASP.NET Core, Azure Blob Storage privado para retratos, Neon Free para PostgreSQL y Grafana Cloud Free para telemetría. Las imágenes AMD64 se publican en GHCR y el workflow `deploy-azure` despliega únicamente tags inmutables asociados al commit. `deploy-pages` publica el frontend cuando cambia `main`.
+La topología de referencia utiliza GitHub Pages para Angular, Azure Container Apps Consumption para ASP.NET Core y el agente privado de PostgreSQL, Azure Blob Storage privado para retratos, Neon Free para PostgreSQL y Grafana Cloud Free para telemetría. Las imágenes AMD64 de API y Alloy se publican en GHCR y el workflow `deploy-azure` despliega únicamente tags inmutables asociados al commit. `deploy-pages` publica el frontend cuando cambia `main`.
 
 El ADR-0003 autoriza temporalmente la autenticación entre orígenes mediante sesiones bearer opacas, `sessionStorage` y una política CORS exacta. Recuperar una entrada same-origin continúa siendo la evolución preferente antes de ampliar el volumen de información privada.
 

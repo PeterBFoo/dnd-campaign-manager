@@ -15,7 +15,7 @@ PostgreSQL utiliza la contraseña de entorno solo durante la primera inicializac
 | API ASP.NET Core | `Database__Host`, `Database__Port`, `Database__Name`, `Database__User` | `Database__Password_FILE=/run/secrets/postgres_password` |
 | API / Brevo | `Email__Brevo__SenderName` | `Email__Brevo__ApiKeyFile=/run/secrets/brevo_api_key`, `Email__Brevo__SenderEmailFile=/run/secrets/brevo_sender_email` |
 | API / identidad | `Frontend__BaseUrl` | `Identity__BootstrapTokenFile=/run/secrets/identity_bootstrap_token`, `Identity__OutboxEncryptionKeyFile=/run/secrets/outbox_encryption_key` |
-| PostgreSQL exporter | `DATA_SOURCE_URI`, `DATA_SOURCE_USER` | `DATA_SOURCE_PASS_FILE=/run/secrets/postgres_password` |
+| PostgreSQL exporter local | `DATA_SOURCE_URI`, `DATA_SOURCE_USER` | `DATA_SOURCE_PASS_FILE=/run/secrets/postgres_password` |
 | Grafana | `GF_SECURITY_ADMIN_USER` | `GF_SECURITY_ADMIN_PASSWORD__FILE=/run/secrets/grafana_admin_password` |
 
 La API mantiene `ConnectionStrings__Campaigns` para desarrollo local y acepta el secreto por archivo en despliegue. El contenido de los archivos se lee al arrancar, se elimina el salto de línea final y nunca se devuelve en endpoints ni se registra.
@@ -57,7 +57,7 @@ La topología Azure, Neon, Grafana Cloud y GitHub Pages añade estas fronteras s
 
 | Valor | Almacenamiento | Consumidor |
 |---|---|---|
-| `DATABASE_CONNECTION_STRING` | GitHub environment `production` y secret de Container Apps | API ASP.NET Core |
+| `DATABASE_CONNECTION_STRING` | GitHub environment `production` y secretos `database-connection-string` / `postgres-dsn` de Container Apps | API ASP.NET Core y PostgreSQL exporter |
 | `GRAFANA_CLOUD_OTLP_HEADERS` | GitHub environment `production` y secret de Container Apps | exportador OpenTelemetry de la API |
 | `GRAFANA_SERVICE_ACCOUNT_TOKEN` | GitHub environment `production` | publicación de dashboards desde Actions |
 | `BREVO_API_KEY` | GitHub environment `production` y secret de Container Apps, cuando se activen invitaciones | adaptador transaccional de la API |
@@ -77,6 +77,8 @@ La identidad federada elimina el secreto de cliente Azure. Su sujeto queda limit
 Neon entrega una URI PostgreSQL con host, base de datos, usuario, contraseña y TLS. La API la normaliza internamente al formato de Npgsql. Rotar la contraseña exige actualizar `DATABASE_CONNECTION_STRING`, ejecutar de nuevo `deploy-azure` y revocar la anterior después de superar readiness y las pruebas de humo.
 
 `GRAFANA_CLOUD_OTLP_HEADERS` utiliza el formato `Authorization=Basic%20<credencial-base64>`. La política asociada concede solamente escritura de métricas, logs y trazas. Su token productivo se ha emitido sin fecha de expiración, por lo que requiere rotación manual y revocación inmediata ante una posible exposición.
+
+En producción, `scripts/deploy-azure.sh` transforma esa cabecera en un secreto efímero `grafana-cloud-authorization` para Alloy. El exporter productivo recibe `DATABASE_CONNECTION_STRING` como secreto `postgres-dsn`; no se reutilizan secretos locales ni se publican puertos.
 
 El token de cuenta de servicio de dashboards es independiente, se limita al rol `Editor`, se almacena únicamente en GitHub y nunca se proporciona a la aplicación. Ningún secreto productivo forma parte del frontend, las imágenes, Terraform, sus planes o su estado.
 

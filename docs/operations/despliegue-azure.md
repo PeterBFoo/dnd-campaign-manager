@@ -6,7 +6,7 @@
 
 ## Topología y límites de coste
 
-Terraform crea un grupo de recursos, un entorno Azure Container Apps Consumption, una Container App Linux y una cuenta StorageV2 Standard LRS con contenedor privado para retratos. La API queda limitada a `0.25` vCPU, `0.5 GiB` y una réplica como máximo. No se crea VM, Azure Container Registry, IP pública dedicada, Log Analytics ni PostgreSQL de Azure.
+Terraform crea un grupo de recursos, un entorno Azure Container Apps Consumption, una Container App para la API, una Container App privada para PostgreSQL exporter + Alloy y una cuenta StorageV2 Standard LRS con contenedor privado para retratos. La API queda limitada a `0.25` vCPU, `0.5 GiB` y una réplica como máximo; el agente de observabilidad usa `0.5` vCPU y `1 GiB` entre sus dos contenedores, también con una réplica. No se crea VM, Azure Container Registry, IP pública dedicada, Log Analytics ni PostgreSQL de Azure.
 
 Angular se publica en GitHub Pages, PostgreSQL reside en Neon Free y la telemetría se envía a Grafana Cloud Free. Azure Blob Storage se factura por capacidad y operaciones, aunque el volumen inicial sea pequeño; debe existir un presupuesto Azure con avisos. Los planes gratuitos no tienen SLA.
 
@@ -18,7 +18,7 @@ Angular se publica en GitHub Pages, PostgreSQL reside en Neon Free y la telemetr
 3. Crear un stack Grafana Cloud Free y una política con escritura OTLP para métricas, logs y trazas.
 4. Crear una cuenta de servicio Grafana con rol `Editor` para publicar los dashboards versionados.
 5. En GitHub, configurar Pages con **GitHub Actions** como origen.
-6. Hacer público el paquete `dnd-campaign-api` de GHCR después de su primera publicación; la Container App no conserva un token de registro.
+6. Hacer públicos los paquetes `dnd-campaign-api` y `dnd-campaign-alloy` de GHCR después de su primera publicación; las Container Apps no conservan un token de registro.
 
 ## 2. Aprovisionar Azure
 
@@ -44,6 +44,7 @@ Se crea una aplicación de Microsoft Entra con credencial federada limitada al e
 - `AZURE_SUBSCRIPTION_ID`
 - `AZURE_RESOURCE_GROUP=dnd-campaign-manager-production`
 - `AZURE_CONTAINER_APP=dnd-campaign-api`
+- `AZURE_POSTGRES_EXPORTER_APP=dnd-postgres-observability`
 - `GRAFANA_CLOUD_OTLP_ENDPOINT`
 - `CHARACTER_STORAGE_SERVICE_URI`, con el output Terraform del mismo nombre;
 - `EVENTGRID_TOPIC_ENDPOINT`, con el output `eventgrid_topic_endpoint` de Terraform;
@@ -69,6 +70,8 @@ El environment protegido `production` contiene:
 
 El workflow instala ambos como secretos de Container Apps y los referencia desde variables de entorno. No se imprimen, no llegan al frontend y no forman parte de Terraform.
 
+La Container App `dnd-postgres-observability` recibe el mismo DSN como `postgres-dsn`. El workflow crea además `grafana-cloud-authorization` a partir de `GRAFANA_CLOUD_OTLP_HEADERS`; Alloy lo usa únicamente para enviar las métricas scrapeadas por OTLP.
+
 ## 5. Publicación y verificación
 
 1. Integrar el cambio en `main` y esperar a que el workflow `ci` termine correctamente.
@@ -77,7 +80,8 @@ El workflow instala ambos como secretos de Container Apps y los referencia desde
 4. Esperar a que `deploy-pages`, también iniciado al integrar en `main`, publique Angular.
 5. Abrir `https://peterbfoo.github.io/dnd-campaign-manager/` y comprobar el estado operativo.
 6. Confirmar en Grafana que llegan logs, métricas y trazas y que el mismo workflow ha actualizado los dashboards versionados.
-7. Crear un personaje con imagen y comprobar que el blob permanece privado y que otro jugador no puede modificarlo.
+7. En Grafana Explore, consultar `pg_up` y `pg_stat_database_numbackends`; ambas series deben tener muestras recientes.
+8. Crear un personaje con imagen y comprobar que el blob permanece privado y que otro jugador no puede modificarlo.
 
 ## Imágenes y recuperación
 

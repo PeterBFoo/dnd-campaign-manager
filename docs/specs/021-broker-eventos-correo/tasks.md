@@ -3,7 +3,7 @@
 - Estado: Implementación completada; verificación externa pendiente
 - Especificación: [spec.md](spec.md)
 - Plan: [plan.md](plan.md)
-- ADR: [ADR-0008](../../adr/0008-broker-eventos-y-observabilidad-grafana.md)
+- ADR: [ADR-0009](../../adr/0009-broker-eventos-y-observabilidad-grafana.md)
 
 ## Contrato y Access
 

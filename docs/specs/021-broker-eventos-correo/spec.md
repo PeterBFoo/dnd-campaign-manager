@@ -5,7 +5,7 @@
 - Tipo: incremento técnico vertical
 - Roadmap: [roadmap funcional](../../roadmap/product-roadmap.md)
 - Requisitos relacionados: RF-070, RF-075, RF-076, RF-079, RF-080 y RF-081 (preserva sus contratos y reglas; no amplía el alcance funcional)
-- Dependencias: [ADR-0001](../../adr/0001-monorepositorio-y-monolito-modular.md), [ADR-0002](../../adr/0002-identidad-invitaciones-y-correo-transaccional.md), [ADR-0003](../../adr/0003-bootstrap-sesiones-y-flujo-de-invitaciones.md), [ADR-0008](../../adr/0008-broker-eventos-y-observabilidad-grafana.md), [spec 002](../002-modularizacion-access/spec.md) y [spec 004](../004-creacion-campanas/spec.md)
+- Dependencias: [ADR-0001](../../adr/0001-monorepositorio-y-monolito-modular.md), [ADR-0002](../../adr/0002-identidad-invitaciones-y-correo-transaccional.md), [ADR-0003](../../adr/0003-bootstrap-sesiones-y-flujo-de-invitaciones.md), [ADR-0009](../../adr/0009-broker-eventos-y-observabilidad-grafana.md), [spec 002](../002-modularizacion-access/spec.md) y [spec 004](../004-creacion-campanas/spec.md)
 
 ## Problema
 

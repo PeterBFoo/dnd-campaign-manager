@@ -20,6 +20,12 @@ export interface AdventureModule {
   version: number;
 }
 
+export interface AdventureModuleOption {
+  id: string;
+  name: string;
+  coverUrl: string | null;
+}
+
 export interface EditorialProvenanceInput {
   originKind: EditorialOrigin;
   sourceReference?: string;

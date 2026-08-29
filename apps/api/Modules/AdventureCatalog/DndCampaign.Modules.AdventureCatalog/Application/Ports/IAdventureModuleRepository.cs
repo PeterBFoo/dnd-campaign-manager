@@ -8,6 +8,10 @@ internal interface IAdventureModuleRepository
 
     Task<AdventureModule?> FindAsync(Guid id, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<AdventureModule>> ListByIdsAsync(
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken = default);
+
     Task<bool> NameExistsAsync(
         string normalizedName,
         Guid? excludedId = null,

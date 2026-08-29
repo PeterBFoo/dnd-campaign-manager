@@ -3,7 +3,7 @@
 - Estado: Aprobado
 - Fecha: 2026-08-29
 - Especificación: [spec.md](spec.md)
-- ADR: [ADR-0008](../../adr/0008-broker-eventos-y-observabilidad-grafana.md)
+- ADR: [ADR-0009](../../adr/0009-broker-eventos-y-observabilidad-grafana.md)
 - Dependencias de implementación: [ADR-0001](../../adr/0001-monorepositorio-y-monolito-modular.md), [ADR-0002](../../adr/0002-identidad-invitaciones-y-correo-transaccional.md), [ADR-0004](../../adr/0004-arquitectura-modular-cqrs-y-limites-de-dependencia.md), [docs de dashboards](../../operations/dashboards-de-observabilidad.md)
 
 ## Resultado esperado
@@ -174,7 +174,7 @@ La migración se probará sobre una base vacía y sobre una base con invitacione
 - Actualizar [despliegue-azure.md](../../operations/despliegue-azure.md) con topic, App Registration, RBAC, dead letter, escala a cero y smoke test.
 - Actualizar [secretos-de-despliegue.md](../../operations/secretos-de-despliegue.md) solo para nuevas referencias de identidad/configuración; no documentar valores.
 - Actualizar [diagrama de componentes](../../architecture/diagrama-de-componentes.md) y [diagrama de despliegue](../../architecture/diagrama-de-despliegue.md) para retirar el worker, mostrar Event Grid y Grafana/Azure Monitor.
-- Marcar ADR-0002 como sustituido parcialmente mediante ADR-0008; no reescribir su decisión histórica.
+- Marcar ADR-0002 como sustituido parcialmente mediante ADR-0009; no reescribir su decisión histórica.
 - Crear `tasks.md` después de aprobar este plan, agrupando cada bloque en tareas pequeñas y verificables.
 
 ## Riesgos y mitigaciones

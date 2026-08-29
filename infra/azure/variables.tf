@@ -22,6 +22,12 @@ variable "api_name" {
   default     = "dnd-campaign-api"
 }
 
+variable "postgres_exporter_name" {
+  description = "Container App name for the private PostgreSQL exporter and Alloy sidecar."
+  type        = string
+  default     = "dnd-postgres-observability"
+}
+
 variable "character_storage_account_name" {
   description = "Globally unique Azure Storage account used for private character images."
   type        = string

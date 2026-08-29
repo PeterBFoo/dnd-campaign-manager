@@ -54,8 +54,8 @@ services:
       DATA_SOURCE_URI: postgres:5432/${POSTGRES_DB:-dnd_campaigns}?sslmode=disable
       DATA_SOURCE_USER: ${POSTGRES_USER:-dnd_app}
       DATA_SOURCE_PASS: ${POSTGRES_PASSWORD:-local-development-only}
-    volumes:
-      - ./infra/observability/postgres-exporter.yaml:/postgres_exporter.yml:ro
+      PG_EXPORTER_COLLECTION_TIMEOUT: 30s
+      PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
     depends_on:
       postgres:
         condition: service_healthy
