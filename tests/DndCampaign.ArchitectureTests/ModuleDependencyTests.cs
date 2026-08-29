@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Xml.Linq;
 using DndCampaign.Modules.Access;
+using DndCampaign.Modules.AdventureCatalog;
 using DndCampaign.Modules.Campaigns;
 using DndCampaign.Modules.Characters;
 using DndCampaign.Modules.Combat;
@@ -13,6 +14,7 @@ namespace DndCampaign.ArchitectureTests;
 public sealed class ModuleDependencyTests
 {
     private static readonly Assembly Access = typeof(AccessModule).Assembly;
+    private static readonly Assembly AdventureCatalog = typeof(AdventureCatalogModule).Assembly;
     private static readonly Assembly Campaigns = typeof(CampaignsModule).Assembly;
     private static readonly Assembly Characters = typeof(CharactersModule).Assembly;
     private static readonly Assembly Combat = typeof(CombatModule).Assembly;
@@ -70,13 +72,13 @@ public sealed class ModuleDependencyTests
 
     [Fact]
     public void Modules_do_not_reference_the_host() => Assert.DoesNotContain(
-        new[] { Access, Campaigns, Characters, Combat, Journal, Missions }.SelectMany(module => module.GetReferencedAssemblies()),
+        new[] { Access, AdventureCatalog, Campaigns, Characters, Combat, Journal, Missions }.SelectMany(module => module.GetReferencedAssemblies()),
         reference => reference.Name == Host.GetName().Name);
 
     [Fact]
     public void Modules_do_not_reference_other_module_implementations()
     {
-        var modules = new[] { Access, Campaigns, Characters, Combat, Journal, Missions };
+        var modules = new[] { Access, AdventureCatalog, Campaigns, Characters, Combat, Journal, Missions };
         var moduleNames = modules.Select(module => module.GetName().Name!).ToHashSet(StringComparer.Ordinal);
 
         foreach (var module in modules)
@@ -152,6 +154,11 @@ public sealed class ModuleDependencyTests
             "DndCampaign.Modules.Missions.Domain",
             "DndCampaign.Modules.Missions.Infrastructure",
             "MissionsDbContext",
+            "DndCampaign.Modules.AdventureCatalog.Api",
+            "DndCampaign.Modules.AdventureCatalog.Application",
+            "DndCampaign.Modules.AdventureCatalog.Domain",
+            "DndCampaign.Modules.AdventureCatalog.Infrastructure",
+            "AdventureCatalogDbContext",
         };
         var violations = Directory.EnumerateFiles(hostDirectory, "*.cs", SearchOption.AllDirectories)
             .Where(file => !file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
@@ -172,7 +179,7 @@ public sealed class ModuleDependencyTests
     [Fact]
     public void Module_graph_is_acyclic()
     {
-        var modules = new[] { Access, Campaigns, Characters, Combat, Journal, Missions };
+        var modules = new[] { Access, AdventureCatalog, Campaigns, Characters, Combat, Journal, Missions };
         var names = modules.ToDictionary(module => module.GetName().Name!, StringComparer.Ordinal);
         var edges = modules.ToDictionary(
             module => module.GetName().Name!,

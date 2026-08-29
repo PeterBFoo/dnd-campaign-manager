@@ -67,6 +67,7 @@ La topología Azure, Neon, Grafana Cloud y GitHub Pages añade estas fronteras s
 | `EVENTGRID_TOPIC_ENDPOINT` | variable de GitHub y configuración de Container Apps | endpoint del custom topic de Event Grid |
 | `EVENTGRID_AUDIENCE` | variable de GitHub y configuración de Container Apps | audiencia de la App Registration del webhook |
 | `CHARACTER_STORAGE_SERVICE_URI` | variable pública de GitHub | endpoint Blob; la autorización usa identidad administrada y no una clave |
+| `ADVENTURE_CATALOG_STORAGE_SERVICE_URI` | variable pública de GitHub | endpoint Blob privado para portadas de módulos; usa la identidad administrada |
 | identidad de despliegue Azure | Microsoft Entra federado con GitHub OIDC | workflow `deploy-azure` |
 | `API_BASE_URL` | variable pública de GitHub | build Angular |
 | `GRAFANA_URL` | variable pública de GitHub | publicación de dashboards |

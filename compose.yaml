@@ -84,6 +84,7 @@ services:
       Frontend__BaseUrl: http://localhost:4200/
       Database__ApplyMigrations: "true"
       Storage__Characters__ConnectionString: DefaultEndpointsProtocol=http;AccountName=dndlocal;AccountKey=MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=;BlobEndpoint=http://azurite:10000/dndlocal;
+      Storage__AdventureCatalog__ConnectionString: DefaultEndpointsProtocol=http;AccountName=dndlocal;AccountKey=MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=;BlobEndpoint=http://azurite:10000/dndlocal;
     ports:
       - "8080:8080"
     depends_on:
@@ -127,6 +128,7 @@ services:
       IDENTITY_TEST_DATABASE: Host=postgres-tests;Port=5432;Database=dnd_identity_test;Username=${POSTGRES_USER:-dnd_app};Password=${POSTGRES_PASSWORD:-local-development-only}
       OTEL_SDK_DISABLED: "true"
       Storage__Characters__ConnectionString: DefaultEndpointsProtocol=http;AccountName=dndlocal;AccountKey=MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=;BlobEndpoint=http://azurite:10000/dndlocal;
+      Storage__AdventureCatalog__ConnectionString: DefaultEndpointsProtocol=http;AccountName=dndlocal;AccountKey=MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=;BlobEndpoint=http://azurite:10000/dndlocal;
     depends_on:
       postgres-tests:
         condition: service_healthy

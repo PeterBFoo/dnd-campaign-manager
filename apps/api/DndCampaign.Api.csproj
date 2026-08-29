@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="Modules/Access/DndCampaign.Modules.Access/DndCampaign.Modules.Access.csproj" />
+    <ProjectReference Include="Modules/AdventureCatalog/DndCampaign.Modules.AdventureCatalog/DndCampaign.Modules.AdventureCatalog.csproj" />
     <ProjectReference Include="Modules/Campaigns/DndCampaign.Modules.Campaigns/DndCampaign.Modules.Campaigns.csproj" />
     <ProjectReference Include="Modules/Characters/DndCampaign.Modules.Characters/DndCampaign.Modules.Characters.csproj" />
     <ProjectReference Include="Modules/Combat/DndCampaign.Modules.Combat/DndCampaign.Modules.Combat.csproj" />

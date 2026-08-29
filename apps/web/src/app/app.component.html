@@ -6,7 +6,7 @@
   <nav aria-label="Navegación principal">
     @if (session.user(); as user) {
       <a routerLink="/campaigns">Campañas</a>
-      @if (user.isPlatformAdmin) { <a routerLink="/admin/invitations">Invitaciones</a> }
+      @if (user.isPlatformAdmin) { <a routerLink="/admin/invitations">Invitaciones</a><a routerLink="/admin/adventure-modules">Módulos</a> }
       <span>{{ user.displayName }}</span>
       <button type="button" (click)="logout()">Cerrar sesión</button>
     } @else {

@@ -3,7 +3,7 @@ import { routes } from './app.routes';
 
 describe('application routes', () => {
   it('keeps home, Access lazy routes and wildcard in the composition root', () => {
-    expect(routes.map((route) => route.path)).toEqual(['', '', '', '', '', '', '', '**']);
+    expect(routes.map((route) => route.path)).toEqual(['', '', '', '', '', '', '', '', '**']);
     expect(routes[0]?.pathMatch).toBe('full');
     expect(routes[0]?.loadComponent).toBeTypeOf('function');
     expect(routes[1]?.loadChildren).toBeTypeOf('function');
@@ -12,7 +12,8 @@ describe('application routes', () => {
     expect(routes[4]?.loadChildren).toBeTypeOf('function');
     expect(routes[5]?.loadChildren).toBeTypeOf('function');
     expect(routes[6]?.loadChildren).toBeTypeOf('function');
-    expect(routes[7]?.redirectTo).toBe('');
+    expect(routes[7]?.loadChildren).toBeTypeOf('function');
+    expect(routes[8]?.redirectTo).toBe('');
   });
 
   it('keeps every existing Access path and guard', () => {
