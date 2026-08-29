@@ -1,0 +1,31 @@
+// Scrape the private postgres-exporter sidecar and forward the converted
+// metrics to Grafana Cloud. Credentials are injected only as runtime env vars.
+prometheus.scrape "postgres" {
+  targets = [{ "__address__" = "127.0.0.1:9187" }]
+
+  scrape_interval = "15s"
+  forward_to      = [otelcol.receiver.prometheus.postgres.receiver]
+}
+
+otelcol.receiver.prometheus "postgres" {
+  output {
+    metrics = [otelcol.processor.batch.postgres.input]
+  }
+}
+
+otelcol.processor.batch "postgres" {
+  timeout = "5s"
+
+  output {
+    metrics = [otelcol.exporter.otlphttp.grafana_cloud.input]
+  }
+}
+
+otelcol.exporter.otlphttp "grafana_cloud" {
+  client {
+    endpoint = sys.env("GRAFANA_CLOUD_OTLP_ENDPOINT")
+    headers = {
+      "Authorization" = sys.env("GRAFANA_CLOUD_AUTHORIZATION"),
+    }
+  }
+}

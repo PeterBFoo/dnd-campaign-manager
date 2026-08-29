@@ -71,7 +71,7 @@ Los archivos se encuentran en `infra/observability/grafana/dashboards`. Grafana 
 
 En producción, `scripts/publish-grafana-dashboards.sh` publica los mismos JSON en Grafana Cloud mediante una cuenta de servicio. El script descubre el datasource Prometheus real del stack y sustituye los UID locales durante la publicación; esos identificadores de cuenta no se escriben en Git.
 
-Prometheus recibe las métricas OpenTelemetry de la API y consulta `postgres-exporter:9187` según `infra/observability/prometheus.yaml`. El exporter no publica ningún puerto al host.
+En local, Prometheus recibe las métricas OpenTelemetry de la API y consulta `postgres-exporter:9187` según `infra/observability/prometheus.yaml`. En producción, Alloy consulta `127.0.0.1:9187` dentro de la Container App privada y reenvía el resultado a Grafana Cloud por OTLP HTTPS. Ningún exporter publica un puerto al host ni a Internet.
 
 ## Interpretación operativa
 
@@ -85,7 +85,7 @@ Prometheus recibe las métricas OpenTelemetry de la API y consulta `postgres-exp
 - La disponibilidad calculada desde tráfico real no sustituye una sonda sintética externa.
 - Los umbrales visuales son valores iniciales; deben revisarse con carga real y objetivos SLO aceptados.
 - El exporter usa el usuario configurado para PostgreSQL en el entorno actual. Antes de un despliegue compartido debe provisionarse un usuario de monitorización con privilegios mínimos.
-- El dashboard PostgreSQL detallado depende del exporter local. En Neon Free, la disponibilidad de la base se observa inicialmente mediante readiness y las métricas de la API; los paneles internos de PostgreSQL permanecerán sin datos hasta incorporar una integración de métricas compatible.
+- El dashboard PostgreSQL detallado depende de `postgres-exporter`. En producción, la Container App `dnd-postgres-observability` debe estar activa y el dashboard debe mostrar `pg_up == 1`; si no hay datos, revisar primero la revisión de Alloy y la conexión del exporter a Neon.
 - `grafana/otel-lgtm` continúa siendo una solución local, de demostración y pruebas. En producción, los mismos dashboards requieren datasources compatibles con Prometheus, Tempo y Loki, pero la topología y retención deben definirse para el proveedor de destino.
 
 La comprobación posterior al despliegue se automatiza con `scripts/smoke-test.sh`. Exige `BASE_URL` y admite `GRAFANA_URL` cuando Grafana sea accesible desde el ejecutor.

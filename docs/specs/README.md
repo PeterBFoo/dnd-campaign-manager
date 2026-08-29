@@ -62,8 +62,16 @@ Descompone el plan aprobado en tareas pequeñas, ordenadas y verificables. Cada 
 | [011: eliminación de campañas](011-eliminacion-campanas/spec.md) | Completada | Baja irreversible por el DM, revocación inmediata de acceso e invalidación de invitaciones pendientes |
 | [012: librería de módulos](012-libreria-modulos/spec.md) | Completada | Catálogo administrable, metadatos, portada privada, procedencia y eliminación |
 | [013: asignación de módulo a campaña](013-asignacion-modulo-campana/spec.md) | En implementación | Selección opcional al crear, cambio, retirada y desasociación segura al eliminar el módulo |
+| [014: capítulos del módulo](014-capitulos-modulo/spec.md) | Propuesta | Capítulos editables, orden estable y consulta completa reservada al DM |
+| [015: mapas del módulo](015-mapas-modulo/spec.md) | Propuesta | Mapas e imágenes privadas reutilizables y asociaciones con capítulos |
+| [016: localizaciones y puntos de interés](016-localizaciones-puntos-interes/spec.md) | Propuesta | Localizaciones, mapas detallados, placements, POI y relaciones sin duplicación |
+| [017: viajes mediante cuadrícula](017-viajes-cuadricula/spec.md) | Propuesta | Cuadrículas cuadradas y hexagonales con cálculo escalado de distancia para el DM |
+| [018: NPC del módulo](018-npc-modulo/spec.md) | Propuesta | Autoría de NPC, relaciones reutilizables y catálogo completo para el DM |
+| [019: visibilidad de NPC por campaña](019-visibilidad-npc-campana/spec.md) | Propuesta | Desbloqueo independiente y proyección pública segura para jugadores |
+| [020: contenido de Brujaluz](020-contenido-brujaluz/spec.md) | Propuesta | Carga editorial autorizada, trazable y sin excepciones específicas en el producto |
+| [022: métricas de PostgreSQL en Grafana Cloud](022-exporter-postgresql-grafana-cloud/spec.md) | Implementada; verificación productiva pendiente | Exporter privado y pipeline Alloy/OTLP para publicar métricas PostgreSQL de producción |
 
-El antiguo documento `001` se conserva como origen histórico de requisitos, pero ahora es el [roadmap de producto](../roadmap/product-roadmap.md) y no forma parte de la cola de specs ejecutables. El siguiente identificador libre es `014`.
+El antiguo documento `001` se conserva como origen histórico de requisitos, pero ahora es el [roadmap de producto](../roadmap/product-roadmap.md) y no forma parte de la cola de specs ejecutables. El siguiente identificador libre es `023`.
 
 ## Definición de terminado
 

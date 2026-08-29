@@ -175,6 +175,7 @@ flowchart LR
 
     database[("PostgreSQL")]
     postgres_exporter["PostgreSQL exporter"]
+    alloy["Grafana Alloy<br/>scrape · OTLP HTTPS"]
     observability["Backend de observabilidad<br/>Collector · Prometheus · Tempo · Loki · Grafana"]
     brevo["Brevo<br/>API transaccional v3"]
     blob[("Azure Blob / Azurite<br/>contenedor privado")]
@@ -197,7 +198,9 @@ flowchart LR
     combat_infra -->|"encuentros SQL"| database
     characters_infra -->|"binarios privados"| blob
     database -->|"estadísticas operativas"| postgres_exporter
-    observability -->|"scrape Prometheus"| postgres_exporter
+    observability -->|"scrape Prometheus local"| postgres_exporter
+    postgres_exporter -->|"métricas :9187"| alloy
+    alloy -->|"OTLP HTTPS en producción"| observability
     telemetry -->|"OTLP: logs, métricas y trazas"| observability
     infrastructure -->|"HTTPS · API key solo backend"| brevo
 ```
@@ -230,7 +233,8 @@ flowchart LR
 | EF Core/Npgsql | Acceso transaccional a PostgreSQL | Definir por adelantado el modelo de dominio |
 | PostgreSQL | Persistencia primaria con esquemas `access`, `campaigns`, `characters`, `journal`, `missions` y `combat` | Exposición directa al navegador o foreign keys entre módulos |
 | Azure Blob / Azurite | Binarios de retratos bajo claves opacas | Datos de dominio, acceso público o autorización de campaña |
-| PostgreSQL exporter | Exponer métricas operativas de la base de datos a Prometheus | Servir tráfico público o almacenar credenciales en la imagen |
+| PostgreSQL exporter | Exponer métricas operativas de la base de datos a Prometheus o Alloy | Servir tráfico público o almacenar credenciales en la imagen |
+| Grafana Alloy | Scrappear métricas privadas y reenviarlas por OTLP HTTPS en producción | Consultar directamente tablas de dominio o recibir secretos persistidos |
 | OpenTelemetry | Instrumentación neutral respecto del proveedor | Registrar secretos o contenido sensible |
 | Stack Grafana LGTM | Recibir, almacenar y consultar telemetría local | Ser la topología de producción |
 

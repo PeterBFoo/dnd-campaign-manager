@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-required_variables="AZURE_RESOURCE_GROUP AZURE_CONTAINER_APP API_IMAGE DATABASE_CONNECTION_STRING BREVO_API_KEY BREVO_SENDER_EMAIL IDENTITY_BOOTSTRAP_TOKEN OUTBOX_ENCRYPTION_KEY CHARACTER_STORAGE_SERVICE_URI ADVENTURE_CATALOG_STORAGE_SERVICE_URI FRONTEND_ORIGIN FRONTEND_BASE_URL GRAFANA_CLOUD_OTLP_ENDPOINT GRAFANA_CLOUD_OTLP_HEADERS"
+required_variables="AZURE_RESOURCE_GROUP AZURE_CONTAINER_APP AZURE_POSTGRES_EXPORTER_APP API_IMAGE ALLOY_IMAGE DATABASE_CONNECTION_STRING BREVO_API_KEY BREVO_SENDER_EMAIL IDENTITY_BOOTSTRAP_TOKEN OUTBOX_ENCRYPTION_KEY CHARACTER_STORAGE_SERVICE_URI ADVENTURE_CATALOG_STORAGE_SERVICE_URI FRONTEND_ORIGIN FRONTEND_BASE_URL GRAFANA_CLOUD_OTLP_ENDPOINT GRAFANA_CLOUD_OTLP_HEADERS"
 for variable_name in $required_variables; do
   eval "variable_value=\${$variable_name:-}"
   if [ -z "$variable_value" ]; then
@@ -9,6 +9,16 @@ for variable_name in $required_variables; do
     exit 2
   fi
 done
+
+case "$GRAFANA_CLOUD_OTLP_HEADERS" in
+  Authorization=Basic%20*) ;;
+  *)
+    echo "GRAFANA_CLOUD_OTLP_HEADERS must use Authorization=Basic%20<base64> format." >&2
+    exit 2
+    ;;
+esac
+
+grafana_cloud_authorization=$(printf '%s' "${GRAFANA_CLOUD_OTLP_HEADERS#Authorization=}" | sed 's/%20/ /g')
 
 az containerapp secret set \
   --resource-group "$AZURE_RESOURCE_GROUP" \
@@ -20,6 +30,27 @@ az containerapp secret set \
     "identity-bootstrap-token=$IDENTITY_BOOTSTRAP_TOKEN" \
     "outbox-encryption-key=$OUTBOX_ENCRYPTION_KEY" \
     "grafana-cloud-otlp-headers=$GRAFANA_CLOUD_OTLP_HEADERS" \
+  --output none
+
+az containerapp secret set \
+  --resource-group "$AZURE_RESOURCE_GROUP" \
+  --name "$AZURE_POSTGRES_EXPORTER_APP" \
+  --secrets \
+    "postgres-dsn=$DATABASE_CONNECTION_STRING" \
+    "grafana-cloud-authorization=$grafana_cloud_authorization" \
+  --output none
+
+az containerapp update \
+  --resource-group "$AZURE_RESOURCE_GROUP" \
+  --name "$AZURE_POSTGRES_EXPORTER_APP" \
+  --container-name alloy \
+  --image "$ALLOY_IMAGE" \
+  --set-env-vars \
+    "GRAFANA_CLOUD_OTLP_ENDPOINT=$GRAFANA_CLOUD_OTLP_ENDPOINT" \
+    GRAFANA_CLOUD_AUTHORIZATION=secretref:grafana-cloud-authorization \
+  --min-replicas 1 \
+  --max-replicas 1 \
+  --revision-suffix "metrics-${DEPLOY_SHA:-$(date +%s)}" \
   --output none
 
 az containerapp update \
