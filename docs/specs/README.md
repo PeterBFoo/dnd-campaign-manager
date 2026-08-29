@@ -60,8 +60,17 @@ Descompone el plan aprobado en tareas pequeñas, ordenadas y verificables. Cada 
 | [009: encuentros e iniciativa de combate](009-encuentros-iniciativa/spec.md) | Completada | Preparación de encuentros, iniciativa, turnos, rondas, enemigos y proyección segura para jugadores |
 | [010: grupos de enemigos y eliminación de encuentros](010-grupos-enemigos-eliminacion-encuentros/spec.md) | En implementación | Turno compartido con vida individual por criatura y eliminación segura de encuentros no activos |
 | [011: eliminación de campañas](011-eliminacion-campanas/spec.md) | Completada | Baja irreversible por el DM, revocación inmediata de acceso e invalidación de invitaciones pendientes |
+| [012: librería de módulos](012-libreria-modulos/spec.md) | Aceptada; implementación iniciada | Catálogo administrable, metadatos, portada privada, procedencia y eliminación |
+| [013: asignación de módulo a campaña](013-asignacion-modulo-campana/spec.md) | Propuesta | Selección opcional al crear, cambio, retirada y desasociación segura al eliminar el módulo |
+| [014: capítulos del módulo](014-capitulos-modulo/spec.md) | Propuesta | Capítulos editables, orden estable y consulta completa reservada al DM |
+| [015: mapas del módulo](015-mapas-modulo/spec.md) | Propuesta | Mapas e imágenes privadas reutilizables y asociaciones con capítulos |
+| [016: localizaciones y puntos de interés](016-localizaciones-puntos-interes/spec.md) | Propuesta | Localizaciones, mapas detallados, placements, POI y relaciones sin duplicación |
+| [017: viajes mediante cuadrícula](017-viajes-cuadricula/spec.md) | Propuesta | Cuadrículas cuadradas y hexagonales con cálculo escalado de distancia para el DM |
+| [018: NPC del módulo](018-npc-modulo/spec.md) | Propuesta | Autoría de NPC, relaciones reutilizables y catálogo completo para el DM |
+| [019: visibilidad de NPC por campaña](019-visibilidad-npc-campana/spec.md) | Propuesta | Desbloqueo independiente y proyección pública segura para jugadores |
+| [020: contenido de Brujaluz](020-contenido-brujaluz/spec.md) | Propuesta | Carga editorial autorizada, trazable y sin excepciones específicas en el producto |
 
-El antiguo documento `001` se conserva como origen histórico de requisitos, pero ahora es el [roadmap de producto](../roadmap/product-roadmap.md) y no forma parte de la cola de specs ejecutables. El siguiente identificador libre es `012`.
+El antiguo documento `001` se conserva como origen histórico de requisitos, pero ahora es el [roadmap de producto](../roadmap/product-roadmap.md) y no forma parte de la cola de specs ejecutables. El siguiente identificador libre es `021`.
 
 ## Definición de terminado
 

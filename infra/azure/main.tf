@@ -84,6 +84,12 @@ resource "azurerm_storage_container" "character_images" {
   container_access_type = "private"
 }
 
+resource "azurerm_storage_container" "adventure_module_images" {
+  name                  = "adventure-module-images"
+  storage_account_id    = azurerm_storage_account.character_images.id
+  container_access_type = "private"
+}
+
 resource "azurerm_role_assignment" "api_character_images" {
   scope                = azurerm_storage_account.character_images.id
   role_definition_name = "Storage Blob Data Contributor"

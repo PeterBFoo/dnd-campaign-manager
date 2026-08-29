@@ -4,12 +4,14 @@ WORKDIR /src
 COPY global.json Directory.Build.props DndCampaign.slnx ./
 COPY apps/api/DndCampaign.Api.csproj apps/api/
 COPY apps/api/Modules/Access/DndCampaign.Modules.Access/DndCampaign.Modules.Access.csproj apps/api/Modules/Access/DndCampaign.Modules.Access/
+COPY apps/api/Modules/AdventureCatalog/DndCampaign.Modules.AdventureCatalog/DndCampaign.Modules.AdventureCatalog.csproj apps/api/Modules/AdventureCatalog/DndCampaign.Modules.AdventureCatalog/
 COPY apps/api/Modules/Campaigns/DndCampaign.Modules.Campaigns/DndCampaign.Modules.Campaigns.csproj apps/api/Modules/Campaigns/DndCampaign.Modules.Campaigns/
 COPY apps/api/Modules/Characters/DndCampaign.Modules.Characters/DndCampaign.Modules.Characters.csproj apps/api/Modules/Characters/DndCampaign.Modules.Characters/
 COPY apps/api/Modules/Combat/DndCampaign.Modules.Combat/DndCampaign.Modules.Combat.csproj apps/api/Modules/Combat/DndCampaign.Modules.Combat/
 COPY apps/api/Modules/Journal/DndCampaign.Modules.Journal/DndCampaign.Modules.Journal.csproj apps/api/Modules/Journal/DndCampaign.Modules.Journal/
 COPY apps/api/Modules/Missions/DndCampaign.Modules.Missions/DndCampaign.Modules.Missions.csproj apps/api/Modules/Missions/DndCampaign.Modules.Missions/
 COPY tests/Modules/Access/DndCampaign.Modules.Access.Tests/DndCampaign.Modules.Access.Tests.csproj tests/Modules/Access/DndCampaign.Modules.Access.Tests/
+COPY tests/Modules/AdventureCatalog/DndCampaign.Modules.AdventureCatalog.Tests/DndCampaign.Modules.AdventureCatalog.Tests.csproj tests/Modules/AdventureCatalog/DndCampaign.Modules.AdventureCatalog.Tests/
 COPY tests/Modules/Campaigns/DndCampaign.Modules.Campaigns.Tests/DndCampaign.Modules.Campaigns.Tests.csproj tests/Modules/Campaigns/DndCampaign.Modules.Campaigns.Tests/
 COPY tests/Modules/Characters/DndCampaign.Modules.Characters.Tests/DndCampaign.Modules.Characters.Tests.csproj tests/Modules/Characters/DndCampaign.Modules.Characters.Tests/
 COPY tests/Modules/Combat/DndCampaign.Modules.Combat.Tests/DndCampaign.Modules.Combat.Tests.csproj tests/Modules/Combat/DndCampaign.Modules.Combat.Tests/

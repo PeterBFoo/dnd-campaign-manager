@@ -23,12 +23,12 @@ La tabla distingue comportamiento disponible de extremo a extremo de infraestruc
 | Roles, aislamiento e incorporación a campaña | RF-002 a RF-004 | Implementado | Campaigns conserva el DM único; Access concede `Jugador` tras aceptación y la API aplica aislamiento en consultas y gestión de invitaciones. |
 | Personajes y contexto activo | RF-005 a RF-008 | Implementado | Spec 005 aporta CRUD autorizado, vínculo opcional, imagen privada y un único personaje activo por jugador y campaña; spec 006 presenta los activos en la portada y separa la gestión por rol. |
 | DM único | RF-009 | Implementado | `DmUserId` es obligatorio en el agregado Campaign y se fija atómicamente al crearla. |
-| Campañas y catálogo de módulos | RF-010 a RF-015 | Parcial | El spec 004 implementa creación, persistencia y pantallas de campañas sin módulo; catálogo, asociación posterior y contenido del módulo siguen pendientes. |
-| Librería y NPC | RF-020 a RF-026 | Parcial | El elenco de RF-020 y su resumen de activos están disponibles; NPC y desbloqueos siguen pendientes. |
+| Campañas y catálogo de módulos | RF-010 a RF-019 | Parcial | El spec 004 implementa creación, persistencia y pantallas de campañas sin módulo; los specs 012 a 017 proponen catálogo, asociación, contenido estructurado y viajes, todavía sin implementar. |
+| Librería y NPC | RF-020 a RF-026 | Parcial | El elenco de RF-020 y su resumen de activos están disponibles; los specs 018 y 019 proponen NPC base y visibilidad independiente por campaña, todavía sin implementar. |
 | Bitácora | RF-030 a RF-035 | Parcial | El spec 007 implementa bitácora independiente, autoría mediante personaje activo, texto compartido, orden, edición colaborativa, eliminación por creador y consulta DM. Referencias seguras a NPC de RF-033 y RF-034 siguen pendientes. |
 | Calendario y misiones | RF-040 a RF-045 | Parcial | Spec 008 implementado con pruebas web/API y PostgreSQL; queda pendiente la construcción adicional de las imágenes finales por el límite del sistema de aprobaciones. |
 | Iniciativa de combate | RF-050 a RF-057 | Implementado; ampliación en curso | El [spec 009](../specs/009-encuentros-iniciativa/spec.md) aporta el recorrido base. El [spec 010](../specs/010-grupos-enemigos-eliminacion-encuentros/spec.md) amplía grupos con turno compartido, vida individual y eliminación segura. |
-| Capítulos y recursos | RF-060 a RF-066 | Pendiente | Solo están documentadas las restricciones editoriales y legales; no existe capacidad funcional. |
+| Capítulos y recursos | RF-060 a RF-066 | Pendiente | Los specs 014 a 018 proponen la capacidad funcional y el spec 020 su primera validación editorial; todavía no existe implementación. |
 | Alta e invitaciones de plataforma | RF-069 a RF-072 | Implementado | Bootstrap inicial, panel de administración, registro por invitación y alta sin acceso a campañas están disponibles. El bootstrap de la primera cuenta es la excepción deliberada a RF-069 definida por ADR-0003. |
 | Creación y DM de campaña | RF-073 y RF-074 | Implementado | Cualquier cuenta autenticada crea una campaña sin módulo y queda como su único DM. |
 | Invitaciones de campaña | RF-075 a RF-083 | Implementado | El DM busca cuentas elegibles con datos minimizados, invita por identificador y Access concede exclusivamente `Jugador` tras aceptación. Se conserva la invitación compatible por correo. |
@@ -45,21 +45,21 @@ Esta secuencia orienta los próximos specs, pero no sustituye sus decisiones ni 
 | 0 | Access | Terminar su modularización técnica y verificación | Sin ampliar alcance funcional | Spec 002 |
 | 1 | Campaigns | Crear y consultar campañas sin exigir módulo y asignar un único DM | RF-009 a RF-011, RF-014, RF-073, RF-074 | Access estable |
 | 2 | Access + Campaigns | Buscar usuarios activos elegibles e integrar las invitaciones existentes con campañas reales | RF-002 a RF-004, RF-075 a RF-083 | Campaigns |
-| 3 | AdventureModules | Incorporar un catálogo y permitir asociar posteriormente como máximo un módulo | RF-010, RF-011, RF-013, RF-015 | Campaigns |
+| 3 | AdventureCatalog | Incorporar catálogo, asociación opcional, contenido estructurado y mapas con viaje | RF-010, RF-011, RF-013 a RF-019 | Campaigns |
 | 4 | Characters | Crear, asociar, listar y seleccionar el personaje activo | RF-005 a RF-008, RF-012, RF-020 | Campaigns |
-| 5 | Library | Catálogo de NPC, desbloqueo por campaña y vistas diferenciadas | RF-021 a RF-026 | Campaigns, AdventureModules |
-| 6 | AdventureContent | Capítulos y recursos de dirección con procedencia verificable | RF-060 a RF-066 | Campaigns, AdventureModules |
+| 5 | Library | Catálogo de NPC, desbloqueo por campaña y vistas diferenciadas | RF-021 a RF-026 | Campaigns, AdventureCatalog |
+| 6 | AdventureContent | Capítulos y recursos de dirección con procedencia verificable | RF-060 a RF-066 | Campaigns, AdventureCatalog |
 | 7 | Journal | Bitácora por campaña y referencias seguras a NPC visibles | RF-030 a RF-035 | Characters, Library |
 | 8 | Missions | Calendario, misiones y unicidad de la misión principal | RF-040 a RF-045 | Campaigns, Characters |
 | 9 | Combat | Iniciativa, turnos, rondas, enemigos y proyección segura para jugadores | RF-050 a RF-057 | Campaigns, Characters |
 
-Las filas 1 y 2 quedaron completadas por el [spec 004](../specs/004-creacion-campanas/spec.md) y la fila 4 por el [spec 005](../specs/005-personajes-campana/spec.md), refinado por el [spec 006](../specs/006-resumen-personajes-activos/spec.md), el 2026-08-23. La fila 7 está completada parcialmente por el [spec 007](../specs/007-bitacora-campana/spec.md), sin incluir todavía referencias a NPC. La fila 3 permanece para un incremento posterior independiente. El [spec 008](../specs/008-calendario-misiones/spec.md) implementa calendario y misiones y conserva pendiente únicamente la construcción adicional de imágenes finales. El [spec 009](../specs/009-encuentros-iniciativa/spec.md) completa la fila 9 con la herramienta vertical de Combat y su proyección segura; el [spec 010](../specs/010-grupos-enemigos-eliminacion-encuentros/spec.md) amplía esa misma fila. El [spec 011](../specs/011-eliminacion-campanas/spec.md) amplía el ciclo de vida de Campaigns. El siguiente identificador disponible es `012`; no se crean de antemano specs vacíos para las demás filas.
+Las filas 1 y 2 quedaron completadas por el [spec 004](../specs/004-creacion-campanas/spec.md) y la fila 4 por el [spec 005](../specs/005-personajes-campana/spec.md), refinado por el [spec 006](../specs/006-resumen-personajes-activos/spec.md), el 2026-08-23. La fila 7 está completada parcialmente por el [spec 007](../specs/007-bitacora-campana/spec.md), sin incluir todavía referencias a NPC. Los specs [012](../specs/012-libreria-modulos/spec.md) a [017](../specs/017-viajes-cuadricula/spec.md) concretan como propuestas la fila 3; los specs [018](../specs/018-npc-modulo/spec.md) y [019](../specs/019-visibilidad-npc-campana/spec.md) concretan la fila 5; y el [spec 020](../specs/020-contenido-brujaluz/spec.md) valida editorialmente esas capacidades sin introducir excepciones de producto. El [spec 008](../specs/008-calendario-misiones/spec.md) implementa calendario y misiones. Los specs [009](../specs/009-encuentros-iniciativa/spec.md) y [010](../specs/010-grupos-enemigos-eliminacion-encuentros/spec.md) cubren Combat. El spec [011](../specs/011-eliminacion-campanas/spec.md) amplía el ciclo de vida de Campaigns. El siguiente identificador disponible es `021`.
 
 ## Restricciones tecnológicas aceptadas
 
 - **Correo transaccional mediante Brevo.** Las invitaciones y los demás mensajes de identidad que se concreten utilizarán Brevo como proveedor de envío. La elección se basa en disponer de un plan gratuito suficiente para el alcance inicial, API y SDK para C#, webhooks de entrega y alojamiento de datos en la Unión Europea.
 - La API key y la dirección remitente verificada de Brevo serán secretos independientes y exclusivos del backend. No se incluirán en el repositorio, en imágenes de contenedor ni en el frontend.
-- **Documentación independiente del contenido editorial.** Los ADR, especificaciones, planes, diagramas y documentos operativos no incluirán nombres ni información propia de campañas o módulos de aventura concretos. Usarán únicamente conceptos y ejemplos genéricos.
+- **Documentación independiente del corpus editorial.** Los ADR, especificaciones, planes, diagramas y documentos operativos usarán conceptos y ejemplos genéricos. Podrán identificar un módulo concreto cuando exista autorización expresa y fundamento de uso verificable, pero no reproducirán su corpus, imágenes, mapas ni detalles editoriales.
 
 ## Vocabulario
 
@@ -89,7 +89,7 @@ erDiagram
     CAMPANA ||--o{ MEMBRESIA_CAMPANA : autoriza
     CAMPANA ||--o{ INVITACION_CAMPANA : incorpora
     MODULO_AVENTURA o|--o{ CAMPANA : sirve_de_plantilla
-    MODULO_AVENTURA ||--|{ CAPITULO : contiene
+    MODULO_AVENTURA ||--o{ CAPITULO : contiene
     MODULO_AVENTURA ||--o{ NPC_PLANTILLA : define
     CAMPANA ||--o{ PERSONAJE : incluye
     CAMPANA ||--o{ NPC_CAMPANA : desbloquea
@@ -163,6 +163,10 @@ Ningún permiso del frontend sustituye la autorización del backend. Toda operac
 - **RF-013 — Contenido independiente por módulo.** Cada módulo dispondrá de sus propios capítulos, NPC y recursos editoriales.
 - **RF-014 — Estado independiente por campaña.** El progreso, NPC desbloqueados, bitácora, misiones y combates no se compartirán entre campañas aunque utilicen el mismo módulo.
 - **RF-015 — Acceso del DM.** El único DM de una campaña podrá consultar desde el inicio todo el contenido de dirección del módulo seleccionado.
+- **RF-016 — Administración del catálogo.** Solo un administrador de plataforma podrá crear, editar y eliminar módulos y su contenido base. Los DM podrán seleccionarlos y consumirlos desde sus campañas sin adquirir permisos de autoría.
+- **RF-017 — Contenido editable y eliminación segura.** Los cambios de un módulo se reflejarán en todas las campañas que lo utilicen. Eliminarlo retirará sus referencias y contenido sin eliminar campañas.
+- **RF-018 — Mapas y localizaciones reutilizables.** Un módulo podrá definir mapas, localizaciones y puntos de interés, relacionarlos con capítulos y reutilizar cada recurso sin duplicarlo. Las posiciones pertenecerán a la relación correspondiente.
+- **RF-019 — Viaje opcional por cuadrícula.** Un mapa podrá declarar una cuadrícula cuadrada o hexagonal y, de forma independiente, habilitar el cálculo de distancia escalada entre localizaciones colocadas, sin calcular rutas ni estado de viaje.
 
 ### Librería de campaña y NPC
 
@@ -268,8 +272,8 @@ Cada pregunta debe resolverse en el primer spec que dependa de ella y, si la dec
 10. **Resuelto en spec 008 para el alcance inicial.** Las misiones usan los estados `Activa`, `Completada`, `Fallida` y `Cancelada`; no tienen fecha de aceptación, fecha objetivo ni recurrencia. El calendario se concreta como un registro ordenado con la principal primero.
 11. **Resuelto en spec 009 para el alcance inicial.** La vista del jugador se actualizará mediante sondeo cada 5 segundos y mostrará nombre, tipo, iniciativa y turno, pero no CA, vida ni controles de los enemigos.
 12. **Resuelto en spec 009 para el alcance inicial.** El DM introducirá el total de iniciativa del encuentro y resolverá expresamente el orden relativo de los empates antes de activarlo; sorpresa y cálculo automático de tiradas quedan fuera del primer incremento.
-13. ¿Los capítulos tienen progreso o desbloqueo, o son únicamente una biblioteca completa para el DM?
-14. ¿Qué catálogo de fuentes, licencias y atribuciones se aceptará para cada texto e imagen de un módulo?
+13. **Concretado como propuesta en spec 014.** Los capítulos son una biblioteca completa para el DM, sin progreso, capítulo actual ni desbloqueo.
+14. **Concretado como propuesta en specs 012 a 020.** Cada texto e imagen conserva tipo de procedencia, referencia, fundamento de uso, atribución, fecha y actor de verificación; el spec 020 exige además evidencia por recurso para la carga real.
 15. **Resuelto en ADR-0006.** Una campaña puede crearse sin módulo y asociar como máximo uno cuando esa capacidad exista.
 16. **Resuelto en ADR-0006.** Consultar una campaña existente sin autorización responde `403`.
 17. **Resuelto en ADR-0006.** Access mantiene invitaciones y ofrece al DM una búsqueda contextual de usuarios activos elegibles con datos minimizados.

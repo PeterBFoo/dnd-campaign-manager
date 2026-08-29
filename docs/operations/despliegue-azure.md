@@ -46,6 +46,7 @@ Se crea una aplicación de Microsoft Entra con credencial federada limitada al e
 - `AZURE_CONTAINER_APP=dnd-campaign-api`
 - `GRAFANA_CLOUD_OTLP_ENDPOINT`
 - `CHARACTER_STORAGE_SERVICE_URI`, con el output Terraform del mismo nombre;
+- `ADVENTURE_CATALOG_STORAGE_SERVICE_URI`, con el output Terraform `adventure_catalog_storage_service_uri`;
 - `API_BASE_URL`, con el output `api_url` de Terraform
 
 La configuración federada utiliza el sujeto:

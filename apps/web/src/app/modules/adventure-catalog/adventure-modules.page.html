@@ -1,0 +1,15 @@
+<main class="page-shell">
+  <section class="page-heading split-heading">
+    <div><p class="eyebrow">Administración de plataforma</p><h1>Biblioteca de módulos</h1><p>Gestiona metadatos y procedencia editorial de los módulos privados.</p></div>
+    <a class="button-link" routerLink="/admin/adventure-modules/new">Nuevo módulo</a>
+  </section>
+  @if (error()) { <p class="form-error message" role="alert">{{ error() }}</p> }
+  <section class="table-section" aria-labelledby="modules-title">
+    <div class="section-title"><h2 id="modules-title">Módulos disponibles</h2><span>{{ modules().length }} módulos</span></div>
+    @if (loading()) { <p class="muted">Cargando módulos…</p> }
+    @else if (modules().length === 0) { <div class="empty-state"><h3>Aún no hay módulos</h3><p>Crea el primero para empezar la biblioteca.</p></div> }
+    @else { <div class="table-wrap"><table><thead><tr><th>Módulo</th><th>Procedencia</th><th>Actualizado</th><th><span class="sr-only">Acciones</span></th></tr></thead><tbody>
+      @for (item of modules(); track item.id) { <tr><td>@if (coverUrls()[item.id]; as cover) { <img class="cover-thumb" [src]="cover" alt="Portada del módulo" /> } @else { <span class="cover-fallback" aria-label="Sin portada">◇</span> }<strong>{{ item.name }}</strong><small>{{ item.description || 'Sin descripción' }}</small></td><td><span class="badge">{{ item.textProvenance.originKind }}</span></td><td>{{ item.updatedAt | date:'short' }}</td><td class="row-actions"><a class="text-button" [routerLink]="['/admin/adventure-modules', item.id]">Ver</a><a class="text-button" [routerLink]="['/admin/adventure-modules', item.id, 'edit']">Editar</a><button class="text-button danger" type="button" (click)="remove(item)">Eliminar</button></td></tr> }
+    </tbody></table></div> }
+  </section>
+</main>

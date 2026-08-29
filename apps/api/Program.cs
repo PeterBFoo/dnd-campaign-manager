@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using DndCampaign.Modules.Access;
+using DndCampaign.Modules.AdventureCatalog;
 using DndCampaign.Modules.Campaigns;
 using DndCampaign.Modules.Characters;
 using DndCampaign.Modules.Combat;
@@ -24,6 +25,7 @@ var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get
 
 builder.Services.AddProblemDetails();
 builder.Services.AddAccessModule(builder.Configuration, builder.Environment);
+builder.Services.AddAdventureCatalogModule(builder.Configuration, builder.Environment);
 builder.Services.AddCampaignsModule(builder.Configuration, builder.Environment);
 builder.Services.AddCharactersModule(builder.Configuration, builder.Environment);
 builder.Services.AddCombatModule(builder.Configuration, builder.Environment);
@@ -127,6 +129,7 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
     ResponseWriter = WriteHealthResponseAsync,
 });
 app.MapAccessModule();
+app.MapAdventureCatalogModule();
 app.MapCampaignsModule();
 app.MapCharactersModule();
 app.MapCombatModule();
@@ -136,6 +139,7 @@ app.MapMissionsModule();
 if (builder.Configuration.GetValue("Database:ApplyMigrations", false))
 {
     await app.Services.ApplyAccessMigrationsAsync();
+    await app.Services.ApplyAdventureCatalogMigrationsAsync();
     await app.Services.ApplyCampaignsMigrationsAsync();
     await app.Services.ApplyCharactersMigrationsAsync();
     await app.Services.ApplyJournalMigrationsAsync();
