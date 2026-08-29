@@ -60,7 +60,7 @@ public sealed class AccessApiContractIntegrationTests
         Assert.Equal(
             "*",
             Assert.Single(validationResponse.Headers.GetValues("WebHook-Allowed-Rate")));
-        Assert.Contains("POST", validationResponse.Headers.GetValues("Allow"));
+        Assert.Contains("POST", validationResponse.Content.Headers.GetValues("Allow"));
     }
 
     [Fact]
