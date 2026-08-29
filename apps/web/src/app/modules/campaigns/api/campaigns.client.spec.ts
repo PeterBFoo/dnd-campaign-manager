@@ -38,4 +38,12 @@ describe('CampaignsClient', () => {
     expect(detail.request.method).toBe('GET');
     detail.flush({});
   });
+
+  it('deletes the selected campaign resource', () => {
+    client.delete('campaign-1').subscribe();
+
+    const deletion = http.expectOne('/api/v1/campaigns/campaign-1');
+    expect(deletion.request.method).toBe('DELETE');
+    deletion.flush(null);
+  });
 });

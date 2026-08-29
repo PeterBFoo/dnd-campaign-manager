@@ -35,8 +35,20 @@ internal sealed class Campaign
 
     public DateTimeOffset CreatedAt { get; private set; }
 
+    public DateTimeOffset? DeletedAt { get; private set; }
+
     public static Campaign Create(string name, Guid dmUserId, DateTimeOffset createdAt) =>
         new(Guid.NewGuid(), name, dmUserId, adventureModuleId: null, createdAt);
+
+    public void Delete(DateTimeOffset deletedAt)
+    {
+        if (DeletedAt.HasValue)
+        {
+            throw new InvalidOperationException("The campaign has already been deleted.");
+        }
+
+        DeletedAt = deletedAt;
+    }
 
     private static string NormalizeName(string name)
     {

@@ -13,7 +13,8 @@ namespace DndCampaign.Modules.Campaigns.Api;
 internal sealed class CampaignsController(
     CreateCampaignHandler createCampaign,
     ListCampaignsHandler listCampaigns,
-    GetCampaignHandler getCampaign) : ControllerBase
+    GetCampaignHandler getCampaign,
+    DeleteCampaignHandler deleteCampaign) : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType<IEnumerable<CampaignResponse>>(StatusCodes.Status200OK)]
@@ -53,6 +54,20 @@ internal sealed class CampaignsController(
             new GetCampaignQuery(GetUserId(), campaignId),
             cancellationToken);
         return result.IsSuccess ? Ok(ToResponse(result.Value!)) : MapError(result.Error!);
+    }
+
+    [HttpDelete("{campaignId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteAsync(
+        Guid campaignId,
+        CancellationToken cancellationToken)
+    {
+        var result = await deleteCampaign.HandleAsync(
+            new DeleteCampaignCommand(GetUserId(), campaignId),
+            cancellationToken);
+        return result.IsSuccess ? NoContent() : MapError(result.Error!);
     }
 
     private Guid GetUserId() => Guid.TryParse(

@@ -46,6 +46,7 @@ public static class CampaignsModule
         services.AddScoped<CreateCampaignHandler>();
         services.AddScoped<ListCampaignsHandler>();
         services.AddScoped<GetCampaignHandler>();
+        services.AddScoped<DeleteCampaignHandler>();
         services.AddOpenTelemetry().WithMetrics(metrics => metrics.AddMeter(CampaignMetrics.MeterName));
         return services;
     }

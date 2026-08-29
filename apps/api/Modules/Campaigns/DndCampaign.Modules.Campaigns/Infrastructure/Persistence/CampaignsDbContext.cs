@@ -15,6 +15,7 @@ internal sealed class CampaignsDbContext(DbContextOptions<CampaignsDbContext> op
             entity.ToTable("campaigns");
             entity.HasKey(campaign => campaign.Id);
             entity.Property(campaign => campaign.Name).HasMaxLength(100);
+            entity.HasQueryFilter(campaign => campaign.DeletedAt == null);
             entity.HasIndex(campaign => campaign.DmUserId);
             entity.HasIndex(campaign => campaign.AdventureModuleId);
         });

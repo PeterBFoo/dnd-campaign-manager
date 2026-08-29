@@ -44,6 +44,28 @@ public sealed class CampaignHandlerTests
         Assert.Equal("campaign.not_found", missing.Error!.Code);
     }
 
+    [Fact]
+    public async Task Only_the_dm_can_delete_a_campaign()
+    {
+        var repository = new FakeCampaignRepository();
+        var dmUserId = Guid.NewGuid();
+        var campaign = Campaign.Create("Mesa que termina", dmUserId, DateTimeOffset.UtcNow);
+        repository.Items.Add(campaign);
+        var handler = new DeleteCampaignHandler(repository, new FakeCampaignMetrics(), TimeProvider.System);
+
+        var forbidden = await handler.HandleAsync(
+            new DeleteCampaignCommand(Guid.NewGuid(), campaign.Id),
+            TestContext.Current.CancellationToken);
+        var deleted = await handler.HandleAsync(
+            new DeleteCampaignCommand(dmUserId, campaign.Id),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal("campaign.forbidden", forbidden.Error!.Code);
+        Assert.True(deleted.IsSuccess);
+        Assert.NotNull(campaign.DeletedAt);
+        Assert.True(repository.Saved);
+    }
+
     private sealed class FakeCampaignRepository : ICampaignRepository
     {
         public List<Campaign> Items { get; } = [];
@@ -55,12 +77,18 @@ public sealed class CampaignHandlerTests
         public Task<Campaign?> FindAsync(Guid campaignId, CancellationToken cancellationToken = default) =>
             Task.FromResult(Items.SingleOrDefault(item => item.Id == campaignId));
 
+        public Task<Campaign?> FindForUpdateAsync(
+            Guid campaignId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Items.SingleOrDefault(item => item.Id == campaignId && item.DeletedAt is null));
+
         public Task<IReadOnlyList<Campaign>> ListAccessibleAsync(
             Guid dmUserId,
             IReadOnlyCollection<Guid> playerCampaignIds,
             CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<Campaign>>(Items.Where(item =>
-                item.DmUserId == dmUserId || playerCampaignIds.Contains(item.Id)).ToArray());
+                item.DeletedAt is null
+                && (item.DmUserId == dmUserId || playerCampaignIds.Contains(item.Id))).ToArray());
 
         public Task SaveChangesAsync(CancellationToken cancellationToken = default)
         {

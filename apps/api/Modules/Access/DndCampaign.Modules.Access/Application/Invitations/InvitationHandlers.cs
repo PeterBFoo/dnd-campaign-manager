@@ -432,6 +432,7 @@ internal sealed class AcceptInvitationHandler(
     IUserAccountRepository users,
     IUserSessionRepository sessions,
     ICampaignAccessRepository campaignAccess,
+    ICampaignInvitationContext campaigns,
     IPasswordService passwords,
     IAccessUnitOfWork unitOfWork,
     IAccessMetrics metrics,
@@ -462,6 +463,16 @@ internal sealed class AcceptInvitationHandler(
                 var now = timeProvider.GetUtcNow();
                 invitation.Expire(now);
                 if (!invitation.IsPending(now))
+                {
+                    return Gone();
+                }
+
+                if (invitation.Kind == InvitationKind.Campaign
+                    && invitation.CampaignId.HasValue
+                    && !(await campaigns.GetAccessAsync(
+                        invitation.CampaignId.Value,
+                        Guid.Empty,
+                        transactionCancellationToken)).Exists)
                 {
                     return Gone();
                 }

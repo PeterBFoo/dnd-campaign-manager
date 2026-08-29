@@ -315,6 +315,89 @@ public sealed class AccessApiContractIntegrationTests
             Assert.Empty((await eligibleAfterAcceptance.Content.ReadFromJsonAsync<JsonElement>(cancellationToken))
                 .GetProperty("items")
                 .EnumerateArray());
+
+            var pendingInvitationId = await IssueInvitationAsync(
+                client,
+                $"/api/v1/campaigns/{campaignId}/invitations",
+                "pending.after.deletion@example.com",
+                cancellationToken);
+            var pendingInvitationToken = await ReadInvitationTokenAsync(
+                factory.Services,
+                pendingInvitationId,
+                cancellationToken);
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", playerToken);
+            using (var forbiddenDeletion = await client.DeleteAsync(
+                $"/api/v1/campaigns/{campaignId}",
+                cancellationToken))
+            {
+                Assert.Equal(HttpStatusCode.Forbidden, forbiddenDeletion.StatusCode);
+            }
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            using (var deletion = await client.DeleteAsync(
+                $"/api/v1/campaigns/{campaignId}",
+                cancellationToken))
+            {
+                Assert.Equal(HttpStatusCode.NoContent, deletion.StatusCode);
+            }
+
+            using (var repeatedDeletion = await client.DeleteAsync(
+                $"/api/v1/campaigns/{campaignId}",
+                cancellationToken))
+            {
+                Assert.Equal(HttpStatusCode.NotFound, repeatedDeletion.StatusCode);
+            }
+
+            using (var deletedDetail = await client.GetAsync(
+                $"/api/v1/campaigns/{campaignId}",
+                cancellationToken))
+            {
+                Assert.Equal(HttpStatusCode.NotFound, deletedDetail.StatusCode);
+            }
+
+            using (var deletedInvitations = await client.GetAsync(
+                $"/api/v1/campaigns/{campaignId}/invitations",
+                cancellationToken))
+            {
+                Assert.Equal(HttpStatusCode.Forbidden, deletedInvitations.StatusCode);
+            }
+
+            using (var dependentModule = await client.GetAsync(
+                $"/api/v1/campaigns/{campaignId}/characters",
+                cancellationToken))
+            {
+                Assert.Equal(HttpStatusCode.NotFound, dependentModule.StatusCode);
+            }
+
+            using (var dmCampaignsAfterDeletion = await client.GetAsync(
+                "/api/v1/campaigns",
+                cancellationToken))
+            {
+                Assert.Empty((await dmCampaignsAfterDeletion.Content.ReadFromJsonAsync<JsonElement>(cancellationToken))
+                    .EnumerateArray());
+            }
+
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", playerToken);
+            using (var playerCampaignsAfterDeletion = await client.GetAsync(
+                "/api/v1/campaigns",
+                cancellationToken))
+            {
+                Assert.Empty((await playerCampaignsAfterDeletion.Content.ReadFromJsonAsync<JsonElement>(cancellationToken))
+                    .EnumerateArray());
+            }
+
+            client.DefaultRequestHeaders.Authorization = null;
+            using var deletedCampaignAcceptance = await client.PostAsJsonAsync(
+                "/api/v1/invitations/accept",
+                new
+                {
+                    token = pendingInvitationToken,
+                    displayName = "Pending Player",
+                    password = "A-valid-player-password-123!",
+                },
+                cancellationToken);
+            Assert.Equal(HttpStatusCode.Gone, deletedCampaignAcceptance.StatusCode);
         }
         finally
         {

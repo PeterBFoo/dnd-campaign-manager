@@ -8,6 +8,8 @@ internal interface ICampaignRepository
 
     Task<Campaign?> FindAsync(Guid campaignId, CancellationToken cancellationToken = default);
 
+    Task<Campaign?> FindForUpdateAsync(Guid campaignId, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<Campaign>> ListAccessibleAsync(
         Guid dmUserId,
         IReadOnlyCollection<Guid> playerCampaignIds,

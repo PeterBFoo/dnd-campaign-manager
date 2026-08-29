@@ -29,4 +29,16 @@ public sealed class CampaignTests
     public void Campaign_rejects_an_empty_dm_identifier() =>
         Assert.Throws<ArgumentException>(() =>
             Campaign.Create("Mesa válida", Guid.Empty, DateTimeOffset.UtcNow));
+
+    [Fact]
+    public void Delete_marks_the_campaign_once()
+    {
+        var campaign = Campaign.Create("Mesa efímera", Guid.NewGuid(), DateTimeOffset.UtcNow);
+        var deletedAt = new DateTimeOffset(2026, 8, 29, 10, 0, 0, TimeSpan.Zero);
+
+        campaign.Delete(deletedAt);
+
+        Assert.Equal(deletedAt, campaign.DeletedAt);
+        Assert.Throws<InvalidOperationException>(() => campaign.Delete(deletedAt.AddMinutes(1)));
+    }
 }

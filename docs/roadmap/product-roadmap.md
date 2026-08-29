@@ -3,7 +3,7 @@
 - Tipo: fuente de roadmap; no es una especificación ejecutable
 - Origen: antigua Especificación 001 de requisitos funcionales base
 - Creado: 2026-08-19
-- Última actualización funcional: 2026-08-23
+- Última actualización funcional: 2026-08-29
 - Alcance: identidad, alta por invitación, campañas, módulos de aventura y herramientas comunes de juego
 - ADR relacionados: [ADR-0002](../adr/0002-identidad-invitaciones-y-correo-transaccional.md), [ADR-0003](../adr/0003-bootstrap-sesiones-y-flujo-de-invitaciones.md) y [ADR-0006](../adr/0006-campanas-acceso-e-invitaciones.md)
 
@@ -32,6 +32,7 @@ La tabla distingue comportamiento disponible de extremo a extremo de infraestruc
 | Alta e invitaciones de plataforma | RF-069 a RF-072 | Implementado | Bootstrap inicial, panel de administración, registro por invitación y alta sin acceso a campañas están disponibles. El bootstrap de la primera cuenta es la excepción deliberada a RF-069 definida por ADR-0003. |
 | Creación y DM de campaña | RF-073 y RF-074 | Implementado | Cualquier cuenta autenticada crea una campaña sin módulo y queda como su único DM. |
 | Invitaciones de campaña | RF-075 a RF-083 | Implementado | El DM busca cuentas elegibles con datos minimizados, invita por identificador y Access concede exclusivamente `Jugador` tras aceptación. Se conserva la invitación compatible por correo. |
+| Eliminación de campañas | RF-084 | Implementado | El spec 011 permite al DM retirar una campaña, revoca el acceso mediante baja lógica e invalida invitaciones pendientes. |
 
 La arquitectura Angular por capacidades del [spec 003](../specs/003-modularizacion-frontend/spec.md) está completada. La extracción modular de Access del [spec 002](../specs/002-modularizacion-access/spec.md) continúa en curso y debe cerrarse según sus propias tareas antes de considerar terminada esa mejora técnica. El [spec 007](../specs/007-bitacora-campana/spec.md) completa el primer incremento de bitácora; la referencia opcional a NPC continúa pendiente hasta disponer de Library.
 
@@ -52,7 +53,7 @@ Esta secuencia orienta los próximos specs, pero no sustituye sus decisiones ni 
 | 8 | Missions | Calendario, misiones y unicidad de la misión principal | RF-040 a RF-045 | Campaigns, Characters |
 | 9 | Combat | Iniciativa, turnos, rondas, enemigos y proyección segura para jugadores | RF-050 a RF-057 | Campaigns, Characters |
 
-Las filas 1 y 2 quedaron completadas por el [spec 004](../specs/004-creacion-campanas/spec.md) y la fila 4 por el [spec 005](../specs/005-personajes-campana/spec.md), refinado por el [spec 006](../specs/006-resumen-personajes-activos/spec.md), el 2026-08-23. La fila 7 está completada parcialmente por el [spec 007](../specs/007-bitacora-campana/spec.md), sin incluir todavía referencias a NPC. La fila 3 permanece para un incremento posterior independiente. El [spec 008](../specs/008-calendario-misiones/spec.md) implementa calendario y misiones y conserva pendiente únicamente la construcción adicional de imágenes finales. El [spec 009](../specs/009-encuentros-iniciativa/spec.md) completa la fila 9 con la herramienta vertical de Combat y su proyección segura; el [spec 010](../specs/010-grupos-enemigos-eliminacion-encuentros/spec.md) amplía esa misma fila. El siguiente identificador disponible es `011`; no se crean de antemano specs vacíos para las demás filas.
+Las filas 1 y 2 quedaron completadas por el [spec 004](../specs/004-creacion-campanas/spec.md) y la fila 4 por el [spec 005](../specs/005-personajes-campana/spec.md), refinado por el [spec 006](../specs/006-resumen-personajes-activos/spec.md), el 2026-08-23. La fila 7 está completada parcialmente por el [spec 007](../specs/007-bitacora-campana/spec.md), sin incluir todavía referencias a NPC. La fila 3 permanece para un incremento posterior independiente. El [spec 008](../specs/008-calendario-misiones/spec.md) implementa calendario y misiones y conserva pendiente únicamente la construcción adicional de imágenes finales. El [spec 009](../specs/009-encuentros-iniciativa/spec.md) completa la fila 9 con la herramienta vertical de Combat y su proyección segura; el [spec 010](../specs/010-grupos-enemigos-eliminacion-encuentros/spec.md) amplía esa misma fila. El [spec 011](../specs/011-eliminacion-campanas/spec.md) amplía el ciclo de vida de Campaigns. El siguiente identificador disponible es `012`; no se crean de antemano specs vacíos para las demás filas.
 
 ## Restricciones tecnológicas aceptadas
 
@@ -231,6 +232,7 @@ La referencia de cumplimiento será la [Política de contenido de fans de Wizard
 - **RF-081 — Gestión por el DM.** El DM podrá consultar el estado, revocar y volver a enviar las invitaciones de su campaña, pero no administrar invitaciones o usuarios ajenos a ella.
 - **RF-082 — Sin escalado de rol.** Las invitaciones de campaña incorporarán únicamente jugadores; aceptar una invitación nunca podrá crear otro DM ni sustituir al DM existente.
 - **RF-083 — Selección de usuarios activos.** El DM podrá listar o buscar, dentro del contexto de su campaña, usuarios activos elegibles para invitación. La selección usará un identificador estable, no expondrá correos completos y excluirá al DM, miembros e invitaciones pendientes.
+- **RF-084 — Eliminación de campaña.** El único DM podrá eliminar una campaña con confirmación explícita. La campaña dejará de estar disponible para cualquier participante y sus invitaciones pendientes no podrán conceder acceso.
 
 ## Criterios de aceptación transversales
 

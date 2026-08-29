@@ -19,5 +19,16 @@
       </div>
     </section>
     <dnd-active-characters-panel [campaignId]="current.id" [role]="current.role" />
+    @if (current.role === 'dm') {
+      <section class="campaign-danger-zone" aria-labelledby="delete-campaign-title">
+        <div>
+          <h2 id="delete-campaign-title">Eliminar campaña</h2>
+          <p>La campaña desaparecerá para todos sus participantes. Esta acción no se puede deshacer.</p>
+        </div>
+        <button class="danger-button" type="button" (click)="deleteCampaign(current)" [disabled]="deleting()">
+          {{ deleting() ? 'Eliminando…' : 'Eliminar campaña' }}
+        </button>
+      </section>
+    }
   }
 </main>

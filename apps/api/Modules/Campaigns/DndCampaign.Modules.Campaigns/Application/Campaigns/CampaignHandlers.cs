@@ -12,6 +12,8 @@ internal sealed record ListCampaignsQuery(Guid UserId);
 
 internal sealed record GetCampaignQuery(Guid UserId, Guid CampaignId);
 
+internal sealed record DeleteCampaignCommand(Guid UserId, Guid CampaignId);
+
 internal sealed record CampaignDto(
     Guid Id,
     string Name,
@@ -156,6 +158,50 @@ internal sealed class GetCampaignHandler(
         finally
         {
             metrics.OperationCompleted("detail", outcome, Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds);
+        }
+    }
+}
+
+internal sealed class DeleteCampaignHandler(
+    ICampaignRepository campaigns,
+    ICampaignMetrics metrics,
+    TimeProvider timeProvider)
+{
+    public async Task<CampaignResult<bool>> HandleAsync(
+        DeleteCampaignCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        var startedAt = Stopwatch.GetTimestamp();
+        var outcome = "failure";
+        try
+        {
+            var campaign = await campaigns.FindForUpdateAsync(command.CampaignId, cancellationToken);
+            if (campaign is null)
+            {
+                outcome = "not_found";
+                return CampaignResult<bool>.Failure(new CampaignError(
+                    "campaign.not_found",
+                    CampaignErrorType.NotFound,
+                    "No se ha encontrado la campaña."));
+            }
+
+            if (command.UserId == Guid.Empty || campaign.DmUserId != command.UserId)
+            {
+                outcome = "forbidden";
+                return CampaignResult<bool>.Failure(new CampaignError(
+                    "campaign.forbidden",
+                    CampaignErrorType.Forbidden,
+                    "Solo el DM puede eliminar la campaña."));
+            }
+
+            campaign.Delete(timeProvider.GetUtcNow());
+            await campaigns.SaveChangesAsync(cancellationToken);
+            outcome = "success";
+            return CampaignResult<bool>.Success(true);
+        }
+        finally
+        {
+            metrics.OperationCompleted("delete", outcome, Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds);
         }
     }
 }

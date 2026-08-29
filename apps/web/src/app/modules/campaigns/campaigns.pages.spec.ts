@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 import { CharactersClient } from '@modules/characters';
 
@@ -92,5 +92,89 @@ describe('campaign pages', () => {
     expect(fixture.nativeElement.textContent).toContain('Exploradora');
     expect(fixture.nativeElement.textContent).not.toContain('Guerrera');
     expect(fixture.nativeElement.textContent).toContain('Gestionar personajes');
+  });
+
+  it('lets the dm confirm deletion and returns to the campaign list', async () => {
+    const clientStub = { get: vi.fn(() => of(campaign)), delete: vi.fn(() => of(void 0)) };
+    const charactersStub = { list: vi.fn(() => of([])) };
+    await TestBed.configureTestingModule({
+      imports: [CampaignDetailPage],
+      providers: [
+        provideRouter([]),
+        { provide: CampaignsClient, useValue: clientStub },
+        { provide: CharactersClient, useValue: charactersStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ campaignId: 'campaign-1' }) } },
+        },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(CampaignDetailPage);
+    const router = TestBed.inject(Router);
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    fixture.detectChanges();
+    fixture.componentInstance.deleteCampaign(campaign);
+
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(clientStub.delete).toHaveBeenCalledWith('campaign-1');
+    expect(navigate).toHaveBeenCalledWith(['/campaigns'], { replaceUrl: true });
+    confirm.mockRestore();
+  });
+
+  it('does not offer campaign deletion to a player', async () => {
+    const playerCampaign = { ...campaign, role: 'player' as const };
+    const clientStub = { get: vi.fn(() => of(playerCampaign)) };
+    const charactersStub = { list: vi.fn(() => of([])) };
+    await TestBed.configureTestingModule({
+      imports: [CampaignDetailPage],
+      providers: [
+        provideRouter([]),
+        { provide: CampaignsClient, useValue: clientStub },
+        { provide: CharactersClient, useValue: charactersStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ campaignId: 'campaign-1' }) } },
+        },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(CampaignDetailPage);
+
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).not.toContain('Eliminar campaña');
+  });
+
+  it('keeps the dm on the detail and reports a failed deletion', async () => {
+    const clientStub = {
+      get: vi.fn(() => of(campaign)),
+      delete: vi.fn(() => throwError(() => new Error('network'))),
+    };
+    const charactersStub = { list: vi.fn(() => of([])) };
+    await TestBed.configureTestingModule({
+      imports: [CampaignDetailPage],
+      providers: [
+        provideRouter([]),
+        { provide: CampaignsClient, useValue: clientStub },
+        { provide: CharactersClient, useValue: charactersStub },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: convertToParamMap({ campaignId: 'campaign-1' }) } },
+        },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(CampaignDetailPage);
+    const router = TestBed.inject(Router);
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    fixture.detectChanges();
+    fixture.componentInstance.deleteCampaign(campaign);
+    fixture.detectChanges();
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('No se ha podido eliminar la campaña.');
+    confirm.mockRestore();
   });
 });

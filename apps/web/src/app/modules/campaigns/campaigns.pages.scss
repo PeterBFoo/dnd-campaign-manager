@@ -6,4 +6,10 @@
 .campaign-card:hover, .campaign-card:focus-visible { border-color: var(--gold); background: rgba(198,161,91,.06); }
 .campaign-card h2 { margin: 34px 0 10px; font: 500 2rem/1.1 var(--serif); }
 .campaign-card p { margin: 0; color: var(--muted); }
+.campaign-danger-zone { display: flex; align-items: center; justify-content: space-between; gap: 32px; margin-top: 48px; padding: 28px; border: 1px solid rgba(239,169,146,.55); }
+.campaign-danger-zone h2 { margin: 0 0 8px; font: 500 1.7rem/1.2 var(--serif); }
+.campaign-danger-zone p { margin: 0; color: var(--muted); }
+.campaign-danger-zone .danger-button { flex: none; margin-top: 0; border-color: #efa992; color: #efa992; }
+.campaign-danger-zone .danger-button:hover, .campaign-danger-zone .danger-button:focus-visible { color: var(--surface); background: #efa992; }
 @media (max-width: 700px) { .campaigns-heading { align-items: start; flex-direction: column; } .campaign-heading-actions { justify-content: flex-start; } }
+@media (max-width: 700px) { .campaign-danger-zone { align-items: stretch; flex-direction: column; } }

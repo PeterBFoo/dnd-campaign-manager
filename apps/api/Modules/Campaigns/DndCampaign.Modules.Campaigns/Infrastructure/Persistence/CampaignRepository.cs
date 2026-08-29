@@ -15,6 +15,13 @@ internal sealed class CampaignRepository(CampaignsDbContext database) : ICampaig
             campaign => campaign.Id == campaignId,
             cancellationToken);
 
+    public Task<Campaign?> FindForUpdateAsync(
+        Guid campaignId,
+        CancellationToken cancellationToken = default) =>
+        database.Campaigns.SingleOrDefaultAsync(
+            campaign => campaign.Id == campaignId,
+            cancellationToken);
+
     public async Task<IReadOnlyList<Campaign>> ListAccessibleAsync(
         Guid dmUserId,
         IReadOnlyCollection<Guid> playerCampaignIds,

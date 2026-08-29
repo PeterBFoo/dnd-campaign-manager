@@ -21,4 +21,8 @@ export class CampaignsClient {
   get(campaignId: string): Observable<CampaignSummary> {
     return this.http.get<CampaignSummary>(`${apiBaseUrl()}/api/v1/campaigns/${campaignId}`);
   }
+
+  delete(campaignId: string): Observable<void> {
+    return this.http.delete<void>(`${apiBaseUrl()}/api/v1/campaigns/${campaignId}`);
+  }
 }
