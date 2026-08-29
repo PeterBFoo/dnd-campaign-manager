@@ -19,6 +19,7 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: peterbfoo/dnd-campaign-api
+  ALLOY_IMAGE_NAME: peterbfoo/dnd-campaign-alloy
   DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
 
 jobs:
@@ -49,6 +50,17 @@ jobs:
           sbom: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEPLOY_SHA }}
 
+      - name: Build and publish Alloy image
+        uses: docker/build-push-action@v6
+        with:
+          context: infra/observability/alloy
+          file: infra/observability/alloy/Dockerfile
+          platforms: linux/amd64
+          push: true
+          provenance: mode=max
+          sbom: true
+          tags: ${{ env.REGISTRY }}/${{ env.ALLOY_IMAGE_NAME }}:${{ env.DEPLOY_SHA }}
+
       - uses: azure/login@v2
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
@@ -62,7 +74,9 @@ jobs:
         env:
           AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
           AZURE_CONTAINER_APP: ${{ vars.AZURE_CONTAINER_APP }}
+          AZURE_POSTGRES_EXPORTER_APP: ${{ vars.AZURE_POSTGRES_EXPORTER_APP }}
           API_IMAGE: ghcr.io/peterbfoo/dnd-campaign-api:${{ env.DEPLOY_SHA }}
+          ALLOY_IMAGE: ghcr.io/peterbfoo/dnd-campaign-alloy:${{ env.DEPLOY_SHA }}
           DATABASE_CONNECTION_STRING: ${{ secrets.DATABASE_CONNECTION_STRING }}
           BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
           BREVO_SENDER_EMAIL: ${{ secrets.BREVO_SENDER_EMAIL }}
@@ -70,6 +84,7 @@ jobs:
           IDENTITY_BOOTSTRAP_TOKEN: ${{ secrets.IDENTITY_BOOTSTRAP_TOKEN }}
           OUTBOX_ENCRYPTION_KEY: ${{ secrets.OUTBOX_ENCRYPTION_KEY }}
           CHARACTER_STORAGE_SERVICE_URI: ${{ vars.CHARACTER_STORAGE_SERVICE_URI }}
+          ADVENTURE_CATALOG_STORAGE_SERVICE_URI: ${{ vars.ADVENTURE_CATALOG_STORAGE_SERVICE_URI }}
           FRONTEND_ORIGIN: https://peterbfoo.github.io
           FRONTEND_BASE_URL: https://peterbfoo.github.io/dnd-campaign-manager/
           GRAFANA_CLOUD_OTLP_ENDPOINT: ${{ vars.GRAFANA_CLOUD_OTLP_ENDPOINT }}

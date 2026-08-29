@@ -8,6 +8,11 @@ output "container_app_name" {
   value       = azurerm_container_app.api.name
 }
 
+output "postgres_exporter_container_app_name" {
+  description = "Private Container App running PostgreSQL exporter and Grafana Alloy."
+  value       = azurerm_container_app.postgres_exporter.name
+}
+
 output "resource_group_name" {
   description = "Resource group scope used for least-privilege deployment access."
   value       = azurerm_resource_group.production.name

@@ -61,6 +61,10 @@ jobs:
           for dashboard in infra/observability/grafana/dashboards/*.json; do
             jq empty "$dashboard"
           done
+      - name: Validate Alloy configuration
+        run: |
+          docker build --tag dnd-campaign-alloy:test infra/observability/alloy
+          docker run --rm dnd-campaign-alloy:test validate /etc/alloy/config.alloy
 
   terraform:
     runs-on: ubuntu-latest
