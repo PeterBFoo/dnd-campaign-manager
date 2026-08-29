@@ -84,6 +84,7 @@ services:
       OTEL_EXPORTER_OTLP_PROTOCOL: grpc
       OTEL_RESOURCE_ATTRIBUTES: deployment.environment=production
       Storage__Characters__ConnectionString: DefaultEndpointsProtocol=http;AccountName=dndlocal;AccountKey=MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=;BlobEndpoint=http://azurite:10000/dndlocal;
+      Storage__AdventureCatalog__ServiceUri: ${ADVENTURE_CATALOG_STORAGE_SERVICE_URI:-}
     secrets:
       - postgres_password
       - brevo_api_key

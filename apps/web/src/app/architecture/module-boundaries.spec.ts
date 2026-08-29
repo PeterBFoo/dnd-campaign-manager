@@ -70,6 +70,9 @@ function resolveInternalImport(source: string, specifier: string): string | null
   if (specifier === '@modules/characters') {
     return join(appRoot, 'modules/characters/public-api.ts');
   }
+  if (specifier === '@modules/adventure-catalog') {
+    return join(appRoot, 'modules/adventure-catalog/public-api.ts');
+  }
   if (specifier.startsWith('@shared/')) {
     return existingTypeScriptFile(join(appRoot, 'shared', specifier.slice('@shared/'.length)));
   }
@@ -129,7 +132,8 @@ function boundaryViolation(source: string, target: string): string | null {
         || targetPath.endsWith('/characters.routes.ts')
         || targetPath.endsWith('/combat.routes.ts')
         || targetPath.endsWith('/journal.routes.ts')
-        || targetPath.endsWith('/missions.routes.ts'));
+        || targetPath.endsWith('/missions.routes.ts')
+        || targetPath.endsWith('/adventure-catalog.routes.ts'));
     if (!isRouteEntrypoint) {
       return `${sourcePath} must use the public API of ${targetModule}`;
     }

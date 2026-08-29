@@ -65,6 +65,7 @@ La topología Azure, Neon, Grafana Cloud y GitHub Pages añade estas fronteras s
 | `IDENTITY_BOOTSTRAP_TOKEN` | GitHub environment `production` y secret de Container Apps | alta única de la primera administración |
 | `OUTBOX_ENCRYPTION_KEY` | GitHub environment `production` y secret de Container Apps | cifrado AES-256-GCM del token mientras espera su envío |
 | `CHARACTER_STORAGE_SERVICE_URI` | variable pública de GitHub | endpoint Blob; la autorización usa identidad administrada y no una clave |
+| `ADVENTURE_CATALOG_STORAGE_SERVICE_URI` | variable pública de GitHub | endpoint Blob privado para portadas de módulos; usa la identidad administrada |
 | identidad de despliegue Azure | Microsoft Entra federado con GitHub OIDC | workflow `deploy-azure` |
 | `API_BASE_URL` | variable pública de GitHub | build Angular |
 | `GRAFANA_URL` | variable pública de GitHub | publicación de dashboards |
