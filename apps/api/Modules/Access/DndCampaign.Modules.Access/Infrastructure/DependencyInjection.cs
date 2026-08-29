@@ -98,7 +98,9 @@ internal static class DependencyInjection
             services.AddAuthentication()
                 .AddJwtBearer("EventGrid", options =>
                 {
-                    options.Authority = $"https://login.microsoftonline.com/{tenantId}/v2.0";
+                    // Event Grid obtains application tokens from the tenant endpoint. Its issuer
+                    // uses the v1 format, so restricting metadata to /v2.0 rejects valid deliveries.
+                    options.Authority = $"https://login.microsoftonline.com/{tenantId}";
                     options.Audience = configuration["EventGrid:Audience"];
                     options.MapInboundClaims = false;
                 });
