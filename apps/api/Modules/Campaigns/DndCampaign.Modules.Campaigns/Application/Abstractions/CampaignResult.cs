@@ -5,6 +5,7 @@ internal enum CampaignErrorType
     Validation,
     Forbidden,
     NotFound,
+    Conflict,
 }
 
 internal sealed record CampaignError(

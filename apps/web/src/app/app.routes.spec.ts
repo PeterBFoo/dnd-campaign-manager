@@ -1,9 +1,10 @@
 import { ACCESS_ROUTES } from './modules/access/access.routes';
+import { ADVENTURE_CATALOG_ROUTES } from './modules/adventure-catalog/adventure-catalog.routes';
 import { routes } from './app.routes';
 
 describe('application routes', () => {
   it('keeps home, Access lazy routes and wildcard in the composition root', () => {
-    expect(routes.map((route) => route.path)).toEqual(['', '', '', '', '', '', '', '**']);
+    expect(routes.map((route) => route.path)).toEqual(['', '', '', '', '', '', '', '', '**']);
     expect(routes[0]?.pathMatch).toBe('full');
     expect(routes[0]?.loadComponent).toBeTypeOf('function');
     expect(routes[1]?.loadChildren).toBeTypeOf('function');
@@ -12,7 +13,8 @@ describe('application routes', () => {
     expect(routes[4]?.loadChildren).toBeTypeOf('function');
     expect(routes[5]?.loadChildren).toBeTypeOf('function');
     expect(routes[6]?.loadChildren).toBeTypeOf('function');
-    expect(routes[7]?.redirectTo).toBe('');
+    expect(routes[7]?.loadChildren).toBeTypeOf('function');
+    expect(routes[8]?.redirectTo).toBe('');
   });
 
   it('keeps every existing Access path and guard', () => {
@@ -25,5 +27,10 @@ describe('application routes', () => {
     expect(ACCESS_ROUTES[2]?.canActivate).toHaveLength(1);
     expect(ACCESS_ROUTES[3]?.canActivate).toHaveLength(1);
     expect(ACCESS_ROUTES.every((route) => route.loadComponent)).toBe(true);
+  });
+
+  it('registers the platform adventure catalog routes', () => {
+    expect(ADVENTURE_CATALOG_ROUTES).toHaveLength(4);
+    expect(ADVENTURE_CATALOG_ROUTES.every((route) => route.canActivate)).toBe(true);
   });
 });

@@ -3,6 +3,7 @@ import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angul
 import { of, throwError } from 'rxjs';
 
 import { CharactersClient } from '@modules/characters';
+import { AdventureModulesClient } from '@modules/adventure-catalog';
 
 import { CampaignsClient } from './api/campaigns.client';
 import { CampaignCreatePage } from './campaign-create/campaign-create.page';
@@ -15,14 +16,18 @@ const campaign = {
   role: 'dm' as const,
   adventureModuleId: null,
   createdAt: '2026-08-23T00:00:00Z',
+  adventureModule: null,
+  version: 1,
 };
+
+const modulesClientStub = { options: vi.fn(() => of([])) };
 
 describe('campaign pages', () => {
   it('shows accessible campaigns with their role and module state', async () => {
     const clientStub = { list: vi.fn(() => of([campaign])) };
     await TestBed.configureTestingModule({
       imports: [CampaignListPage],
-      providers: [provideRouter([]), { provide: CampaignsClient, useValue: clientStub }],
+      providers: [provideRouter([]), { provide: CampaignsClient, useValue: clientStub }, { provide: AdventureModulesClient, useValue: modulesClientStub }],
     }).compileComponents();
     const fixture = TestBed.createComponent(CampaignListPage);
 
@@ -38,7 +43,7 @@ describe('campaign pages', () => {
     const clientStub = { create: vi.fn(() => of(campaign)) };
     await TestBed.configureTestingModule({
       imports: [CampaignCreatePage],
-      providers: [provideRouter([]), { provide: CampaignsClient, useValue: clientStub }],
+      providers: [provideRouter([]), { provide: CampaignsClient, useValue: clientStub }, { provide: AdventureModulesClient, useValue: modulesClientStub }],
     }).compileComponents();
     const fixture = TestBed.createComponent(CampaignCreatePage);
     const router = TestBed.inject(Router);
@@ -47,10 +52,10 @@ describe('campaign pages', () => {
     fixture.componentInstance.submit();
     expect(clientStub.create).not.toHaveBeenCalled();
 
-    fixture.componentInstance.form.setValue({ name: 'Mesa propia' });
+    fixture.componentInstance.form.setValue({ name: 'Mesa propia', adventureModuleId: '' });
     fixture.componentInstance.submit();
 
-    expect(clientStub.create).toHaveBeenCalledWith('Mesa propia');
+    expect(clientStub.create).toHaveBeenCalledWith('Mesa propia', null);
     expect(navigate).toHaveBeenCalledWith(['/campaigns', 'campaign-1']);
   });
 
@@ -73,6 +78,7 @@ describe('campaign pages', () => {
       providers: [
         provideRouter([]),
         { provide: CampaignsClient, useValue: clientStub },
+        { provide: AdventureModulesClient, useValue: modulesClientStub },
         { provide: CharactersClient, useValue: charactersStub },
         {
           provide: ActivatedRoute,
@@ -102,6 +108,7 @@ describe('campaign pages', () => {
       providers: [
         provideRouter([]),
         { provide: CampaignsClient, useValue: clientStub },
+        { provide: AdventureModulesClient, useValue: modulesClientStub },
         { provide: CharactersClient, useValue: charactersStub },
         {
           provide: ActivatedRoute,
@@ -132,6 +139,7 @@ describe('campaign pages', () => {
       providers: [
         provideRouter([]),
         { provide: CampaignsClient, useValue: clientStub },
+        { provide: AdventureModulesClient, useValue: modulesClientStub },
         { provide: CharactersClient, useValue: charactersStub },
         {
           provide: ActivatedRoute,
@@ -157,6 +165,7 @@ describe('campaign pages', () => {
       providers: [
         provideRouter([]),
         { provide: CampaignsClient, useValue: clientStub },
+        { provide: AdventureModulesClient, useValue: modulesClientStub },
         { provide: CharactersClient, useValue: charactersStub },
         {
           provide: ActivatedRoute,

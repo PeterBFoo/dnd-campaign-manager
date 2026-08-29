@@ -61,6 +61,9 @@ function resolveInternalImport(source: string, specifier: string): string | null
   if (specifier === '@modules/access/entry') {
     return join(appRoot, 'modules/access/access-entry/public-api.ts');
   }
+  if (specifier === '@modules/adventure-catalog') {
+    return join(appRoot, 'modules/adventure-catalog/public-api.ts');
+  }
   if (specifier === '@modules/platform') {
     return join(appRoot, 'modules/platform/public-api.ts');
   }

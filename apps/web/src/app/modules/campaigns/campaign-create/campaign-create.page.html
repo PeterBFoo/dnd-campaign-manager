@@ -14,7 +14,20 @@
     @if (form.controls.name.touched && form.controls.name.invalid) {
       <p class="form-error">El nombre debe contener entre 3 y 100 caracteres.</p>
     }
-    <p class="form-hint">Se creará sin módulo y tú serás su único DM.</p>
+    <label>
+      Módulo de aventura
+      <select formControlName="adventureModuleId">
+        <option value="">Sin módulo</option>
+        @for (module of modules(); track module.id) {
+          <option [value]="module.id">{{ module.name }}</option>
+        }
+      </select>
+    </label>
+    @if (modulesLoading()) { <p class="form-hint">Cargando módulos…</p> }
+    @if (modulesError()) {
+      <p class="form-error" role="alert">{{ modulesError() }} <button class="text-button" type="button" (click)="loadModules()">Reintentar</button></p>
+    }
+    <p class="form-hint">Se creará con el módulo seleccionado y tú serás su único DM.</p>
     @if (error()) { <p class="form-error" role="alert">{{ error() }}</p> }
     <button type="submit" [disabled]="submitting()">
       {{ submitting() ? 'Creando…' : 'Crear campaña' }}

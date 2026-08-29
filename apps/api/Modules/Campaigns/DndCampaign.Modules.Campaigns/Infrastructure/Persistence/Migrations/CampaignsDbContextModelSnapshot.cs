@@ -46,13 +46,20 @@ namespace DndCampaign.Modules.Campaigns.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AdventureModuleId");
 
                     b.HasIndex("DmUserId");
 
-                    b.ToTable("campaigns", "campaigns");
+                    b.ToTable("campaigns", "campaigns", t =>
+                        {
+                            t.HasCheckConstraint("CK_campaigns_version", "\"Version\" >= 1");
+                        });
                 });
 #pragma warning restore 612, 618
         }
