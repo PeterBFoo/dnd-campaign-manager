@@ -7,7 +7,12 @@
       <div>
         <p class="eyebrow">{{ current.role === 'dm' ? 'Dirección de campaña' : 'Campaña de jugador' }}</p>
         <h1>{{ current.name }}</h1>
-        <p>{{ current.adventureModuleId ? 'Módulo asociado' : 'Sin módulo asociado' }}</p>
+        @if (current.adventureModule; as module) {
+          <p>Módulo: {{ module.name }}</p>
+          @if (moduleCoverUrl(); as cover) { <img class="campaign-module-cover" [src]="cover" alt="Portada del módulo" /> }
+        } @else {
+          <p>Sin módulo asociado</p>
+        }
       </div>
       <div class="campaign-heading-actions">
         <a class="button-link" [routerLink]="['/campaigns', current.id, 'encounters']">Abrir encuentros</a>
@@ -19,6 +24,31 @@
       </div>
     </section>
     <dnd-active-characters-panel [campaignId]="current.id" [role]="current.role" />
+    @if (current.role === 'dm') {
+      <section class="campaign-module-panel" aria-labelledby="campaign-module-title">
+        <div>
+          <h2 id="campaign-module-title">Módulo de aventura</h2>
+          @if (modulesLoading()) { <p class="muted">Cargando módulos…</p> }
+          @else {
+            <select [formControl]="moduleSelection" aria-label="Módulo de aventura">
+              <option value="">Sin módulo</option>
+              @for (module of modules(); track module.id) {
+                <option [value]="module.id">{{ module.name }}</option>
+              }
+            </select>
+            <div class="module-actions">
+              <button type="button" (click)="assignModule()" [disabled]="updatingModule() || !moduleSelection.value">
+                {{ current.adventureModuleId ? 'Cambiar módulo' : 'Asignar módulo' }}
+              </button>
+              @if (current.adventureModuleId) {
+                <button class="text-button" type="button" (click)="removeModule()" [disabled]="updatingModule()">Retirar módulo</button>
+              }
+            </div>
+          }
+          @if (modulesError()) { <p class="form-error" role="alert">{{ modulesError() }} <button class="text-button" type="button" (click)="loadModules()">Reintentar</button></p> }
+        </div>
+      </section>
+    }
     @if (current.role === 'dm') {
       <section class="campaign-danger-zone" aria-labelledby="delete-campaign-title">
         <div>

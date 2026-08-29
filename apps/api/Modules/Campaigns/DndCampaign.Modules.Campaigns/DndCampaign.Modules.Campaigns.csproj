@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../AdventureCatalog/DndCampaign.Modules.AdventureCatalog/DndCampaign.Modules.AdventureCatalog.csproj" />
     <ProjectReference Include="../../Access/DndCampaign.Modules.Access/DndCampaign.Modules.Access.csproj" />
   </ItemGroup>
 </Project>

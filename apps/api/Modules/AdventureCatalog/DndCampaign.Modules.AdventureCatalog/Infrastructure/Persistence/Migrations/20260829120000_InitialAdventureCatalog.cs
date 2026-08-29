@@ -7,7 +7,7 @@ namespace DndCampaign.Modules.AdventureCatalog.Infrastructure.Persistence.Migrat
 
 [DbContext(typeof(AdventureCatalogDbContext))]
 [Migration("20260829120000_InitialAdventureCatalog")]
-public partial class InitialAdventureCatalog : Migration
+internal partial class InitialAdventureCatalog : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
     {

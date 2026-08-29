@@ -12,9 +12,11 @@ internal sealed class CampaignsDbContext(DbContextOptions<CampaignsDbContext> op
         modelBuilder.HasDefaultSchema("campaigns");
         modelBuilder.Entity<Campaign>(entity =>
         {
-            entity.ToTable("campaigns");
+            entity.ToTable("campaigns", table => table.HasCheckConstraint(
+                "CK_campaigns_version", "\"Version\" >= 1"));
             entity.HasKey(campaign => campaign.Id);
             entity.Property(campaign => campaign.Name).HasMaxLength(100);
+            entity.Property(campaign => campaign.Version).IsConcurrencyToken();
             entity.HasQueryFilter(campaign => campaign.DeletedAt == null);
             entity.HasIndex(campaign => campaign.DmUserId);
             entity.HasIndex(campaign => campaign.AdventureModuleId);
