@@ -2,6 +2,7 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using DndCampaign.Modules.AdventureCatalog.Application.Ports;
 using DndCampaign.Modules.AdventureCatalog.Infrastructure.Storage;
+using Xunit;
 
 namespace DndCampaign.Modules.AdventureCatalog.Tests.Infrastructure;
 
