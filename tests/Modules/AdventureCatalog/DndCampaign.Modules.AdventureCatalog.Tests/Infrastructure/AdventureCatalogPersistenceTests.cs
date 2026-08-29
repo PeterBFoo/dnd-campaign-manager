@@ -1,6 +1,7 @@
 using DndCampaign.Modules.AdventureCatalog.Domain.AdventureModules;
 using DndCampaign.Modules.AdventureCatalog.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Xunit;
 
 namespace DndCampaign.Modules.AdventureCatalog.Tests.Infrastructure;
 

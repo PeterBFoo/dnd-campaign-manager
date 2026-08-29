@@ -1,4 +1,5 @@
 using DndCampaign.Modules.AdventureCatalog.Domain.AdventureModules;
+using Xunit;
 
 namespace DndCampaign.Modules.AdventureCatalog.Tests.Domain;
 
