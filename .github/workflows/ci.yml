@@ -64,7 +64,10 @@ jobs:
       - name: Validate Alloy configuration
         run: |
           docker build --tag dnd-campaign-alloy:test infra/observability/alloy
-          docker run --rm dnd-campaign-alloy:test validate /etc/alloy/config.alloy
+          docker run --rm \
+            --env GRAFANA_CLOUD_OTLP_ENDPOINT=https://grafana.example/otlp \
+            --env 'GRAFANA_CLOUD_AUTHORIZATION=Basic placeholder' \
+            dnd-campaign-alloy:test validate /etc/alloy/config.alloy
 
   terraform:
     runs-on: ubuntu-latest
