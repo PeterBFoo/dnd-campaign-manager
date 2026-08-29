@@ -25,7 +25,7 @@ internal sealed class EventGridDevelopmentAuthenticationHandler(
         }
 
         var identity = new ClaimsIdentity(
-            new[] { new Claim("roles", "EventGrid.EventDelivery") },
+            new[] { new Claim("roles", "AzureEventGridSecureWebhookSubscriber") },
             Scheme.Name);
         return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(
             new ClaimsPrincipal(identity), Scheme.Name)));
