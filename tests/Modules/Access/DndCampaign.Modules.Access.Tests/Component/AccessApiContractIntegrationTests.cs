@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using DndCampaign.Modules.AdventureCatalog;
 using DndCampaign.Modules.Access.Infrastructure.Persistence;
 using DndCampaign.Modules.Access.Infrastructure.Security;
 using DndCampaign.Modules.Campaigns;
@@ -545,6 +546,7 @@ public sealed class AccessApiContractIntegrationTests
         await using var scope = services.CreateAsyncScope();
         var database = scope.ServiceProvider.GetRequiredService<AccessDbContext>();
         await database.Database.MigrateAsync(cancellationToken);
+        await services.ApplyAdventureCatalogMigrationsAsync(cancellationToken);
         await services.ApplyCampaignsMigrationsAsync(cancellationToken);
     }
 

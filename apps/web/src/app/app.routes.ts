@@ -40,10 +40,5 @@ export const routes: Routes = [
     loadChildren: () => import('./modules/missions/missions.routes')
       .then((module) => module.MISSIONS_ROUTES),
   },
-  {
-    path: '',
-    loadChildren: () => import('./modules/adventure-catalog/adventure-catalog.routes')
-      .then((module) => module.ADVENTURE_CATALOG_ROUTES),
-  },
   { path: '**', redirectTo: '' },
 ];
