@@ -57,6 +57,31 @@ variable "eventgrid_webhook_audience" {
   default     = ""
 }
 
+variable "eventgrid_topics" {
+  description = "Event Grid topics and authenticated API webhook subscriptions managed by the platform. Add one map entry to provision another topic."
+  type = map(object({
+    name                 = string
+    subscription_name    = string
+    webhook_path         = string
+    included_event_types = optional(list(string), ["All"])
+  }))
+  default = {
+    invitation_email = {
+      name              = "dnd-campaign-invitation-events"
+      subscription_name = "dnd-campaign-api-invitation-email"
+      webhook_path      = "/internal/events/invitation-email"
+    }
+  }
+
+  validation {
+    condition = alltrue([
+      for topic in values(var.eventgrid_topics) :
+      startswith(topic.webhook_path, "/internal/events/")
+    ])
+    error_message = "Every Event Grid webhook path must start with /internal/events/."
+  }
+}
+
 variable "tags" {
   description = "Common resource tags."
   type        = map(string)

@@ -7,6 +7,40 @@ prometheus.scrape "postgres" {
   forward_to      = [otelcol.receiver.prometheus.postgres.receiver]
 }
 
+// Pull broker-level signals from Azure Monitor. Application telemetry cannot
+// observe retries or dead letters that happen before/after the webhook call.
+prometheus.exporter.azure "eventgrid" {
+  subscriptions = [sys.env("AZURE_SUBSCRIPTION_ID")]
+  resource_type = "Microsoft.EventGrid/topics"
+  resource_graph_query_filter = "| where tags['application'] == 'dnd-campaign-manager'"
+  metrics = [
+    "PublishSuccessCount",
+    "PublishFailCount",
+    "MatchedEventCount",
+    "DeliverySuccessCount",
+    "DeliveryAttemptFailCount",
+    "DeadLetteredCount",
+    "DroppedEventCount",
+    "DestinationProcessingDurationInMs",
+  ]
+  included_dimensions = [
+    "EventSubscriptionName",
+    "Error",
+    "ErrorType",
+    "DeadLetterReason",
+    "DropReason",
+  ]
+  included_resource_tags = ["application", "environment"]
+  timespan = "PT15M"
+  interval = "PT1M"
+}
+
+prometheus.scrape "eventgrid" {
+  targets         = prometheus.exporter.azure.eventgrid.targets
+  scrape_interval = "1m"
+  forward_to      = [otelcol.receiver.prometheus.postgres.receiver]
+}
+
 otelcol.receiver.prometheus "postgres" {
   output {
     metrics = [otelcol.processor.batch.postgres.input]
