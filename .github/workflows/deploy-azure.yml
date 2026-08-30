@@ -70,11 +70,10 @@ jobs:
       - name: Install Container Apps support
         run: az extension add --name containerapp --upgrade
 
-      - name: Deploy immutable API revision
+      - name: Deploy immutable multi-container API revision
         env:
           AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
           AZURE_CONTAINER_APP: ${{ vars.AZURE_CONTAINER_APP }}
-          AZURE_POSTGRES_EXPORTER_APP: ${{ vars.AZURE_POSTGRES_EXPORTER_APP }}
           API_IMAGE: ghcr.io/peterbfoo/dnd-campaign-api:${{ env.DEPLOY_SHA }}
           ALLOY_IMAGE: ghcr.io/peterbfoo/dnd-campaign-alloy:${{ env.DEPLOY_SHA }}
           DATABASE_CONNECTION_STRING: ${{ secrets.DATABASE_CONNECTION_STRING }}

@@ -70,7 +70,7 @@ flowchart TB
 | `api-tests` | `apps/api/Dockerfile`, target `tests` | No publicado | PostgreSQL saludable | Efímera |
 | `postgres-tests` | `postgres:18-alpine`, perfil `test` | No publicado | Ninguna | `tmpfs` efímero |
 
-En producción, `postgres-exporter` y Alloy se ejecutan como sidecars de la Container App `dnd-postgres-observability`; no forman parte del Compose local ni publican ingress.
+En producción, `postgres-exporter` y Alloy se ejecutan como contenedores auxiliares de la misma réplica que ASP.NET Core; no forman parte del Compose local ni publican ingress.
 
 ## Flujo de una petición
 
@@ -104,8 +104,7 @@ flowchart TB
 
     subgraph azure["Azure · Spain Central"]
         environment["Container Apps Environment<br/>Consumption"]
-        api_prod["ASP.NET Core 10<br/>0.25 vCPU · 0.5 GiB<br/>1 réplica"]
-        postgres_obs["Container App privada<br/>postgres-exporter + Alloy<br/>0.5 vCPU · 1 GiB · 1 réplica"]
+        api_prod["Container App conjunta · 0–1 réplica<br/>ASP.NET Core + postgres-exporter + Alloy<br/>0.75 vCPU · 1.5 GiB"]
         identity["Identidad administrada<br/>Blob Data Contributor"]
         secrets["Container Apps secrets<br/>DB · OTLP · Brevo<br/>bootstrap · cifrado outbox"]
     end
@@ -113,10 +112,8 @@ flowchart TB
     user -->|"HTTPS"| pages
     pages -->|"HTTPS · CORS exacto<br/>bearer opaco"| api_prod
     environment --> api_prod
-    api_prod -->|"Npgsql + TLS"| neon
-    api_prod -->|"OTLP HTTPS"| grafana
-    postgres_obs -->|"Npgsql + TLS"| neon
-    postgres_obs -->|"OTLP HTTPS · métricas"| grafana
+    api_prod -->|"Npgsql + TLS<br/>API + exporter"| neon
+    api_prod -->|"OTLP HTTPS<br/>API + Alloy"| grafana
     api_prod -->|"HTTPS · correo transaccional"| brevo
     api_prod -->|"HTTPS · RBAC"| blob
     identity -.-> api_prod
@@ -128,6 +125,8 @@ flowchart TB
 
 GitHub Pages contiene únicamente HTML, CSS, JavaScript y `config.js` con la URL pública de la API. La API admite CORS exclusivamente desde `https://peterbfoo.github.io`. La sesión opaca vive en `sessionStorage` y PostgreSQL conserva solo su resumen; los secretos de bootstrap, outbox, Brevo y base de datos no llegan al navegador. Azure y GitHub proporcionan TLS administrado.
 
-La Container App privada de observabilidad no tiene ingress. `postgres-exporter` usa el DSN secreto de Neon y expone métricas solo en loopback; Alloy las scrapea y las reenvía a Grafana Cloud por OTLP HTTPS con la autorización inyectada por el workflow.
+Solo ASP.NET Core recibe ingress. `postgres-exporter` usa el DSN secreto de Neon y expone métricas únicamente en loopback; Alloy las scrapea y las reenvía a Grafana Cloud por OTLP HTTPS. Los tres contenedores comparten el ciclo de la réplica: una petición web o Event Grid los activa y todos se detienen al escalar a cero.
+
+Durante la fase A del spec 023, la antigua `dnd-postgres-observability` se conserva sin nuevas revisiones como rollback. Se elimina en la fase B únicamente después de verificar métricas, escala y recuperación de la Container App conjunta.
 
 La infraestructura se describe en `infra/azure`. Terraform crea el grupo de recursos, el entorno Consumption, la Container App, su identidad administrada y la cuenta Blob privada, pero no recibe secretos funcionales. GitHub Actions configura cada revisión mediante OIDC y secrets del environment `production`.

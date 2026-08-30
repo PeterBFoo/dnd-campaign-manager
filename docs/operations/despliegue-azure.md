@@ -1,12 +1,14 @@
 # Despliegue en Azure con coste acotado
 
 - Estado: infraestructura aprovisionada; publicación automatizada mediante GitHub Actions
-- ADR relacionado: [ADR-0001](../adr/0001-monorepositorio-y-monolito-modular.md)
+- ADR relacionados: [ADR-0001](../adr/0001-monorepositorio-y-monolito-modular.md) y [ADR-0010](../adr/0010-observabilidad-postgresql-bajo-demanda.md)
 - Alcance: infraestructura y plataforma sin datos funcionales ni contenido de campaña
 
 ## Topología y límites de coste
 
-Terraform crea un grupo de recursos, un entorno Azure Container Apps Consumption, una Container App para la API, una Container App privada para PostgreSQL exporter + Alloy y una cuenta StorageV2 Standard LRS con contenedor privado para retratos. La API queda limitada a `0.25` vCPU, `0.5 GiB` y una réplica como máximo; el agente de observabilidad usa `0.5` vCPU y `1 GiB` entre sus dos contenedores, también con una réplica. No se crea VM, Azure Container Registry, IP pública dedicada, Log Analytics ni PostgreSQL de Azure.
+La topología objetivo del spec 023 usa un grupo de recursos, un entorno Azure Container Apps Consumption, una Container App conjunta y una cuenta StorageV2 Standard LRS. La revisión contiene ASP.NET Core, PostgreSQL exporter y Alloy, con `0.25` vCPU y `0.5 GiB` por contenedor: `0.75` vCPU y `1.5 GiB` en total, mínimo cero y máximo una réplica. Solo ASP.NET Core recibe ingress. No se crea VM, Azure Container Registry, IP pública dedicada, Log Analytics ni PostgreSQL de Azure.
+
+Durante la fase A se conserva temporalmente `dnd-postgres-observability` para rollback, aunque el workflow deja de actualizarla. No debe retirarse mediante Terraform hasta verificar la revisión conjunta, su activación por HTTP y Event Grid, `pg_up`, el retorno a cero réplicas y la ruta de rollback.
 
 Angular se publica en GitHub Pages, PostgreSQL reside en Neon Free y la telemetría se envía a Grafana Cloud Free. Azure Blob Storage se factura por capacidad y operaciones, aunque el volumen inicial sea pequeño; debe existir un presupuesto Azure con avisos. Los planes gratuitos no tienen SLA.
 
@@ -44,7 +46,6 @@ Se crea una aplicación de Microsoft Entra con credencial federada limitada al e
 - `AZURE_SUBSCRIPTION_ID`
 - `AZURE_RESOURCE_GROUP=dnd-campaign-manager-production`
 - `AZURE_CONTAINER_APP=dnd-campaign-api`
-- `AZURE_POSTGRES_EXPORTER_APP=dnd-postgres-observability`
 - `GRAFANA_CLOUD_OTLP_ENDPOINT`
 - `CHARACTER_STORAGE_SERVICE_URI`, con el output Terraform del mismo nombre;
 - `EVENTGRID_TOPIC_ENDPOINT`, con el output `eventgrid_topic_endpoint` de Terraform;
@@ -68,9 +69,9 @@ El environment protegido `production` contiene:
 - `GRAFANA_CLOUD_OTLP_HEADERS`: `Authorization=Basic%20<credencial-base64>`.
 - `GRAFANA_SERVICE_ACCOUNT_TOKEN`: token Grafana con rol `Editor` para crear la carpeta y actualizar dashboards.
 
-El workflow instala ambos como secretos de Container Apps y los referencia desde variables de entorno. No se imprimen, no llegan al frontend y no forman parte de Terraform.
+El workflow instala todos los valores en el almacén de secretos de `dnd-campaign-api` y los referencia desde la plantilla multi-contenedor. No se imprimen, no llegan al frontend y no forman parte de Terraform.
 
-La Container App `dnd-postgres-observability` recibe el mismo DSN como `postgres-dsn`. El workflow crea además `grafana-cloud-authorization` a partir de `GRAFANA_CLOUD_OTLP_HEADERS`; Alloy lo usa únicamente para enviar las métricas scrapeadas por OTLP.
+El workflow deriva `postgres-dsn` de la misma conexión y `grafana-cloud-authorization` de `GRAFANA_CLOUD_OTLP_HEADERS`. Exporter y Alloy consumen esas referencias dentro de la réplica conjunta; la plantilla renderizada no contiene los valores.
 
 ## 5. Publicación y verificación
 
@@ -81,7 +82,10 @@ La Container App `dnd-postgres-observability` recibe el mismo DSN como `postgres
 5. Abrir `https://peterbfoo.github.io/dnd-campaign-manager/` y comprobar el estado operativo.
 6. Confirmar en Grafana que llegan logs, métricas y trazas y que el mismo workflow ha actualizado los dashboards versionados.
 7. En Grafana Explore, consultar `pg_up` y `pg_stat_database_numbackends`; ambas series deben tener muestras recientes.
-8. Crear un personaje con imagen y comprobar que el blob permanece privado y que otro jugador no puede modificarlo.
+8. Dejar la API sin tráfico, confirmar `Replicas == 0` después del enfriamiento y reactivarla mediante una entrega de Event Grid.
+9. Crear un personaje con imagen y comprobar que el blob permanece privado y que otro jugador no puede modificarlo.
+
+La ausencia de series PostgreSQL mientras `Replicas == 0` es esperada. Con una réplica activa, la ausencia de scrape o `pg_up == 0` sí requiere diagnóstico. Durante la fase A pueden coexistir dos exporters; esta duplicidad debe ser breve y verificarse por las etiquetas de revisión antes de interpretar los paneles.
 
 ## Imágenes y recuperación
 
@@ -91,4 +95,4 @@ La API puede tardar varios segundos en responder a la primera petición después
 
 ## Recuperación y retirada
 
-Las revisiones de Container Apps permiten volver a una imagen anterior. La base de datos debe contar con un procedimiento probado de exportación y restauración antes de aceptar datos reales. Si se abandona Azure, `terraform destroy` se ejecutará únicamente tras verificar el grupo de recursos exacto y conservar las copias necesarias.
+Las revisiones de Container Apps permiten volver a una imagen anterior. Antes de retirar `dnd-postgres-observability`, debe demostrarse que la revisión conjunta puede volver a cero, reactivarse y publicar métricas; hasta entonces el recurso anterior constituye el rollback operativo. La base de datos debe contar con un procedimiento probado de exportación y restauración antes de aceptar datos reales. Si se abandona Azure, `terraform destroy` se ejecutará únicamente tras verificar el grupo de recursos exacto y conservar las copias necesarias.

@@ -61,6 +61,45 @@ jobs:
           for dashboard in infra/observability/grafana/dashboards/*.json; do
             jq empty "$dashboard"
           done
+      - name: Validate production Container App template
+        run: |
+          rendered_template="$RUNNER_TEMP/container-app-api.yaml"
+          AZURE_RESOURCE_GROUP=dnd-test \
+          AZURE_CONTAINER_APP=dnd-campaign-api \
+          CONTAINER_APP_REVISION_SUFFIX=app-123456789abc \
+          API_IMAGE=ghcr.io/example/api:123456789abc \
+          ALLOY_IMAGE=ghcr.io/example/alloy:123456789abc \
+          CHARACTER_STORAGE_SERVICE_URI=https://characters.example.invalid/ \
+          ADVENTURE_CATALOG_STORAGE_SERVICE_URI=https://adventures.example.invalid/ \
+          FRONTEND_ORIGIN=https://frontend.example.invalid \
+          FRONTEND_BASE_URL=https://frontend.example.invalid/app/ \
+          EVENTGRID_TOPIC_ENDPOINT=https://events.example.invalid/api/events \
+          EVENTGRID_TENANT_ID=00000000-0000-0000-0000-000000000000 \
+          EVENTGRID_AUDIENCE=api://event-grid-test \
+          GRAFANA_CLOUD_OTLP_ENDPOINT=https://grafana.example.invalid/otlp \
+          sh scripts/render-container-app-template.sh > "$rendered_template"
+          jq --exit-status '
+            .properties.template.containers | map(.name) | sort
+            == ["alloy", "api", "postgres-exporter"]
+          ' "$rendered_template"
+          jq --exit-status '
+            [.properties.template.containers[].resources.cpu] | add == 0.75
+          ' "$rendered_template"
+          jq --exit-status '
+            .properties.template.scale.minReplicas == 0
+            and .properties.template.scale.maxReplicas == 1
+            and .properties.template.scale.rules[0].http.metadata.concurrentRequests == "10"
+          ' "$rendered_template"
+          jq --exit-status '
+            .properties.template.containers[]
+            | select(.name == "api")
+            | .image == "ghcr.io/example/api:123456789abc"
+          ' "$rendered_template"
+          jq --exit-status '
+            .properties.template.containers[]
+            | select(.name == "alloy")
+            | .image == "ghcr.io/example/alloy:123456789abc"
+          ' "$rendered_template"
       - name: Validate Alloy configuration
         run: |
           docker build --tag dnd-campaign-alloy:test infra/observability/alloy

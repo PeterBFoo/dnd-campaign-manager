@@ -6,6 +6,7 @@
 - Roadmap: [roadmap funcional](../../roadmap/product-roadmap.md), infraestructura de observabilidad de ADR-0001
 - Requisitos principales: no amplía requisitos funcionales `RF-*`; cubre la observabilidad operativa de PostgreSQL
 - Dependencias: [ADR-0001](../../adr/0001-monorepositorio-y-monolito-modular.md), [spec 011](../011-eliminacion-campanas/spec.md)
+- Evolución aceptada: el [spec 023](../023-observabilidad-postgresql-bajo-demanda/spec.md) conserva este pipeline y sustituirá su Container App permanente por contenedores auxiliares de la API cuando complete su migración productiva
 
 ## Problema
 

@@ -1,7 +1,10 @@
 // Scrape the private postgres-exporter sidecar and forward the converted
 // metrics to Grafana Cloud. Credentials are injected only as runtime env vars.
 prometheus.scrape "postgres" {
-  targets = [{ "__address__" = "127.0.0.1:9187" }]
+  targets = [{
+    "__address__"         = "127.0.0.1:9187",
+    "deployment_topology" = "api-sidecar",
+  }]
 
   scrape_interval = "15s"
   forward_to      = [otelcol.receiver.prometheus.postgres.receiver]

@@ -57,11 +57,12 @@
     },
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [{ "options": { "0": { "color": "red", "text": "DOWN" }, "1": { "color": "green", "text": "UP" } }, "type": "value" }], "thresholds": { "mode": "absolute", "steps": [{ "color": "red" }, { "color": "green", "value": 1 }] } }, "overrides": [] },
+      "description": "Sin datos es esperado cuando la Container App está a cero. Con la réplica activa, DOWN o ausencia de scrape requiere diagnóstico.",
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [{ "options": { "0": { "color": "red", "text": "DOWN" }, "1": { "color": "green", "text": "UP" } }, "type": "value" }], "noValue": "API A CERO / SIN DATOS", "thresholds": { "mode": "absolute", "steps": [{ "color": "red" }, { "color": "green", "value": 1 }] } }, "overrides": [] },
       "gridPos": { "h": 5, "w": 4, "x": 16, "y": 0 },
       "id": 5,
       "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
-      "targets": [{ "editorMode": "code", "expr": "max(pg_up)", "legendFormat": "PostgreSQL", "range": true, "refId": "A" }],
+      "targets": [{ "editorMode": "code", "expr": "max(pg_up{deployment_topology=~\"api-sidecar|\"})", "legendFormat": "PostgreSQL", "range": true, "refId": "A" }],
       "title": "PostgreSQL",
       "type": "stat"
     },

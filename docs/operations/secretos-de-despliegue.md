@@ -78,7 +78,7 @@ Neon entrega una URI PostgreSQL con host, base de datos, usuario, contraseña y 
 
 `GRAFANA_CLOUD_OTLP_HEADERS` utiliza el formato `Authorization=Basic%20<credencial-base64>`. La política asociada concede solamente escritura de métricas, logs y trazas. Su token productivo se ha emitido sin fecha de expiración, por lo que requiere rotación manual y revocación inmediata ante una posible exposición.
 
-En producción, `scripts/deploy-azure.sh` transforma esa cabecera en un secreto efímero `grafana-cloud-authorization` para Alloy. El exporter productivo recibe `DATABASE_CONNECTION_STRING` como secreto `postgres-dsn`; no se reutilizan secretos locales ni se publican puertos.
+En producción, `scripts/deploy-azure.sh` transforma esa cabecera en `grafana-cloud-authorization` para Alloy y deriva `postgres-dsn` de `DATABASE_CONNECTION_STRING`. Ambos se almacenan junto a los demás secretos de `dnd-campaign-api`; la plantilla conjunta contiene únicamente referencias `secretRef`. No se reutilizan secretos locales ni se publican puertos de exporter o Alloy.
 
 El token de cuenta de servicio de dashboards es independiente, se limita al rol `Editor`, se almacena únicamente en GitHub y nunca se proporciona a la aplicación. Ningún secreto productivo forma parte del frontend, las imágenes, Terraform, sus planes o su estado.
 

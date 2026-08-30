@@ -7,12 +7,13 @@
   "panels": [
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [{ "options": { "0": { "color": "red", "text": "DOWN" }, "1": { "color": "green", "text": "UP" } }, "type": "value" }], "thresholds": { "mode": "absolute", "steps": [{ "color": "red" }, { "color": "green", "value": 1 }] } }, "overrides": [] },
+      "description": "Solo evalúa PostgreSQL mientras la réplica conjunta está activa. Sin datos es el estado esperado cuando la Container App ha escalado a cero.",
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [{ "options": { "0": { "color": "red", "text": "DOWN" }, "1": { "color": "green", "text": "UP" } }, "type": "value" }], "noValue": "API A CERO / SIN DATOS", "thresholds": { "mode": "absolute", "steps": [{ "color": "red" }, { "color": "green", "value": 1 }] } }, "overrides": [] },
       "gridPos": { "h": 5, "w": 4, "x": 0, "y": 0 },
       "id": 1,
       "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto", "wideLayout": true },
-      "targets": [{ "editorMode": "code", "expr": "max(pg_up)", "legendFormat": "PostgreSQL", "range": true, "refId": "A" }],
-      "title": "Disponibilidad",
+      "targets": [{ "editorMode": "code", "expr": "max(pg_up{deployment_topology=~\"api-sidecar|\"})", "legendFormat": "PostgreSQL", "range": true, "refId": "A" }],
+      "title": "Disponibilidad durante actividad",
       "type": "stat"
     },
     {

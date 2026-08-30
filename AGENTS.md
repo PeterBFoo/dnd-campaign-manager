@@ -10,7 +10,7 @@
 - Cada spec debe enlazar los requisitos `RF-*` del roadmap que cubre, indicar dependencias con otros specs y declarar qué queda fuera de alcance.
 - El roadmap solo registra alcance, secuencia, dependencias y estado agregado. Los criterios de aceptación ejecutables y las decisiones concretas pertenecen al spec del incremento.
 - Al terminar un incremento, actualizar su estado en `docs/specs/README.md` y la trazabilidad correspondiente en el roadmap usando evidencia de código y pruebas.
-- El siguiente identificador disponible para un spec es `023`; no se reutiliza `001`, que quedó reservado históricamente para el documento que originó el roadmap.
+- El siguiente identificador disponible para un spec es `024`; no se reutiliza `001`, que quedó reservado históricamente para el documento que originó el roadmap.
 
 ## Contenido editorial
 
