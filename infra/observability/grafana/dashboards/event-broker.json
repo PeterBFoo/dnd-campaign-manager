@@ -27,6 +27,26 @@
     },
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green" }, { "color": "red", "value": 1 }] } }, "overrides": [] },
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
+      "id": 5,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "editorMode": "code", "expr": "sum(azure_microsoft_eventgrid_topics_deliveryattemptfailcount_total_count)", "legendFormat": "intentos fallidos", "range": true, "refId": "A" }],
+      "title": "Event Grid · intentos fallidos",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green" }, { "color": "red", "value": 1 }] } }, "overrides": [] },
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 0 },
+      "id": 6,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "editorMode": "code", "expr": "sum(azure_microsoft_eventgrid_topics_deadletteredcount_total_count)", "legendFormat": "dead-letter", "range": true, "refId": "A" }],
+      "title": "Event Grid · dead-letter",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
       "id": 3,
@@ -42,13 +62,15 @@
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 14 },
       "id": 4,
       "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
       "targets": [
-        { "editorMode": "code", "expr": "sum(azure_eventgrid_eventsubscription_delivery_success_count{resource_name=~\".*invitation.*\"})", "legendFormat": "Event Grid entregas OK", "range": true, "refId": "A" },
-        { "editorMode": "code", "expr": "sum(azure_eventgrid_eventsubscription_delivery_attempt_fail_count{resource_name=~\".*invitation.*\"})", "legendFormat": "intentos fallidos", "range": true, "refId": "B" },
-        { "editorMode": "code", "expr": "sum(azure_eventgrid_eventsubscription_dead_lettered_count{resource_name=~\".*invitation.*\"})", "legendFormat": "dead-letter", "range": true, "refId": "C" }
+        { "editorMode": "code", "expr": "sum(azure_microsoft_eventgrid_topics_deliverysuccesscount_total_count)", "legendFormat": "entregas OK", "range": true, "refId": "A" },
+        { "editorMode": "code", "expr": "sum(azure_microsoft_eventgrid_topics_deliveryattemptfailcount_total_count)", "legendFormat": "intentos fallidos", "range": true, "refId": "B" },
+        { "editorMode": "code", "expr": "sum(azure_microsoft_eventgrid_topics_deadletteredcount_total_count)", "legendFormat": "dead-letter", "range": true, "refId": "C" },
+        { "editorMode": "code", "expr": "sum(azure_microsoft_eventgrid_topics_droppedeventcount_total_count)", "legendFormat": "descartados por Azure", "range": true, "refId": "D" },
+        { "editorMode": "code", "expr": "sum(azure_microsoft_eventgrid_topics_publishfailcount_total_count)", "legendFormat": "publicaciones fallidas", "range": true, "refId": "E" }
       ],
       "title": "Azure Event Grid (Azure Monitor)",
       "type": "timeseries"

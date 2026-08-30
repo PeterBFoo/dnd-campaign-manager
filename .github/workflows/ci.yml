@@ -64,6 +64,7 @@ jobs:
       - name: Validate production Container App template
         run: |
           rendered_template="$RUNNER_TEMP/container-app-api.yaml"
+          AZURE_SUBSCRIPTION_ID=00000000-0000-0000-0000-000000000000 \
           AZURE_RESOURCE_GROUP=dnd-test \
           AZURE_CONTAINER_APP=dnd-campaign-api \
           CONTAINER_APP_REVISION_SUFFIX=app-123456789abc \
@@ -99,6 +100,7 @@ jobs:
             .properties.template.containers[]
             | select(.name == "alloy")
             | .image == "ghcr.io/example/alloy:123456789abc"
+              and (.env | any(.name == "AZURE_SUBSCRIPTION_ID" and .value == "00000000-0000-0000-0000-000000000000"))
           ' "$rendered_template"
       - name: Validate Alloy configuration
         run: |

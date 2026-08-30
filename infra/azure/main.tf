@@ -91,6 +91,11 @@ resource "azurerm_container_app" "api" {
         name        = "GRAFANA_CLOUD_AUTHORIZATION"
         secret_name = "grafana-cloud-authorization"
       }
+
+      env {
+        name  = "AZURE_SUBSCRIPTION_ID"
+        value = data.azurerm_client_config.current.subscription_id
+      }
     }
   }
 
@@ -123,6 +128,10 @@ resource "azurerm_container_app" "postgres_exporter" {
   resource_group_name          = azurerm_resource_group.production.name
   revision_mode                = "Single"
   tags                         = var.tags
+
+  identity {
+    type = "SystemAssigned"
+  }
 
   # GitHub Actions owns the runtime secrets and the immutable Alloy image.
   # Terraform only establishes the private application boundary and safe
@@ -178,6 +187,11 @@ resource "azurerm_container_app" "postgres_exporter" {
         name        = "GRAFANA_CLOUD_AUTHORIZATION"
         secret_name = "grafana-cloud-authorization"
       }
+
+      env {
+        name  = "AZURE_SUBSCRIPTION_ID"
+        value = data.azurerm_client_config.current.subscription_id
+      }
     }
   }
 
@@ -226,8 +240,10 @@ resource "azurerm_role_assignment" "api_character_images" {
   principal_id         = azurerm_container_app.api.identity[0].principal_id
 }
 
-resource "azurerm_eventgrid_topic" "invitation_events" {
-  name                = "dnd-campaign-invitation-events"
+resource "azurerm_eventgrid_topic" "events" {
+  for_each = var.eventgrid_topics
+
+  name                = each.value.name
   location            = azurerm_resource_group.production.location
   resource_group_name = azurerm_resource_group.production.name
   input_schema        = "CloudEventSchemaV1_0"
@@ -240,14 +256,16 @@ resource "azurerm_storage_container" "eventgrid_deadletters" {
   container_access_type = "private"
 }
 
-resource "azurerm_eventgrid_event_subscription" "invitation_events" {
-  name  = "dnd-campaign-api-invitation-email"
-  scope = azurerm_eventgrid_topic.invitation_events.id
+resource "azurerm_eventgrid_event_subscription" "api_webhook" {
+  for_each = var.eventgrid_topics
 
-  included_event_types = ["All"]
+  name  = each.value.subscription_name
+  scope = azurerm_eventgrid_topic.events[each.key].id
+
+  included_event_types = each.value.included_event_types
 
   webhook_endpoint {
-    url                            = "https://${azurerm_container_app.api.ingress[0].fqdn}/internal/events/invitation-email"
+    url                            = "https://${azurerm_container_app.api.ingress[0].fqdn}${each.value.webhook_path}"
     active_directory_tenant_id     = var.eventgrid_webhook_tenant_id
     active_directory_app_id_or_uri = var.eventgrid_webhook_audience
   }
@@ -264,12 +282,37 @@ resource "azurerm_eventgrid_event_subscription" "invitation_events" {
 }
 
 resource "azurerm_role_assignment" "api_eventgrid_sender" {
-  scope                = azurerm_eventgrid_topic.invitation_events.id
+  for_each = var.eventgrid_topics
+
+  scope                = azurerm_eventgrid_topic.events[each.key].id
   role_definition_name = "EventGrid Data Sender"
   principal_id         = azurerm_container_app.api.identity[0].principal_id
 }
 
+resource "azurerm_role_assignment" "eventgrid_metrics_reader" {
+  for_each = var.eventgrid_topics
+
+  scope                = azurerm_eventgrid_topic.events[each.key].id
+  role_definition_name = "Monitoring Reader"
+  principal_id         = azurerm_container_app.postgres_exporter.identity[0].principal_id
+}
+
 output "eventgrid_topic_endpoint" {
-  value       = azurerm_eventgrid_topic.invitation_events.endpoint
+  value       = azurerm_eventgrid_topic.events["invitation_email"].endpoint
   description = "Event Grid topic endpoint used by the API publisher."
+}
+
+moved {
+  from = azurerm_eventgrid_topic.invitation_events
+  to   = azurerm_eventgrid_topic.events["invitation_email"]
+}
+
+moved {
+  from = azurerm_eventgrid_event_subscription.invitation_events
+  to   = azurerm_eventgrid_event_subscription.api_webhook["invitation_email"]
+}
+
+moved {
+  from = azurerm_role_assignment.api_eventgrid_sender
+  to   = azurerm_role_assignment.api_eventgrid_sender["invitation_email"]
 }

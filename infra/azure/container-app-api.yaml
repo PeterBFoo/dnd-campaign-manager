@@ -130,6 +130,10 @@
           },
           "env": [
             {
+              "name": "AZURE_SUBSCRIPTION_ID",
+              "value": "placeholder"
+            },
+            {
               "name": "GRAFANA_CLOUD_OTLP_ENDPOINT",
               "value": "https://invalid.example.invalid/otlp"
             },

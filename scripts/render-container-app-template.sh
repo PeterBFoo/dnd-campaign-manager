@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-required_variables="AZURE_RESOURCE_GROUP AZURE_CONTAINER_APP CONTAINER_APP_REVISION_SUFFIX API_IMAGE ALLOY_IMAGE CHARACTER_STORAGE_SERVICE_URI ADVENTURE_CATALOG_STORAGE_SERVICE_URI FRONTEND_ORIGIN FRONTEND_BASE_URL EVENTGRID_TOPIC_ENDPOINT EVENTGRID_TENANT_ID EVENTGRID_AUDIENCE GRAFANA_CLOUD_OTLP_ENDPOINT"
+required_variables="AZURE_SUBSCRIPTION_ID AZURE_RESOURCE_GROUP AZURE_CONTAINER_APP CONTAINER_APP_REVISION_SUFFIX API_IMAGE ALLOY_IMAGE CHARACTER_STORAGE_SERVICE_URI ADVENTURE_CATALOG_STORAGE_SERVICE_URI FRONTEND_ORIGIN FRONTEND_BASE_URL EVENTGRID_TOPIC_ENDPOINT EVENTGRID_TENANT_ID EVENTGRID_AUDIENCE GRAFANA_CLOUD_OTLP_ENDPOINT"
 for variable_name in $required_variables; do
   eval "variable_value=\${$variable_name:-}"
   if [ -z "$variable_value" ]; then
@@ -23,6 +23,7 @@ fi
 
 jq \
   --arg app_name "$AZURE_CONTAINER_APP" \
+  --arg azure_subscription_id "$AZURE_SUBSCRIPTION_ID" \
   --arg resource_group "$AZURE_RESOURCE_GROUP" \
   --arg revision_suffix "$CONTAINER_APP_REVISION_SUFFIX" \
   --arg api_image "$API_IMAGE" \
@@ -61,6 +62,7 @@ jq \
     | set_env_value("api"; "Frontend__BaseUrl"; $frontend_base_url)
     | set_env_value("api"; "Cors__AllowedOrigins__0"; $frontend_origin)
     | set_env_value("api"; "OTEL_EXPORTER_OTLP_ENDPOINT"; $grafana_cloud_otlp_endpoint)
+    | set_env_value("alloy"; "AZURE_SUBSCRIPTION_ID"; $azure_subscription_id)
     | set_env_value("alloy"; "GRAFANA_CLOUD_OTLP_ENDPOINT"; $grafana_cloud_otlp_endpoint)
   ' \
   "$container_app_source"

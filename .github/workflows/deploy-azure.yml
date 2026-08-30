@@ -73,6 +73,7 @@ jobs:
       - name: Deploy immutable multi-container API revision
         env:
           AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
           AZURE_CONTAINER_APP: ${{ vars.AZURE_CONTAINER_APP }}
           API_IMAGE: ghcr.io/peterbfoo/dnd-campaign-api:${{ env.DEPLOY_SHA }}
           ALLOY_IMAGE: ghcr.io/peterbfoo/dnd-campaign-alloy:${{ env.DEPLOY_SHA }}
