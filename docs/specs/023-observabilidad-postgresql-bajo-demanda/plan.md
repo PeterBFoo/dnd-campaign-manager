@@ -1,6 +1,6 @@
 # Plan 023: observabilidad PostgreSQL bajo demanda
 
-- Estado: En ejecución; fase A productiva pendiente
+- Estado: Ejecutado; seguimiento diferido de coste y entrega funcional
 - Fecha: 2026-08-30
 - Especificación: [spec.md](spec.md)
 - ADR: [ADR-0010](../../adr/0010-observabilidad-postgresql-bajo-demanda.md)
@@ -72,7 +72,7 @@ La convivencia será breve y estará identificada para no confundir dos scrapes 
 ### Fase B: retirada
 
 1. Conservar evidencia de las comprobaciones de la fase A.
-2. Aplicar Terraform para retirar la Container App independiente y sus referencias.
+2. Retirar la Container App independiente, eliminarla del estado local y retirar sus referencias de Terraform.
 3. Eliminar la variable de GitHub `AZURE_POSTGRES_EXPORTER_APP` y cualquier secreto exclusivo del recurso retirado.
 4. Verificar el inventario Azure y esperar el retraso de Cost Management antes de confirmar ausencia de nuevos cargos.
 5. Actualizar estados del spec 022 y 023, roadmap, diagramas y runbooks con evidencia de producción.
@@ -118,3 +118,7 @@ La convivencia será breve y estará identificada para no confundir dos scrapes 
 - Borrar el recurso independiente antes de observar métricas desde la nueva revisión.
 - Interpretar la coexistencia como duplicación real de conexiones o actividad.
 - Declarar ahorro antes de que Cost Management complete la ingestión.
+
+## Resultado productivo
+
+La migración se ejecutó los días 2026-08-30 y 2026-08-31. `dnd-campaign-api` contiene los tres contenedores y conserva `minReplicas = 0`; `dnd-postgres-observability` ya no existe. La identidad de la API heredó `Monitoring Reader` sobre el topic antes de retirar la identidad anterior. El arranque desde cero por Event Grid quedó demostrado, aunque la primera validación agotó su ventana y respondió `503`; la política de reintentos del broker cubre ese arranque en frío. Cost Management y una entrega funcional real permanecen como comprobaciones diferidas.

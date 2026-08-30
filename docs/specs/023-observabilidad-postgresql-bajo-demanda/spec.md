@@ -1,6 +1,6 @@
 # Spec 023: observabilidad PostgreSQL bajo demanda
 
-- Estado: En implementación; despliegue y verificación productiva pendientes
+- Estado: Implementada en producción; seguimiento de coste y entrega funcional diferidos
 - Fecha: 2026-08-30
 - Tipo: incremento técnico vertical de coste y observabilidad
 - Roadmap: [roadmap funcional](../../roadmap/product-roadmap.md), infraestructura transversal sin ampliación funcional
@@ -19,9 +19,9 @@ Conservar las métricas PostgreSQL durante las ventanas en que la aplicación es
 
 ## Estado actual verificado
 
-- `dnd-campaign-api` usa Consumption, ingress HTTPS, regla HTTP, `minReplicas = 0` y `maxReplicas = 1`.
+- `dnd-campaign-api` usa Consumption, ingress HTTPS, regla HTTP, `minReplicas = 0` y `maxReplicas = 1`; su revisión productiva contiene API, exporter y Alloy.
 - Event Grid entrega invitaciones mediante push HTTPS al endpoint interno de la API y puede reactivarla desde cero.
-- `dnd-postgres-observability` no tiene ingress, contiene exporter y Alloy y mantiene `minReplicas = 1`.
+- `dnd-postgres-observability` fue retirada de Azure el 2026-08-31 después de verificar la revisión conjunta.
 - Alloy scrapea `127.0.0.1:9187` cada quince segundos y envía las métricas por OTLP HTTPS a Grafana Cloud.
 - La API exporta su propia telemetría directamente a Grafana Cloud; no necesita Alloy para atender peticiones.
 - La topología local de Compose usa un exporter separado dentro de la red local y no genera coste Azure.
@@ -105,3 +105,12 @@ Conservar las métricas PostgreSQL durante las ventanas en que la aplicación es
 ## Condiciones de revisión
 
 La decisión se revisará si la API permanece activa de forma sostenida, si los huecos impiden diagnosticar incidentes de base de datos, si el arranque conjunto incumple el objetivo operativo, si los auxiliares afectan a la disponibilidad funcional o si el coste medido deja de ser inferior al de una alternativa aislada o administrada.
+
+## Evidencia productiva
+
+- CI `33308275974` y despliegue `33308334455` completados para `5cefdf6`, incluidos `alloy validate`, smoke test y publicación de dashboards.
+- Revisión `dnd-campaign-api--app-5cefdf61f159` aceptada por Azure con tres contenedores, `0.75` vCPU, `1.5 GiB`, mínimo cero y máximo uno.
+- Exporter conectado al endpoint directo de Neon y Alloy iniciado con scrape PostgreSQL, consulta de Event Grid y exportación OTLP sin errores de configuración.
+- Azure mostró la transición a cero durante la inactividad y el handshake de Event Grid volvió a crear una réplica. La primera validación en frío recibió `503` antes de finalizar el arranque; con la réplica activa, el webhook autenticado validó correctamente. Las entregas funcionales conservan la política productiva de hasta 30 reintentos.
+- Tras la retirada, Azure conserva únicamente `dnd-campaign-api`; la suscripción temporal de validación y el rol de la identidad retirada también fueron eliminados.
+- Quedan como seguimiento diferido una invitación real de extremo a extremo, la consulta directa de `pg_up` en Grafana Cloud y la confirmación de Cost Management tras su retraso de ingestión.

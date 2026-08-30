@@ -1,6 +1,6 @@
 # Spec 022: métricas de PostgreSQL en Grafana Cloud
 
-- Estado: Implementada; pendiente de verificación productiva
+- Estado: Implementada; unidad productiva sustituida por el spec 023
 - Fecha: 2026-08-29
 - Tipo: incremento técnico vertical de observabilidad
 - Roadmap: [roadmap funcional](../../roadmap/product-roadmap.md), infraestructura de observabilidad de ADR-0001

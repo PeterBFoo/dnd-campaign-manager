@@ -118,88 +118,6 @@ resource "azurerm_container_app" "api" {
   }
 }
 
-# Phase A of spec 023 deliberately retains this resource at its last known
-# revision while the workflow deploys the shared API revision. It must be
-# removed from Terraform in phase B only after production evidence confirms
-# HTTP/Event Grid activation, PostgreSQL metrics, scale-to-zero and rollback.
-resource "azurerm_container_app" "postgres_exporter" {
-  name                         = var.postgres_exporter_name
-  container_app_environment_id = azurerm_container_app_environment.production.id
-  resource_group_name          = azurerm_resource_group.production.name
-  revision_mode                = "Single"
-  tags                         = var.tags
-
-  identity {
-    type = "SystemAssigned"
-  }
-
-  # GitHub Actions owns the runtime secrets and the immutable Alloy image.
-  # Terraform only establishes the private application boundary and safe
-  # placeholders for the first revision.
-  secret {
-    name  = "postgres-dsn"
-    value = "postgresql://placeholder:placeholder@example.invalid/postgres?sslmode=require"
-  }
-
-  secret {
-    name  = "grafana-cloud-authorization"
-    value = "Basic placeholder"
-  }
-
-  template {
-    min_replicas = 1
-    max_replicas = 1
-
-    container {
-      name   = "postgres-exporter"
-      image  = "quay.io/prometheuscommunity/postgres-exporter:v0.20.1"
-      cpu    = 0.25
-      memory = "0.5Gi"
-
-      env {
-        name        = "DATA_SOURCE_NAME"
-        secret_name = "postgres-dsn"
-      }
-
-      env {
-        name  = "PG_EXPORTER_COLLECTION_TIMEOUT"
-        value = "30s"
-      }
-
-      env {
-        name  = "PG_EXPORTER_DISABLE_DEFAULT_METRICS"
-        value = "false"
-      }
-    }
-
-    container {
-      name   = "alloy"
-      image  = "grafana/alloy:v1.19.2"
-      cpu    = 0.25
-      memory = "0.5Gi"
-
-      env {
-        name  = "GRAFANA_CLOUD_OTLP_ENDPOINT"
-        value = "https://invalid.example.invalid/otlp"
-      }
-
-      env {
-        name        = "GRAFANA_CLOUD_AUTHORIZATION"
-        secret_name = "grafana-cloud-authorization"
-      }
-
-      env {
-        name  = "AZURE_SUBSCRIPTION_ID"
-        value = data.azurerm_client_config.current.subscription_id
-      }
-    }
-  }
-
-  lifecycle {
-    ignore_changes = [template, secret]
-  }
-}
-
 resource "azurerm_storage_account" "character_images" {
   name                            = var.character_storage_account_name
   resource_group_name             = azurerm_resource_group.production.name
@@ -294,7 +212,7 @@ resource "azurerm_role_assignment" "eventgrid_metrics_reader" {
 
   scope                = azurerm_eventgrid_topic.events[each.key].id
   role_definition_name = "Monitoring Reader"
-  principal_id         = azurerm_container_app.postgres_exporter.identity[0].principal_id
+  principal_id         = azurerm_container_app.api.identity[0].principal_id
 }
 
 output "eventgrid_topic_endpoint" {

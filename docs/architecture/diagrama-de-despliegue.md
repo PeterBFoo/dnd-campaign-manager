@@ -127,6 +127,6 @@ GitHub Pages contiene únicamente HTML, CSS, JavaScript y `config.js` con la URL
 
 Solo ASP.NET Core recibe ingress. `postgres-exporter` usa el DSN secreto de Neon y expone métricas únicamente en loopback; Alloy las scrapea y las reenvía a Grafana Cloud por OTLP HTTPS. Los tres contenedores comparten el ciclo de la réplica: una petición web o Event Grid los activa y todos se detienen al escalar a cero.
 
-Durante la fase A del spec 023, la antigua `dnd-postgres-observability` se conserva sin nuevas revisiones como rollback. Se elimina en la fase B únicamente después de verificar métricas, escala y recuperación de la Container App conjunta.
+La fase B del spec 023 retiró `dnd-postgres-observability` el 2026-08-31. Azure conserva una sola Container App de aplicación; el rollback posterior requiere recrear explícitamente la topología anterior mediante una reversión de infraestructura.
 
 La infraestructura se describe en `infra/azure`. Terraform crea el grupo de recursos, el entorno Consumption, la Container App, su identidad administrada y la cuenta Blob privada, pero no recibe secretos funcionales. GitHub Actions configura cada revisión mediante OIDC y secrets del environment `production`.

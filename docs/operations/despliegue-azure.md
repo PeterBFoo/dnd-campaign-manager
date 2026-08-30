@@ -8,7 +8,7 @@
 
 La topología objetivo del spec 023 usa un grupo de recursos, un entorno Azure Container Apps Consumption, una Container App conjunta y una cuenta StorageV2 Standard LRS. La revisión contiene ASP.NET Core, PostgreSQL exporter y Alloy, con `0.25` vCPU y `0.5 GiB` por contenedor: `0.75` vCPU y `1.5 GiB` en total, mínimo cero y máximo una réplica. Solo ASP.NET Core recibe ingress. No se crea VM, Azure Container Registry, IP pública dedicada, Log Analytics ni PostgreSQL de Azure.
 
-Durante la fase A se conserva temporalmente `dnd-postgres-observability` para rollback, aunque el workflow deja de actualizarla. No debe retirarse mediante Terraform hasta verificar la revisión conjunta, su activación por HTTP y Event Grid, `pg_up`, el retorno a cero réplicas y la ruta de rollback.
+La fase B retiró `dnd-postgres-observability` el 2026-08-31 después de verificar la revisión conjunta y su transición `1 → 0 → 1`. Terraform ya no declara ese recurso, variable ni output.
 
 Angular se publica en GitHub Pages, PostgreSQL reside en Neon Free y la telemetría se envía a Grafana Cloud Free. Azure Blob Storage se factura por capacidad y operaciones, aunque el volumen inicial sea pequeño; debe existir un presupuesto Azure con avisos. Los planes gratuitos no tienen SLA.
 
@@ -85,7 +85,7 @@ El workflow deriva `postgres-dsn` de la misma conexión y `grafana-cloud-authori
 8. Dejar la API sin tráfico, confirmar `Replicas == 0` después del enfriamiento y reactivarla mediante una entrega de Event Grid.
 9. Crear un personaje con imagen y comprobar que el blob permanece privado y que otro jugador no puede modificarlo.
 
-La ausencia de series PostgreSQL mientras `Replicas == 0` es esperada. Con una réplica activa, la ausencia de scrape o `pg_up == 0` sí requiere diagnóstico. Durante la fase A pueden coexistir dos exporters; esta duplicidad debe ser breve y verificarse por las etiquetas de revisión antes de interpretar los paneles.
+La ausencia de series PostgreSQL mientras `Replicas == 0` es esperada. Con una réplica activa, la ausencia de scrape o `pg_up == 0` sí requiere diagnóstico. Ya no existe una segunda fuente productiva del exporter.
 
 ## Imágenes y recuperación
 
@@ -95,4 +95,4 @@ La API puede tardar varios segundos en responder a la primera petición después
 
 ## Recuperación y retirada
 
-Las revisiones de Container Apps permiten volver a una imagen anterior. Antes de retirar `dnd-postgres-observability`, debe demostrarse que la revisión conjunta puede volver a cero, reactivarse y publicar métricas; hasta entonces el recurso anterior constituye el rollback operativo. La base de datos debe contar con un procedimiento probado de exportación y restauración antes de aceptar datos reales. Si se abandona Azure, `terraform destroy` se ejecutará únicamente tras verificar el grupo de recursos exacto y conservar las copias necesarias.
+Las revisiones de Container Apps permiten volver a una imagen anterior. Tras la fase B, recuperar la topología separada exige revertir Terraform y volver a aprovisionar `dnd-postgres-observability`; no hay una réplica permanente de rollback. El handshake de Event Grid desde cero puede recibir un `503` mientras arranca la revisión, por lo que la entrega depende de la política configurada de hasta 30 reintentos y TTL de 24 horas. La base de datos debe contar con un procedimiento probado de exportación y restauración antes de aceptar datos reales. Si se abandona Azure, `terraform destroy` se ejecutará únicamente tras verificar el grupo de recursos exacto y conservar las copias necesarias.

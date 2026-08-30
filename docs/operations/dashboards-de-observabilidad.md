@@ -103,7 +103,7 @@ En local, Prometheus recibe las métricas OpenTelemetry de la API y consulta `po
 - Los umbrales visuales son valores iniciales; deben revisarse con carga real y objetivos SLO aceptados.
 - El exporter usa el usuario configurado para PostgreSQL en el entorno actual. Antes de un despliegue compartido debe provisionarse un usuario de monitorización con privilegios mínimos.
 - El dashboard PostgreSQL detallado depende de `postgres-exporter`. Cuando Azure Monitor muestra `Replicas == 0`, la ausencia de series es esperada y no constituye una caída. Con una réplica activa, el dashboard debe mostrar `pg_up == 1`; si no hay datos, revisar los contenedores exporter/Alloy y la conexión a Neon.
-- Durante la convivencia de fase A pueden existir dos fuentes de métricas. Deben distinguirse por revisión y no prolongarse después de validar la topología conjunta.
+- Desde la retirada de `dnd-postgres-observability` el 2026-08-31 solo debe existir la fuente `deployment_topology="api-sidecar"`; una segunda fuente indica deriva o una recreación de rollback.
 - `grafana/otel-lgtm` continúa siendo una solución local, de demostración y pruebas. En producción, los mismos dashboards requieren datasources compatibles con Prometheus, Tempo y Loki, pero la topología y retención deben definirse para el proveedor de destino.
 
 La comprobación posterior al despliegue se automatiza con `scripts/smoke-test.sh`. Exige `BASE_URL` y admite `GRAFANA_URL` cuando Grafana sea accesible desde el ejecutor.

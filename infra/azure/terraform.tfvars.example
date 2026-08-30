@@ -3,7 +3,6 @@ resource_group_name            = "dnd-campaign-manager-production"
 container_app_environment_name = "dnd-campaign-production"
 character_storage_account_name = "replacewithgloballyunique"
 api_name                       = "dnd-campaign-api"
-postgres_exporter_name         = "dnd-postgres-observability"
 frontend_origin                = "https://peterbfoo.github.io"
 
 # Cada entrada crea un topic CloudEvents 1.0, su suscripción webhook autenticada,
