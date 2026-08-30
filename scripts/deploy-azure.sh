@@ -19,7 +19,7 @@ case "$GRAFANA_CLOUD_OTLP_HEADERS" in
 esac
 
 grafana_cloud_authorization=$(printf '%s' "${GRAFANA_CLOUD_OTLP_HEADERS#Authorization=}" | sed 's/%20/ /g')
-postgres_exporter_connection_string=$(printf '%s' "$DATABASE_CONNECTION_STRING" | sed 's/-pooler\\././')
+postgres_exporter_connection_string=$(printf '%s' "$DATABASE_CONNECTION_STRING" | sed 's/-pooler\././')
 deploy_revision_id=$(printf '%s' "${DEPLOY_SHA:-$(date +%s)}" | cut -c1-12)
 container_app_rendered=$(mktemp "${TMPDIR:-/tmp}/dnd-container-app.XXXXXX.yaml")
 trap 'rm -f "$container_app_rendered"' EXIT
