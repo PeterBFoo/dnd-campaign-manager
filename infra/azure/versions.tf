@@ -16,3 +16,5 @@ provider "azurerm" {
   # Avoid AzureRM's default registration of unrelated paid services.
   resource_provider_registrations = "none"
 }
+
+data "azurerm_client_config" "current" {}

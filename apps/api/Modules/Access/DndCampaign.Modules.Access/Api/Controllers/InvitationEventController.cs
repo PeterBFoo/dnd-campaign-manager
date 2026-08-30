@@ -37,19 +37,17 @@ internal sealed class InvitationEventController(
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> Receive(
-        [FromBody] IReadOnlyList<CloudEventRequest>? events,
+        [FromBody] CloudEventRequest? cloudEvent,
         CancellationToken cancellationToken)
     {
-        if (events is null || events.Count != 1)
+        if (cloudEvent is null)
         {
             return BadRequest(new ProblemDetails
             {
                 Status = StatusCodes.Status400BadRequest,
-                Title = "Se esperaba exactamente un evento CloudEvent.",
+                Title = "Se esperaba un evento CloudEvent.",
             });
         }
-
-        var cloudEvent = events[0];
         if (string.Equals(cloudEvent.Type, "Microsoft.EventGrid.SubscriptionValidationEvent", StringComparison.Ordinal)
             && cloudEvent.Data is { } validationData
             && validationData.TryGetProperty("validationCode", out var validationCode))

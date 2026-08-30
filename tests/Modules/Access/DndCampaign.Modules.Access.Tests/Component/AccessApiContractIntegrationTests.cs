@@ -40,9 +40,24 @@ public sealed class AccessApiContractIntegrationTests
         client.DefaultRequestHeaders.TryAddWithoutValidation("X-Event-Grid-Test", "1");
         using var malformed = await client.PostAsJsonAsync(
             "/internal/events/invitation-email",
-            Array.Empty<object>(),
+            new { },
             TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, malformed.StatusCode);
+
+        using var subscriptionValidation = await client.PostAsJsonAsync(
+            "/internal/events/invitation-email",
+            new
+            {
+                id = Guid.NewGuid().ToString("N"),
+                type = "Microsoft.EventGrid.SubscriptionValidationEvent",
+                data = new { validationCode = "cloud-events-object-contract" },
+            },
+            TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, subscriptionValidation.StatusCode);
+        Assert.Equal(
+            "cloud-events-object-contract",
+            (await subscriptionValidation.Content.ReadFromJsonAsync<JsonElement>(
+                TestContext.Current.CancellationToken)).GetProperty("validationResponse").GetString());
 
         using var validationRequest = new HttpRequestMessage(
             HttpMethod.Options,

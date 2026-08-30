@@ -5,3 +5,19 @@ character_storage_account_name = "replacewithgloballyunique"
 api_name                       = "dnd-campaign-api"
 postgres_exporter_name         = "dnd-postgres-observability"
 frontend_origin                = "https://peterbfoo.github.io"
+
+# Cada entrada crea un topic CloudEvents 1.0, su suscripción webhook autenticada,
+# dead-letter compartido, permisos de publicación y lectura de métricas.
+eventgrid_topics = {
+  invitation_email = {
+    name              = "dnd-campaign-invitation-events"
+    subscription_name = "dnd-campaign-api-invitation-email"
+    webhook_path      = "/internal/events/invitation-email"
+  }
+  # campaign_events = {
+  #   name                 = "dnd-campaign-domain-events"
+  #   subscription_name    = "dnd-campaign-api-domain-events"
+  #   webhook_path         = "/internal/events/campaigns"
+  #   included_event_types = ["campaign.created.v1", "campaign.updated.v1"]
+  # }
+}

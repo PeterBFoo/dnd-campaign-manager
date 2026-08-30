@@ -62,6 +62,13 @@ tópico y la suscripción de Event Grid (`PublishFailCount`, `DeliveryAttemptFai
 o entrega sostenidos durante 5 minutos, cualquier incremento de dead-letter y ausencia
 de eventos procesados durante 15 minutos cuando existan invitaciones emitidas.
 
+En producción, Alloy consulta Azure Monitor cada minuto usando su identidad administrada
+y exporta a Grafana Cloud las métricas de todos los topics con la etiqueta
+`application=dnd-campaign-manager`. Por eso los fallos de entrega, los eventos descartados
+y los dead letters aparecen aunque la petición nunca alcance el código de la API. Azure
+publica estas métricas con cierto retraso; el colector consulta una ventana de 15 minutos
+para no perder puntos todavía en proceso de agregación.
+
 ## Referencias utilizadas
 
 La selección toma como base los dashboards de ASP.NET Core y endpoint publicados por el equipo .NET en Grafana, las métricas integradas de ASP.NET Core y la integración oficial de PostgreSQL de Grafana. Los JSON del proyecto son propios porque fijan el datasource `prometheus`, los nombres de servicio y las etiquetas que realmente produce este repositorio.

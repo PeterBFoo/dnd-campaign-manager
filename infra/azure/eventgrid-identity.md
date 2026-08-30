@@ -16,9 +16,27 @@ de audiencia como configuración no secreta. Los secretos de Brevo y PostgreSQL 
 siendo referencias secretas de Container Apps. La identidad administrada de la API
 recibe `EventGrid Data Sender` únicamente sobre el tópico provisionado por Terraform.
 
-La validación del webhook de Event Grid (`Microsoft.EventGrid.SubscriptionValidationEvent`)
-se responde automáticamente; los eventos de correo requieren el rol de aplicación y
-se rechazan si el lote no contiene exactamente un CloudEvent conocido.
+La validación CloudEvents se responde mediante `OPTIONS`; los eventos de correo requieren
+el rol de aplicación y el endpoint recibe un único objeto CloudEvent estructurado.
+
+## Crear tópicos adicionales
+
+Los tópicos no se crean manualmente desde el portal. Se añade una entrada a
+`eventgrid_topics` en el fichero `tfvars` del entorno, siguiendo el ejemplo de
+`terraform.tfvars.example`, y se ejecutan `terraform plan` y `terraform apply` desde
+`infra/azure`. Cada entrada crea conjuntamente:
+
+- el topic con esquema de entrada CloudEvents 1.0;
+- la suscripción al webhook autenticado de la API;
+- la política de 30 reintentos y TTL de 24 horas;
+- el destino privado de dead-letter;
+- `EventGrid Data Sender` para la identidad de la API;
+- `Monitoring Reader` para Alloy, de modo que el nuevo topic aparezca en Grafana.
+
+Antes del `apply` debe existir el endpoint indicado por `webhook_path`, aceptar un solo
+objeto CloudEvent y responder correctamente al `OPTIONS` de validación. La clave del mapa
+es estable y no debe renombrarse después de crear el recurso; el filtro
+`included_event_types` permite limitar los tipos entregados.
 
 Tras desplegar por primera vez, se puede repoblar una vez el tópico con los mensajes
 pendientes que ya existían en PostgreSQL:
