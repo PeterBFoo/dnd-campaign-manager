@@ -12,7 +12,7 @@ prometheus.scrape "postgres" {
 prometheus.exporter.azure "eventgrid" {
   subscriptions = [sys.env("AZURE_SUBSCRIPTION_ID")]
   resource_type = "Microsoft.EventGrid/topics"
-  resource_graph_query_filter = "| where tags['application'] == 'dnd-campaign-manager'"
+  resource_graph_query_filter = "where tags['application'] == 'dnd-campaign-manager'"
   metrics = [
     "PublishSuccessCount",
     "PublishFailCount",
