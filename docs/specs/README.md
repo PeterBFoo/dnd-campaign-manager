@@ -72,8 +72,9 @@ Descompone el plan aprobado en tareas pequeñas, ordenadas y verificables. Cada 
 | [021: broker de eventos y entrega asíncrona de correo](021-broker-eventos-correo/spec.md) | Implementada; verificación de build/despliegue pendiente | Sustitución del sondeo PostgreSQL por eventos push, entrega de correo con Brevo, escala a cero y observabilidad Grafana en Azure |
 | [022: métricas de PostgreSQL en Grafana Cloud](022-exporter-postgresql-grafana-cloud/spec.md) | Implementada; verificación productiva pendiente | Exporter privado y pipeline Alloy/OTLP para publicar métricas PostgreSQL de producción |
 | [023: observabilidad PostgreSQL bajo demanda](023-observabilidad-postgresql-bajo-demanda/spec.md) | Implementada en producción; seguimiento de coste y entrega funcional diferidos | Integración de exporter y Alloy en la réplica de la API para conservar métricas durante la actividad y eliminar cómputo permanente |
+| [024: navegación y UX Angular](024-navegacion-ux-angular/spec.md) | Completada | Shell autenticado adaptable, navegación contextual y lenguaje visual común para las capacidades existentes |
 
-El antiguo documento `001` se conserva como origen histórico de requisitos, pero ahora es el [roadmap de producto](../roadmap/product-roadmap.md) y no forma parte de la cola de specs ejecutables. El siguiente identificador libre es `024`.
+El antiguo documento `001` se conserva como origen histórico de requisitos, pero ahora es el [roadmap de producto](../roadmap/product-roadmap.md) y no forma parte de la cola de specs ejecutables. El siguiente identificador libre es `025`.
 
 ## Definición de terminado
 
