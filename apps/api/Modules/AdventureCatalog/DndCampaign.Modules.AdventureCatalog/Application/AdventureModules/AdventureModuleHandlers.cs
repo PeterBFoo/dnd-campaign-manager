@@ -525,8 +525,8 @@ internal static class AdventureModuleHandlerSupport
         module.Name,
         module.Description,
         module.Cover is null ? null : $"/api/v1/admin/adventure-modules/{module.Id}/cover",
-        ToDto(module.TextProvenance),
-        module.CoverProvenance is null ? null : ToDto(module.CoverProvenance),
+        ToProvenanceDto(module.TextProvenance),
+        module.CoverProvenance is null ? null : ToProvenanceDto(module.CoverProvenance),
         module.CreatedAt,
         module.UpdatedAt,
         module.Version);
@@ -562,7 +562,7 @@ internal static class AdventureModuleHandlerSupport
             "El módulo de aventura no es válido.",
             new Dictionary<string, string[]> { [field] = [description] }));
 
-    private static EditorialProvenance CreateProvenance(
+    internal static EditorialProvenance CreateProvenance(
         EditorialProvenanceInput input,
         Guid actorUserId,
         DateTimeOffset now)
@@ -581,7 +581,7 @@ internal static class AdventureModuleHandlerSupport
             actorUserId);
     }
 
-    private static EditorialProvenanceDto ToDto(EditorialProvenance provenance) => new(
+    internal static EditorialProvenanceDto ToProvenanceDto(EditorialProvenance provenance) => new(
         provenance.OriginKind.ToString(),
         provenance.SourceReference,
         provenance.RightsBasis,

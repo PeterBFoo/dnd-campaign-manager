@@ -30,7 +30,9 @@ describe('application routes', () => {
   });
 
   it('registers the platform adventure catalog routes', () => {
-    expect(ADVENTURE_CATALOG_ROUTES).toHaveLength(4);
+    expect(ADVENTURE_CATALOG_ROUTES.map((route) => route.path)).toContain('admin/adventure-modules/:moduleId/chapters');
+    expect(ADVENTURE_CATALOG_ROUTES.map((route) => route.path)).toContain('campaigns/:campaignId/adventure/chapters');
+    expect(ADVENTURE_CATALOG_ROUTES).toHaveLength(6);
     expect(ADVENTURE_CATALOG_ROUTES.every((route) => route.canActivate)).toBe(true);
   });
 });

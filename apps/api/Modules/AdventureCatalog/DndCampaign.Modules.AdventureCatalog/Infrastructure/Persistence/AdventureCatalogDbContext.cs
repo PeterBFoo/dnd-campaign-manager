@@ -1,4 +1,5 @@
 using DndCampaign.Modules.AdventureCatalog.Domain.AdventureModules;
+using DndCampaign.Modules.AdventureCatalog.Domain.Chapters;
 using Microsoft.EntityFrameworkCore;
 
 namespace DndCampaign.Modules.AdventureCatalog.Infrastructure.Persistence;
@@ -7,6 +8,7 @@ internal sealed class AdventureCatalogDbContext(DbContextOptions<AdventureCatalo
     : DbContext(options)
 {
     public DbSet<AdventureModule> AdventureModules => Set<AdventureModule>();
+    public DbSet<AdventureChapter> AdventureChapters => Set<AdventureChapter>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -27,6 +29,7 @@ internal sealed class AdventureCatalogDbContext(DbContextOptions<AdventureCatalo
             entity.Property(module => module.NormalizedName).HasMaxLength(120);
             entity.Property(module => module.Description).HasMaxLength(5000);
             entity.Property(module => module.Version).IsConcurrencyToken();
+            entity.Property(module => module.ChaptersVersion).IsConcurrencyToken();
             entity.HasIndex(module => module.NormalizedName).IsUnique();
             entity.HasIndex(module => new { module.UpdatedAt, module.Id });
 
@@ -41,6 +44,24 @@ internal sealed class AdventureCatalogDbContext(DbContextOptions<AdventureCatalo
             });
 
             ConfigureProvenance(entity.OwnsOne(module => module.CoverProvenance), "Cover");
+        });
+
+        modelBuilder.Entity<AdventureChapter>(entity =>
+        {
+            entity.ToTable("adventure_chapters", table =>
+            {
+                table.HasCheckConstraint("CK_adventure_chapters_position", "\"Position\" >= 1");
+                table.HasCheckConstraint("CK_adventure_chapters_version", "\"Version\" >= 1");
+            });
+            entity.HasKey(chapter => chapter.Id);
+            entity.Property(chapter => chapter.Id).ValueGeneratedNever();
+            entity.Property(chapter => chapter.Name).HasMaxLength(120);
+            entity.Property(chapter => chapter.Description).HasMaxLength(20000);
+            entity.Property(chapter => chapter.Version).IsConcurrencyToken();
+            entity.HasIndex(chapter => new { chapter.ModuleId, chapter.Position }).IsUnique();
+            entity.HasOne<AdventureModule>().WithMany().HasForeignKey(chapter => chapter.ModuleId).OnDelete(DeleteBehavior.Cascade);
+            ConfigureProvenance(entity.OwnsOne(chapter => chapter.Provenance), "Chapter");
+            entity.Navigation(chapter => chapter.Provenance).IsRequired();
         });
     }
 

@@ -3,6 +3,7 @@ using Azure.Storage.Blobs;
 using DndCampaign.Modules.AdventureCatalog.Api;
 using DndCampaign.Modules.AdventureCatalog.Application.AdventureModules;
 using DndCampaign.Modules.AdventureCatalog.Application.Ports;
+using DndCampaign.Modules.AdventureCatalog.Application.Chapters;
 using DndCampaign.Modules.AdventureCatalog.Contracts.Campaigns;
 using DndCampaign.Modules.AdventureCatalog.Infrastructure.Observability;
 using DndCampaign.Modules.AdventureCatalog.Infrastructure.Persistence;
@@ -43,6 +44,8 @@ public static class AdventureCatalogModule
         services.AddDbContext<AdventureCatalogDbContext>(options =>
             options.UseNpgsql(ResolveDatabaseConnectionString(configuration)));
         services.AddScoped<IAdventureModuleRepository, AdventureModuleRepository>();
+        services.AddScoped<IAdventureChapterRepository, AdventureChapterRepository>();
+        services.AddScoped<AdventureChapterService>();
         services.AddScoped<IAdventureModuleCampaignReader, AdventureModuleCampaignReader>();
         services.AddSingleton(new AdventureCatalogBlobContainer(
             CreateBlobContainerClient(configuration, environment)));
