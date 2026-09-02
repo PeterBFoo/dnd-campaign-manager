@@ -21,6 +21,7 @@
         @if (current.role === 'dm') {
           @if (current.adventureModuleId) { <a class="button-link" [routerLink]="['/campaigns', current.id, 'adventure', 'chapters']">Abrir capítulos</a> }
           @if (current.adventureModuleId) { <a class="button-link" [routerLink]="['/campaigns', current.id, 'adventure', 'maps']">Abrir mapas</a> }
+          @if (current.adventureModuleId) { <a class="button-link" [routerLink]="['/campaigns', current.id, 'adventure', 'locations']">Abrir localizaciones</a> }
           <a class="button-link" [routerLink]="['/campaigns', current.id, 'invitations']">Invitar jugadores</a>
         }
       </div>

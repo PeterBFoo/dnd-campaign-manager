@@ -1,6 +1,6 @@
 # Spec 016: Localizaciones y puntos de interés sobre mapas
 
-- Estado: Propuesta
+- Estado: Implementada; verificaciones PostgreSQL/Azurite pendientes
 - Fecha: 2026-08-29
 - Tipo: incremento funcional vertical
 - Roadmap: [roadmap funcional](../../roadmap/product-roadmap.md)
@@ -42,6 +42,7 @@ Permitir que el administrador mantenga localizaciones del módulo, las relacione
 - Sustituir el binario de un mapa conserva posiciones normalizadas.
 - Eliminar una localización elimina sus POI, placements y relaciones con capítulos; no elimina mapas ni capítulos.
 - Eliminar un mapa retira placements, referencias como mapa detallado y posiciones de POI; conserva localizaciones y POI.
+- Eliminar un módulo elimina en cascada todas sus localizaciones y, con ellas, sus POI, placements y relaciones con capítulos; ninguna fila dependiente puede quedar huérfana.
 - Los cambios se reflejan inmediatamente en todas las campañas asociadas al módulo.
 
 ## Recorrido web
@@ -92,6 +93,7 @@ No se crea `LocationMap` como tipo de mapa ni una jerarquía genérica de recurs
 9. Eliminar un mapa conserva localizaciones y POI, pero retira las referencias y posiciones que dependían de él.
 10. El DM consulta el resultado desde una campaña asociada; jugadores y usuarios ajenos reciben `403`.
 11. Las pruebas web, API, PostgreSQL y autorización cubren interacción visual, alternativa por teclado y efectos de borrado.
+12. Eliminar un módulo con localizaciones elimina también todos sus POI, placements y relaciones con capítulos, sin registros huérfanos.
 
 ## Fuera de alcance
 

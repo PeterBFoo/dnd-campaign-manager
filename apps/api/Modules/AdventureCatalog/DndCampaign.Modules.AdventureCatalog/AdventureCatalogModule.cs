@@ -5,6 +5,7 @@ using DndCampaign.Modules.AdventureCatalog.Application.AdventureModules;
 using DndCampaign.Modules.AdventureCatalog.Application.Ports;
 using DndCampaign.Modules.AdventureCatalog.Application.Chapters;
 using DndCampaign.Modules.AdventureCatalog.Application.Maps;
+using DndCampaign.Modules.AdventureCatalog.Application.Locations;
 using DndCampaign.Modules.AdventureCatalog.Contracts.Campaigns;
 using DndCampaign.Modules.AdventureCatalog.Infrastructure.Observability;
 using DndCampaign.Modules.AdventureCatalog.Infrastructure.Persistence;
@@ -48,6 +49,7 @@ public static class AdventureCatalogModule
         services.AddScoped<IAdventureChapterRepository, AdventureChapterRepository>();
         services.AddScoped<AdventureChapterService>();
         services.AddScoped<IAdventureMapRepository, AdventureMapRepository>();
+        services.AddScoped<IAdventureLocationRepository, AdventureLocationRepository>();
         services.AddScoped<IAdventureModuleCampaignReader, AdventureModuleCampaignReader>();
         services.AddSingleton(new AdventureCatalogBlobContainer(
             CreateBlobContainerClient(configuration, environment)));
@@ -61,6 +63,7 @@ public static class AdventureCatalogModule
         services.AddScoped<DeleteAdventureModuleHandler>();
         services.AddScoped<GetAdventureModuleCoverHandler>();
         services.AddScoped<AdventureMapService>();
+        services.AddScoped<AdventureLocationService>();
         services.AddOpenTelemetry().WithMetrics(metrics =>
             metrics.AddMeter(AdventureCatalogMetrics.MeterName));
         return services;

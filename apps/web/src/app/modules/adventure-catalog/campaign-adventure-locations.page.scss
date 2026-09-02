@@ -1,0 +1,6 @@
+.campaign-locations-layout { display: grid; grid-template-columns: minmax(260px, .7fr) minmax(0, 1.3fr); gap: 24px; align-items: start; }
+.location-image { position: relative; overflow: hidden; border: 1px solid var(--line); background: rgba(0,0,0,.22); }
+.location-image img { display: block; width: 100%; height: auto; }
+.marker { position: absolute; transform: translate(-50%, -50%); color: var(--rust); font-size: 2rem; line-height: 1; text-shadow: 0 0 2px var(--surface); }
+.item-row { display: flex; justify-content: space-between; gap: .75rem; padding: .65rem 0; border-bottom: 1px solid var(--line); }
+@media (max-width: 800px) { .campaign-locations-layout { grid-template-columns: 1fr; gap: 30px; } }
