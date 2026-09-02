@@ -2,9 +2,9 @@
 
 - Estado: vigente
 - ADR relacionados: [ADR-0001: plataforma y observabilidad](../adr/0001-monorepositorio-y-monolito-modular.md), [ADR-0002: identidad e invitaciones](../adr/0002-identidad-invitaciones-y-correo-transaccional.md), [ADR-0004: modularización backend](../adr/0004-arquitectura-modular-cqrs-y-limites-de-dependencia.md), [ADR-0005: modularización frontend](../adr/0005-frontend-modular-por-capacidades.md), [ADR-0006: campañas e invitaciones](../adr/0006-campanas-acceso-e-invitaciones.md) y [ADR-0007: imágenes privadas](../adr/0007-imagenes-privadas-de-personajes.md)
-- Alcance: componentes lógicos de plataforma, identidad, campañas, invitaciones, personajes, bitácora, misiones y combates
+- Alcance: componentes lógicos de plataforma, identidad, campañas, catálogo de aventura, mapas, personajes, bitácora, misiones y combates
 
-Esta vista describe las responsabilidades y dependencias de la plataforma. No define todavía componentes de dominio ni incorpora información específica de ninguna campaña.
+Esta vista describe las responsabilidades y dependencias de la plataforma y no incorpora información editorial concreta. `AdventureCatalog` posee módulos y mapas en PostgreSQL y Blob privado; `Campaigns` implementa su contrato público para que la lectura de mapas compruebe DM y módulo actual sin que AdventureCatalog consulte tablas ajenas.
 
 ```mermaid
 flowchart LR

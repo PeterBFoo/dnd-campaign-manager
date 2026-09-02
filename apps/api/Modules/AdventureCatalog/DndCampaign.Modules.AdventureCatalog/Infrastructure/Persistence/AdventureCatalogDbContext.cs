@@ -1,5 +1,6 @@
 using DndCampaign.Modules.AdventureCatalog.Domain.AdventureModules;
 using DndCampaign.Modules.AdventureCatalog.Domain.Chapters;
+using DndCampaign.Modules.AdventureCatalog.Domain.Maps;
 using Microsoft.EntityFrameworkCore;
 
 namespace DndCampaign.Modules.AdventureCatalog.Infrastructure.Persistence;
@@ -8,6 +9,7 @@ internal sealed class AdventureCatalogDbContext(DbContextOptions<AdventureCatalo
     : DbContext(options)
 {
     public DbSet<AdventureModule> AdventureModules => Set<AdventureModule>();
+    public DbSet<AdventureMap> AdventureMaps => Set<AdventureMap>();
     public DbSet<AdventureChapter> AdventureChapters => Set<AdventureChapter>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -62,6 +64,35 @@ internal sealed class AdventureCatalogDbContext(DbContextOptions<AdventureCatalo
             entity.HasOne<AdventureModule>().WithMany().HasForeignKey(chapter => chapter.ModuleId).OnDelete(DeleteBehavior.Cascade);
             ConfigureProvenance(entity.OwnsOne(chapter => chapter.Provenance), "Chapter");
             entity.Navigation(chapter => chapter.Provenance).IsRequired();
+        });
+
+        modelBuilder.Entity<AdventureMap>(entity =>
+        {
+            entity.ToTable("adventure_maps", table => table.HasCheckConstraint("CK_adventure_maps_version", "\"Version\" >= 1"));
+            entity.HasKey(map => map.Id);
+            entity.Property(map => map.Id).ValueGeneratedNever();
+            entity.Property(map => map.Name).HasMaxLength(120);
+            entity.Property(map => map.Description).HasMaxLength(10000);
+            entity.Property(map => map.Version).IsConcurrencyToken();
+            entity.HasIndex(map => new { map.ModuleId, map.UpdatedAt });
+            entity.HasOne<AdventureModule>().WithMany().HasForeignKey(map => map.ModuleId).OnDelete(DeleteBehavior.Cascade);
+            entity.OwnsOne(map => map.Image, image =>
+            {
+                image.Property(value => value.ObjectKey).HasColumnName("ImageObjectKey").HasMaxLength(512);
+                image.Property(value => value.ContentType).HasColumnName("ImageContentType").HasMaxLength(32);
+                image.Property(value => value.SizeBytes).HasColumnName("ImageSizeBytes");
+                image.Property(value => value.Width).HasColumnName("ImageWidth");
+                image.Property(value => value.Height).HasColumnName("ImageHeight");
+            });
+            ConfigureProvenance(entity.OwnsOne(map => map.ImageProvenance), "Image");
+            entity.HasMany(map => map.Chapters).WithOne().HasForeignKey(link => link.MapId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AdventureMapChapter>(entity =>
+        {
+            entity.ToTable("adventure_map_chapters");
+            entity.HasKey(link => new { link.MapId, link.ChapterId });
+            entity.HasOne<AdventureChapter>().WithMany().HasForeignKey(link => link.ChapterId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 

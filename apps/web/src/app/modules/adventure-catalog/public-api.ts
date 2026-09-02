@@ -1,5 +1,7 @@
 export { AdventureModulesClient } from './api/adventure-modules.client';
 export { AdventureChaptersClient } from './api/adventure-chapters.client';
+export { AdventureMapsClient } from './api/adventure-maps.client';
+export type { AdventureMap, AdventureMapChapter, MapProvenanceInput } from './api/adventure-maps.contracts';
 export type {
   AdventureModule,
   AdventureModuleOption,

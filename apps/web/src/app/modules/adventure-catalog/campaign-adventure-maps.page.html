@@ -1,0 +1,6 @@
+<main class="page-shell"><a class="back-link" [routerLink]="['/campaigns', campaignId]">← Volver a la campaña</a><section class="page-heading"><p class="eyebrow">Recursos de dirección</p><h1>Mapas del módulo</h1></section>
+  @if (error()) { <p class="form-error message" role="alert">{{ error() }}</p> } @if (loading()) { <p>Cargando…</p> }
+  <div class="maps-layout"><section class="panel">@if (!loading() && !maps().length) { <p class="muted">Este módulo todavía no tiene mapas.</p> } @for (map of maps(); track map.id) { <button class="map-row" type="button" (click)="open(map)"><strong>{{ map.name }}</strong><span>{{ map.chapters.length }} capítulos relacionados</span></button> }</section>
+    @if (selected(); as map) { <article class="panel"><h2>{{ map.name }}</h2><p>{{ map.description || 'Sin descripción.' }}</p>@if (imageSource(); as src) { <img class="map-preview" [src]="src" [alt]="map.name" /> } @else if (map.hasImage) { <p class="muted">Cargando imagen autorizada…</p> } @else { <p class="muted">Este mapa no tiene imagen.</p> }<h3>Capítulos</h3><ul>@for (chapter of map.chapters; track chapter.id) { <li>{{ chapter.position }}. {{ chapter.name }}</li> }</ul></article> }
+  </div>
+</main>

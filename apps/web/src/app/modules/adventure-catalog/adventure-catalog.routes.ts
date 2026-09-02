@@ -3,10 +3,17 @@ import { Routes } from '@angular/router';
 import { authenticatedGuard, platformAdminGuard } from '@modules/access';
 import { AdventureModulesClient } from './api/adventure-modules.client';
 import { AdventureChaptersClient } from './api/adventure-chapters.client';
+import { AdventureMapsClient } from './api/adventure-maps.client';
 
 export const ADVENTURE_CATALOG_ROUTES: Routes = [
   { path: 'admin/adventure-modules/:moduleId/chapters', providers: [AdventureChaptersClient], canActivate: [platformAdminGuard], loadComponent: () => import('./adventure-chapters.page').then(m => m.AdventureChaptersPage) },
   { path: 'campaigns/:campaignId/adventure/chapters', providers: [AdventureChaptersClient], canActivate: [authenticatedGuard], loadComponent: () => import('./adventure-chapters.page').then(m => m.AdventureChaptersPage) },
+  {
+    path: 'admin/adventure-modules/:moduleId/maps',
+    providers: [AdventureMapsClient],
+    canActivate: [platformAdminGuard],
+    loadComponent: () => import('./adventure-maps-admin.page').then((module) => module.AdventureMapsAdminPage),
+  },
   {
     path: 'admin/adventure-modules',
     pathMatch: 'full',
@@ -31,5 +38,11 @@ export const ADVENTURE_CATALOG_ROUTES: Routes = [
     providers: [AdventureModulesClient],
     canActivate: [platformAdminGuard],
     loadComponent: () => import('./adventure-module-detail.page').then((module) => module.AdventureModuleDetailPage),
+  },
+  {
+    path: 'campaigns/:campaignId/adventure/maps',
+    providers: [AdventureMapsClient],
+    canActivate: [authenticatedGuard],
+    loadComponent: () => import('./campaign-adventure-maps.page').then((module) => module.CampaignAdventureMapsPage),
   },
 ];

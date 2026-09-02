@@ -1,6 +1,6 @@
 # Spec 013: Asignación de un módulo a una campaña
 
-- Estado: Aceptada; implementación en curso
+- Estado: Implementada; integración real de PostgreSQL pendiente de entorno
 - Fecha: 2026-08-29
 - Tipo: incremento funcional vertical
 - Roadmap: [roadmap funcional](../../roadmap/product-roadmap.md)
