@@ -165,6 +165,7 @@ internal sealed class AdventureModule
         UpdatedAt = now;
         LastModifiedByUserId = actorUserId;
         Version = 1;
+        ChaptersVersion = 1;
     }
 
     public Guid Id { get; private set; }
@@ -188,6 +189,10 @@ internal sealed class AdventureModule
     public Guid LastModifiedByUserId { get; private set; }
 
     public long Version { get; private set; }
+
+    public long ChaptersVersion { get; private set; }
+
+    public void AdvanceChaptersVersion() => ChaptersVersion = checked(ChaptersVersion + 1);
 
     public static AdventureModule Create(
         Guid id,

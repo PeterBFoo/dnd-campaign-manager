@@ -23,3 +23,4 @@ Los ADR registran decisiones que afectan a la estructura, tecnología, seguridad
 | [ADR-0008](0008-asociacion-campanas-modulos.md) | Aceptado | Contrato dirigido Campaigns → AdventureCatalog y desasociación atómica entre esquemas |
 | [ADR-0009](0009-broker-eventos-y-observabilidad-grafana.md) | Aceptado | Azure Event Grid Basic para entrega push de correo y observabilidad combinada en Grafana |
 | [ADR-0010](0010-observabilidad-postgresql-bajo-demanda.md) | Aceptado | PostgreSQL exporter y Alloy comparten la réplica de la API y escalan con ella a cero |
+| [ADR-0011](0011-lectura-de-contenido-de-campana-sin-ciclos-modulares.md) | Aceptado | Composición raíz para autorizar contenido de campaña sin ciclos entre Campaigns y AdventureCatalog |

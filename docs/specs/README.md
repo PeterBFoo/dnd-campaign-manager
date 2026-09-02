@@ -62,7 +62,7 @@ Descompone el plan aprobado en tareas pequeñas, ordenadas y verificables. Cada 
 | [011: eliminación de campañas](011-eliminacion-campanas/spec.md) | Completada | Baja irreversible por el DM, revocación inmediata de acceso e invalidación de invitaciones pendientes |
 | [012: librería de módulos](012-libreria-modulos/spec.md) | Completada | Catálogo administrable, metadatos, portada privada, procedencia y eliminación |
 | [013: asignación de módulo a campaña](013-asignacion-modulo-campana/spec.md) | En implementación | Selección opcional al crear, cambio, retirada y desasociación segura al eliminar el módulo |
-| [014: capítulos del módulo](014-capitulos-modulo/spec.md) | Propuesta | Capítulos editables, orden estable y consulta completa reservada al DM |
+| [014: capítulos del módulo](014-capitulos-modulo/spec.md) | Implementada; verificación .NET y PostgreSQL pendiente | Capítulos editables, orden estable y consulta completa reservada al DM |
 | [015: mapas del módulo](015-mapas-modulo/spec.md) | Propuesta | Mapas e imágenes privadas reutilizables y asociaciones con capítulos |
 | [016: localizaciones y puntos de interés](016-localizaciones-puntos-interes/spec.md) | Propuesta | Localizaciones, mapas detallados, placements, POI y relaciones sin duplicación |
 | [017: viajes mediante cuadrícula](017-viajes-cuadricula/spec.md) | Propuesta | Cuadrículas cuadradas y hexagonales con cálculo escalado de distancia para el DM |

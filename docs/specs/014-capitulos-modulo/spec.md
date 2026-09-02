@@ -1,6 +1,6 @@
 # Spec 014: Capítulos ordenados de un módulo
 
-- Estado: Propuesta
+- Estado: Implementada; verificación .NET y PostgreSQL pendiente por entorno
 - Fecha: 2026-08-29
 - Tipo: incremento funcional vertical
 - Roadmap: [roadmap funcional](../../roadmap/product-roadmap.md)

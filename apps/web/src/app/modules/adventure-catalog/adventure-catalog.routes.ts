@@ -1,9 +1,12 @@
 import { Routes } from '@angular/router';
 
-import { platformAdminGuard } from '@modules/access';
+import { authenticatedGuard, platformAdminGuard } from '@modules/access';
 import { AdventureModulesClient } from './api/adventure-modules.client';
+import { AdventureChaptersClient } from './api/adventure-chapters.client';
 
 export const ADVENTURE_CATALOG_ROUTES: Routes = [
+  { path: 'admin/adventure-modules/:moduleId/chapters', providers: [AdventureChaptersClient], canActivate: [platformAdminGuard], loadComponent: () => import('./adventure-chapters.page').then(m => m.AdventureChaptersPage) },
+  { path: 'campaigns/:campaignId/adventure/chapters', providers: [AdventureChaptersClient], canActivate: [authenticatedGuard], loadComponent: () => import('./adventure-chapters.page').then(m => m.AdventureChaptersPage) },
   {
     path: 'admin/adventure-modules',
     pathMatch: 'full',
