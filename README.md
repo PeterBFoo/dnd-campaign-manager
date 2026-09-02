@@ -4,16 +4,19 @@ Aplicación web para preparar y dirigir campañas con estado narrativo persisten
 
 ## Estado
 
-La fundación técnica, identidad y el primer recorrido de campañas están implementados: bootstrap, acceso con credenciales, invitaciones, creación de campañas sin módulo y selección de usuarios existentes. El [roadmap de producto](docs/roadmap/product-roadmap.md) mantiene el alcance completo y cada capacidad se implementa mediante un incremento independiente siguiendo [la guía de especificaciones](docs/specs/README.md).
+La aplicación dispone de identidad, campañas, personajes, bitácora, misiones, combate, catálogo de módulos y mapas privados reutilizables para el DM. El [roadmap de producto](docs/roadmap/product-roadmap.md) mantiene el alcance completo y cada capacidad se implementa mediante un incremento independiente siguiendo [la guía de especificaciones](docs/specs/README.md).
 
 ## Arquitectura actual
 
-- `apps/web`: Angular 22 modular; composition root y shell separados de los módulos frontend `Access`, `Campaigns` y `Platform`, con primitivas técnicas en `shared`.
+- `apps/web`: Angular 22 modular; composition root y shell separados de `Access`, `AdventureCatalog`, `Campaigns`, `Characters`, `Combat`, `Journal`, `Missions` y `Platform`, con primitivas técnicas en `shared`.
 - `apps/api`: aplicación ASP.NET Core 10 LTS; contiene el host y sus módulos desplegados conjuntamente.
 - `apps/api/Modules/Access/DndCampaign.Modules.Access`: módulo de acceso; un único proyecto con capas internas.
 - `apps/api/Modules/Campaigns/DndCampaign.Modules.Campaigns`: campañas, DM único, consultas autorizadas y persistencia en esquema propio.
+- `apps/api/Modules/AdventureCatalog/DndCampaign.Modules.AdventureCatalog`: módulos, portadas, mapas reutilizables, imágenes privadas y proyecciones DM.
+- `apps/api/Modules/Characters`, `Combat`, `Journal` y `Missions`: capacidades de juego aisladas por campaña.
 - `tests/Modules/Access/DndCampaign.Modules.Access.Tests`: tests unitarios, integración, componente y arquitectura propios de Access.
 - `tests/Modules/Campaigns/DndCampaign.Modules.Campaigns.Tests`: tests de dominio, aplicación y arquitectura propios de Campaigns.
+- `tests/Modules/AdventureCatalog/DndCampaign.Modules.AdventureCatalog.Tests`: dominio, persistencia y almacenamiento privado del catálogo y sus mapas.
 - `tests/DndCampaign.ArchitectureTests`: fitness functions globales entre módulos y host.
 - PostgreSQL 18 como persistencia primaria.
 - OpenTelemetry para logs, métricas y trazas.
@@ -58,7 +61,7 @@ docker compose up --build
 
 En el primer acceso, Angular mostrará el alta inicial. Utiliza el valor local de `IDENTITY_BOOTSTRAP_TOKEN`; después de crear la primera cuenta, el endpoint queda cerrado y el acceso continúa mediante credenciales e invitaciones.
 
-PostgreSQL aplica `POSTGRES_PASSWORD` solo al inicializar un volumen vacío. Cambiar después el `.env` no modifica la contraseña almacenada: rota la credencial dentro de PostgreSQL o, únicamente si los datos locales son prescindibles, recrea el volumen de desarrollo.
+PostgreSQL aplica `POSTGRES_PASSWORD` solo al inicializar un volumen vacío. Cambiar después el `.env` no modifica la contraseña almacenada: rota la credencial dentro de PostgreSQL o, únicamente si los datos locales son prescindibles, recrea el volumen de desarrollo. Las imágenes de personajes, portadas y mapas se guardan en Blob/Azurite privado y siempre se leen mediante endpoints autorizados.
 
 Servicios locales:
 
