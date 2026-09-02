@@ -34,7 +34,9 @@ describe('application routes', () => {
     expect(ADVENTURE_CATALOG_ROUTES.map((route) => route.path)).toContain('campaigns/:campaignId/adventure/chapters');
     expect(ADVENTURE_CATALOG_ROUTES.map((route) => route.path)).toContain('admin/adventure-modules/:moduleId/maps');
     expect(ADVENTURE_CATALOG_ROUTES.map((route) => route.path)).toContain('campaigns/:campaignId/adventure/maps');
-    expect(ADVENTURE_CATALOG_ROUTES).toHaveLength(8);
+    expect(ADVENTURE_CATALOG_ROUTES.map((route) => route.path)).toContain('admin/adventure-modules/:moduleId/locations');
+    expect(ADVENTURE_CATALOG_ROUTES.map((route) => route.path)).toContain('campaigns/:campaignId/adventure/locations');
+    expect(ADVENTURE_CATALOG_ROUTES).toHaveLength(10);
     expect(ADVENTURE_CATALOG_ROUTES.every((route) => route.canActivate)).toBe(true);
   });
 });

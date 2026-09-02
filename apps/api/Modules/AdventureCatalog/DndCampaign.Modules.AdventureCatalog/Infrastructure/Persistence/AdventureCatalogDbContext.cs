@@ -1,5 +1,6 @@
 using DndCampaign.Modules.AdventureCatalog.Domain.AdventureModules;
 using DndCampaign.Modules.AdventureCatalog.Domain.Chapters;
+using DndCampaign.Modules.AdventureCatalog.Domain.Locations;
 using DndCampaign.Modules.AdventureCatalog.Domain.Maps;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,6 +12,10 @@ internal sealed class AdventureCatalogDbContext(DbContextOptions<AdventureCatalo
     public DbSet<AdventureModule> AdventureModules => Set<AdventureModule>();
     public DbSet<AdventureMap> AdventureMaps => Set<AdventureMap>();
     public DbSet<AdventureChapter> AdventureChapters => Set<AdventureChapter>();
+    public DbSet<AdventureLocation> AdventureLocations => Set<AdventureLocation>();
+    public DbSet<AdventurePointOfInterest> AdventurePointsOfInterest => Set<AdventurePointOfInterest>();
+    public DbSet<AdventureLocationPlacement> AdventureLocationPlacements => Set<AdventureLocationPlacement>();
+    public DbSet<AdventureLocationChapter> AdventureLocationChapters => Set<AdventureLocationChapter>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -61,6 +66,7 @@ internal sealed class AdventureCatalogDbContext(DbContextOptions<AdventureCatalo
             entity.Property(chapter => chapter.Description).HasMaxLength(20000);
             entity.Property(chapter => chapter.Version).IsConcurrencyToken();
             entity.HasIndex(chapter => new { chapter.ModuleId, chapter.Position }).IsUnique();
+            entity.HasAlternateKey(chapter => new { chapter.ModuleId, chapter.Id });
             entity.HasOne<AdventureModule>().WithMany().HasForeignKey(chapter => chapter.ModuleId).OnDelete(DeleteBehavior.Cascade);
             ConfigureProvenance(entity.OwnsOne(chapter => chapter.Provenance), "Chapter");
             entity.Navigation(chapter => chapter.Provenance).IsRequired();
@@ -86,6 +92,7 @@ internal sealed class AdventureCatalogDbContext(DbContextOptions<AdventureCatalo
             });
             ConfigureProvenance(entity.OwnsOne(map => map.ImageProvenance), "Image");
             entity.HasMany(map => map.Chapters).WithOne().HasForeignKey(link => link.MapId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasAlternateKey(map => new { map.ModuleId, map.Id });
         });
 
         modelBuilder.Entity<AdventureMapChapter>(entity =>
@@ -93,6 +100,63 @@ internal sealed class AdventureCatalogDbContext(DbContextOptions<AdventureCatalo
             entity.ToTable("adventure_map_chapters");
             entity.HasKey(link => new { link.MapId, link.ChapterId });
             entity.HasOne<AdventureChapter>().WithMany().HasForeignKey(link => link.ChapterId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AdventureLocation>(entity =>
+        {
+            entity.ToTable("adventure_locations", table =>
+            {
+                table.HasCheckConstraint("CK_adventure_locations_version", "\"Version\" >= 1");
+                table.HasCheckConstraint("CK_adventure_locations_detail_map_pair", "(\"DetailMapId\" IS NULL AND \"DetailMapModuleId\" IS NULL) OR (\"DetailMapId\" IS NOT NULL AND \"DetailMapModuleId\" IS NOT NULL)");
+            });
+            entity.HasKey(item => item.Id);
+            entity.Property(item => item.Id).ValueGeneratedNever();
+            entity.Property(item => item.Name).HasMaxLength(120);
+            entity.Property(item => item.Description).HasMaxLength(10000);
+            entity.Property(item => item.Version).IsConcurrencyToken();
+            entity.HasIndex(item => new { item.ModuleId, item.UpdatedAt });
+            entity.HasAlternateKey(item => new { item.ModuleId, item.Id });
+            entity.HasOne<AdventureModule>().WithMany().HasForeignKey(item => item.ModuleId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<AdventureMap>().WithMany().HasForeignKey(item => new { item.DetailMapModuleId, item.DetailMapId }).HasPrincipalKey(item => new { item.ModuleId, item.Id }).OnDelete(DeleteBehavior.SetNull);
+            entity.HasMany(item => item.PointsOfInterest).WithOne().HasForeignKey(item => new { item.ModuleId, item.LocationId }).HasPrincipalKey(item => new { item.ModuleId, item.Id }).OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(item => item.Placements).WithOne().HasForeignKey(item => new { item.ModuleId, item.LocationId }).HasPrincipalKey(item => new { item.ModuleId, item.Id }).OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(item => item.Chapters).WithOne().HasForeignKey(item => new { item.ModuleId, item.LocationId }).HasPrincipalKey(item => new { item.ModuleId, item.Id }).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AdventurePointOfInterest>(entity =>
+        {
+            entity.ToTable("adventure_points_of_interest", table =>
+            {
+                table.HasCheckConstraint("CK_adventure_points_of_interest_version", "\"Version\" >= 1");
+                table.HasCheckConstraint("CK_adventure_points_of_interest_coordinates", "(\"X\" IS NULL AND \"Y\" IS NULL) OR (\"X\" IS NOT NULL AND \"Y\" IS NOT NULL AND \"X\" BETWEEN 0 AND 1 AND \"Y\" BETWEEN 0 AND 1)");
+            });
+            entity.HasKey(item => item.Id);
+            entity.Property(item => item.Id).ValueGeneratedNever();
+            entity.Property(item => item.Name).HasMaxLength(120);
+            entity.Property(item => item.Description).HasMaxLength(5000);
+            entity.Property(item => item.X).HasPrecision(18, 15);
+            entity.Property(item => item.Y).HasPrecision(18, 15);
+            entity.Property(item => item.Version).IsConcurrencyToken();
+            entity.HasIndex(item => new { item.ModuleId, item.LocationId });
+        });
+
+        modelBuilder.Entity<AdventureLocationPlacement>(entity =>
+        {
+            entity.ToTable("adventure_location_placements", table =>
+            {
+                table.HasCheckConstraint("CK_adventure_location_placements_coordinates", "\"X\" BETWEEN 0 AND 1 AND \"Y\" BETWEEN 0 AND 1");
+            });
+            entity.HasKey(item => new { item.MapId, item.LocationId });
+            entity.Property(item => item.X).HasPrecision(18, 15);
+            entity.Property(item => item.Y).HasPrecision(18, 15);
+            entity.HasOne<AdventureMap>().WithMany().HasForeignKey(item => new { item.ModuleId, item.MapId }).HasPrincipalKey(item => new { item.ModuleId, item.Id }).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AdventureLocationChapter>(entity =>
+        {
+            entity.ToTable("adventure_location_chapters");
+            entity.HasKey(item => new { item.LocationId, item.ChapterId });
+            entity.HasOne<AdventureChapter>().WithMany().HasForeignKey(item => new { item.ModuleId, item.ChapterId }).HasPrincipalKey(item => new { item.ModuleId, item.Id }).OnDelete(DeleteBehavior.Cascade);
         });
     }
 

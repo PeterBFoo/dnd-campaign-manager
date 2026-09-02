@@ -1,0 +1,7 @@
+.locations-layout { display: grid; grid-template-columns: minmax(260px, .7fr) minmax(0, 1.3fr); gap: 24px; align-items: start; }
+.inline-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); align-items: end; gap: 12px; margin: .75rem 0; }
+.item-row { display: flex; justify-content: space-between; gap: .75rem; align-items: center; padding: .65rem 0; border-bottom: 1px solid var(--line); }
+.coordinate-canvas { position: relative; overflow: hidden; min-height: 120px; margin: .75rem 0; border: 1px dashed var(--line-strong); background: rgba(0,0,0,.22); cursor: crosshair; }
+.coordinate-canvas img { display: block; width: 100%; height: auto; }
+.marker { position: absolute; transform: translate(-50%, -50%); color: var(--rust); font-size: 2rem; line-height: 1; text-shadow: 0 0 2px var(--surface); pointer-events: none; }
+@media (max-width: 800px) { .locations-layout { grid-template-columns: 1fr; gap: 30px; } }

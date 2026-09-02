@@ -64,7 +64,7 @@ Descompone el plan aprobado en tareas pequeñas, ordenadas y verificables. Cada 
 | [013: asignación de módulo a campaña](013-asignacion-modulo-campana/spec.md) | Implementada; integración real pendiente | Selección opcional al crear, cambio, retirada y desasociación segura al eliminar el módulo |
 | [014: capítulos del módulo](014-capitulos-modulo/spec.md) | Implementada; verificación .NET y PostgreSQL pendiente | Capítulos editables, orden estable y consulta completa reservada al DM |
 | [015: mapas del módulo](015-mapas-modulo/spec.md) | Implementada; integración real pendiente | Mapas e imágenes privadas reutilizables y asociaciones con los capítulos de la spec 014 |
-| [016: localizaciones y puntos de interés](016-localizaciones-puntos-interes/spec.md) | Propuesta | Localizaciones, mapas detallados, placements, POI y relaciones sin duplicación |
+| [016: localizaciones y puntos de interés](016-localizaciones-puntos-interes/spec.md) | Implementada; PostgreSQL/Azurite pendientes | Localizaciones, mapas detallados, placements, POI y relaciones sin duplicación |
 | [017: viajes mediante cuadrícula](017-viajes-cuadricula/spec.md) | Propuesta | Cuadrículas cuadradas y hexagonales con cálculo escalado de distancia para el DM |
 | [018: NPC del módulo](018-npc-modulo/spec.md) | Propuesta | Autoría de NPC, relaciones reutilizables y catálogo completo para el DM |
 | [019: visibilidad de NPC por campaña](019-visibilidad-npc-campana/spec.md) | Propuesta | Desbloqueo independiente y proyección pública segura para jugadores |

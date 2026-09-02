@@ -14,6 +14,7 @@ internal sealed record AdventureMapImageUploadInput(AdventureMapImageUpload Uplo
 
 internal sealed class AdventureMapService(
     IAdventureMapRepository maps,
+    IAdventureLocationRepository locations,
     IAdventureMapImageStore images,
     ICampaignAdventureContext campaigns,
     IAdventureCatalogMetrics metrics,
@@ -69,7 +70,9 @@ internal sealed class AdventureMapService(
         var map = await maps.FindAsync(moduleId, mapId, cancellationToken: ct);
         if (map is null) return NotFound<bool>();
         if (map.Version != expectedVersion) return Conflict<bool>();
-        var key = map.Image?.ObjectKey; maps.Remove(map);
+        var key = map.Image?.ObjectKey;
+        await locations.ClearMapDependenciesAsync(moduleId, mapId, actor.UserId, time.GetUtcNow(), ct);
+        maps.Remove(map);
         try { await maps.SaveChangesAsync(ct); if (key is not null) await images.DeleteIfExistsAsync(key, CancellationToken.None); return AdventureCatalogResult<bool>.Success(true); }
         catch (AdventureMapConcurrencyException) { return Conflict<bool>(); }
     }
