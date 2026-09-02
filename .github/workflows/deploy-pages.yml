@@ -1,11 +1,14 @@
 name: deploy-pages
 
 on:
-  push:
-    branches: [main]
+  workflow_run:
+    workflows: ["deploy-azure"]
+    types:
+      - completed
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
   pages: write
   id-token: write
@@ -16,34 +19,82 @@ concurrency:
 
 jobs:
   deploy:
+    # workflow_dispatch permite seguir lanzándolo manualmente
+    # workflow_run solo continúa si deploy-azure terminó correctamente; el
+    # artefacto validado más abajo confirma que su job de despliegue sí se ejecutó.
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+
     runs-on: ubuntu-latest
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+
     steps:
+      - name: Download successful deployment signal
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          name: production-deployment
+          path: ${{ runner.temp }}/production-deployment
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Resolve revision to publish
+        id: revision
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          MANUAL_SHA: ${{ github.sha }}
+        run: |
+          if [ "$EVENT_NAME" = workflow_run ]; then
+            deployed_sha=$(cat "$RUNNER_TEMP/production-deployment/deployed-sha")
+          else
+            deployed_sha=$MANUAL_SHA
+          fi
+
+          if ! printf '%s' "$deployed_sha" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "Invalid deployed SHA" >&2
+            exit 1
+          fi
+
+          printf 'sha=%s\n' "$deployed_sha" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.revision.outputs.sha }}
+
       - uses: pnpm/action-setup@v4
         with:
           version: 11.19.0
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: pnpm
+
       - run: pnpm install --frozen-lockfile
+
       - name: Configure public API endpoint
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
         run: |
           test -n "$API_BASE_URL"
           printf "window.__DND_CONFIG__ = Object.freeze({ apiBaseUrl: '%s' });\n" "${API_BASE_URL%/}" > apps/web/public/config.js
+
       - name: Build Angular for project Pages
         run: pnpm --filter @dnd/web exec ng build --base-href /dnd-campaign-manager/
+
       - name: Add SPA fallback
         run: cp apps/web/dist/web/browser/index.html apps/web/dist/web/browser/404.html
+
       - uses: actions/configure-pages@v5
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: apps/web/dist/web/browser
+
       - name: Deploy GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
