@@ -1,23 +1,45 @@
-<header class="topbar">
-  <a class="brand" routerLink="/" aria-label="Campaign Companion, inicio">
-    <span class="brand-mark" aria-hidden="true">D20</span>
-    <span><strong>Campaign Companion</strong><small>Una mesa. Dos perspectivas.</small></span>
-  </a>
-  <nav aria-label="Navegación principal">
-    @if (session.user(); as user) {
-      <a routerLink="/campaigns">Campañas</a>
-      @if (user.isPlatformAdmin) { <a routerLink="/admin/invitations">Invitaciones</a><a routerLink="/admin/adventure-modules">Módulos</a> }
-      <span>{{ user.displayName }}</span>
-      <button type="button" (click)="logout()">Cerrar sesión</button>
-    } @else {
-      <span class="phase">Acceso por invitación</span>
-    }
-  </nav>
-</header>
+@if (session.user(); as user) {
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" routerLink="/campaigns" aria-label="Campaign Keeper, campañas">
+        <span class="brand-mark" aria-hidden="true">D20</span>
+        <span><strong>Campaign Keeper</strong><small>D&amp;D Campaign Manager</small></span>
+      </a>
 
-<router-outlet />
+      <nav aria-label="Navegación principal">
+        <p class="nav-heading">Campañas</p>
+        <a class="nav-item" routerLink="/campaigns" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+          <span aria-hidden="true">⚔</span> Mis campañas
+        </a>
+        @if (campaignId(); as id) {
+          <p class="nav-heading">Campaña activa</p>
+          <a class="nav-item" [routerLink]="['/campaigns', id]" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"><span aria-hidden="true">⌂</span> Resumen</a>
+          <a class="nav-item" [routerLink]="['/campaigns', id, 'adventure', 'chapters']" routerLinkActive="active"><span aria-hidden="true">🗺</span> Aventura</a>
+          <a class="nav-item" [routerLink]="['/campaigns', id, 'characters']" routerLinkActive="active"><span aria-hidden="true">♟</span> Personajes</a>
+          <a class="nav-item" [routerLink]="['/campaigns', id, 'missions']" routerLinkActive="active"><span aria-hidden="true">◆</span> Misiones</a>
+          <a class="nav-item" [routerLink]="['/campaigns', id, 'journal']" routerLinkActive="active"><span aria-hidden="true">▤</span> Bitácora</a>
+          <a class="nav-item" [routerLink]="['/campaigns', id, 'encounters']" routerLinkActive="active"><span aria-hidden="true">☠</span> Encuentros</a>
+        }
+        @if (user.isPlatformAdmin) {
+          <p class="nav-heading">Administración</p>
+          <a class="nav-item" routerLink="/admin/adventure-modules" routerLinkActive="active"><span aria-hidden="true">▥</span> Módulos</a>
+          <a class="nav-item" routerLink="/admin/invitations" routerLinkActive="active"><span aria-hidden="true">✉</span> Invitaciones</a>
+        }
+      </nav>
 
-<footer>
-  <span>Angular 22 · ASP.NET Core 10 · PostgreSQL · OpenTelemetry</span>
-  <span>Acceso privado y auditable</span>
-</footer>
+      <div class="sidebar-footer">
+        <span class="avatar" aria-hidden="true">{{ userInitial() }}</span>
+        <span class="user-meta"><strong>{{ user.displayName }}</strong><small>{{ user.isPlatformAdmin ? 'Administrador de plataforma' : 'Usuario' }}</small></span>
+        <button class="logout" type="button" (click)="logout()" aria-label="Cerrar sesión" title="Cerrar sesión">↪</button>
+      </div>
+    </aside>
+    <section class="app-content"><router-outlet /></section>
+  </div>
+} @else {
+  <header class="public-topbar">
+    <a class="brand" routerLink="/" aria-label="Campaign Keeper, inicio"><span class="brand-mark" aria-hidden="true">D20</span><span><strong>Campaign Keeper</strong><small>D&amp;D Campaign Manager</small></span></a>
+    <span class="phase">Acceso por invitación</span>
+  </header>
+  <router-outlet />
+  <footer><span>Angular 22 · ASP.NET Core 10 · PostgreSQL</span><span>Acceso privado y auditable</span></footer>
+}
