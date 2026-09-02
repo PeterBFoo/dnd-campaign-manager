@@ -65,9 +65,10 @@ internal sealed class AdventureCatalogDbContext(DbContextOptions<AdventureCatalo
         });
     }
 
-    private static void ConfigureProvenance(
-        Microsoft.EntityFrameworkCore.Metadata.Builders.OwnedNavigationBuilder<AdventureModule, EditorialProvenance> owned,
+    private static void ConfigureProvenance<TOwner>(
+        Microsoft.EntityFrameworkCore.Metadata.Builders.OwnedNavigationBuilder<TOwner, EditorialProvenance> owned,
         string prefix)
+        where TOwner : class
     {
         owned.Property(value => value.OriginKind).HasColumnName($"{prefix}OriginKind");
         owned.Property(value => value.SourceReference)

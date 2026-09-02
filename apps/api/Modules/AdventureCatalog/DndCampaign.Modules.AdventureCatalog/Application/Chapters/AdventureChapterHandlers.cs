@@ -24,9 +24,15 @@ internal sealed class AdventureChapterService(IAdventureChapterRepository reposi
 
     public async Task<AdventureCatalogResult<ChapterDto>> GetAdminAsync(Guid userId, bool admin, Guid moduleId, Guid chapterId, CancellationToken ct)
     {
-        if (!Authorized(userId, admin)) return Forbidden<ChapterDto>();
-        var chapter = await repository.FindAsync(moduleId, chapterId, false, ct);
-        return chapter is null ? NotFound<ChapterDto>() : AdventureCatalogResult<ChapterDto>.Success(ToDto(chapter, true));
+        var started = Stopwatch.GetTimestamp(); var outcome = "failure";
+        try
+        {
+            if (!Authorized(userId, admin)) { outcome = "forbidden"; return Forbidden<ChapterDto>(); }
+            var chapter = await repository.FindAsync(moduleId, chapterId, false, ct);
+            if (chapter is null) { outcome = "not_found"; return NotFound<ChapterDto>(); }
+            outcome = "success"; return AdventureCatalogResult<ChapterDto>.Success(ToDto(chapter, true));
+        }
+        finally { metrics.OperationCompleted("chapter_detail", outcome, Stopwatch.GetElapsedTime(started).TotalMilliseconds); }
     }
 
     public async Task<AdventureCatalogResult<ChapterIndexDto>> ListCampaignAsync(Guid userId, Guid campaignId, CancellationToken ct)
@@ -39,11 +45,17 @@ internal sealed class AdventureChapterService(IAdventureChapterRepository reposi
 
     public async Task<AdventureCatalogResult<ChapterDto>> GetCampaignAsync(Guid userId, Guid campaignId, Guid chapterId, CancellationToken ct)
     {
-        var context = await campaigns.ResolveAsync(campaignId, userId, ct);
-        if (!context.Exists || context.AdventureModuleId is null) return NotFound<ChapterDto>();
-        if (!context.IsDm) return Forbidden<ChapterDto>();
-        var chapter = await repository.FindAsync(context.AdventureModuleId.Value, chapterId, false, ct);
-        return chapter is null ? NotFound<ChapterDto>() : AdventureCatalogResult<ChapterDto>.Success(ToDto(chapter, false));
+        var started = Stopwatch.GetTimestamp(); var outcome = "failure";
+        try
+        {
+            var context = await campaigns.ResolveAsync(campaignId, userId, ct);
+            if (!context.Exists || context.AdventureModuleId is null) { outcome = "not_found"; return NotFound<ChapterDto>(); }
+            if (!context.IsDm) { outcome = "forbidden"; return Forbidden<ChapterDto>(); }
+            var chapter = await repository.FindAsync(context.AdventureModuleId.Value, chapterId, false, ct);
+            if (chapter is null) { outcome = "not_found"; return NotFound<ChapterDto>(); }
+            outcome = "success"; return AdventureCatalogResult<ChapterDto>.Success(ToDto(chapter, false));
+        }
+        finally { metrics.OperationCompleted("campaign_chapter_detail", outcome, Stopwatch.GetElapsedTime(started).TotalMilliseconds); }
     }
 
     public async Task<AdventureCatalogResult<ChapterDto>> CreateAsync(ChapterWrite command, CancellationToken ct)
@@ -71,48 +83,63 @@ internal sealed class AdventureChapterService(IAdventureChapterRepository reposi
 
     public async Task<AdventureCatalogResult<ChapterDto>> UpdateAsync(ChapterWrite command, CancellationToken ct)
     {
-        if (!Authorized(command.UserId, command.IsAdmin)) return Forbidden<ChapterDto>();
-        var chapter = await repository.FindAsync(command.ModuleId, command.ChapterId!.Value, true, ct);
-        if (chapter is null) return NotFound<ChapterDto>();
-        if (chapter.Version != command.ExpectedVersion) return Conflict<ChapterDto>();
+        var started = Stopwatch.GetTimestamp(); var outcome = "failure";
         try
         {
-            chapter.Update(command.Name ?? "", command.Description,
-                AdventureModuleHandlerSupport.CreateProvenance(command.Provenance, command.UserId, time.GetUtcNow()), command.UserId, time.GetUtcNow());
-            await repository.SaveChangesAsync(ct);
-            return AdventureCatalogResult<ChapterDto>.Success(ToDto(chapter, true));
+            if (!Authorized(command.UserId, command.IsAdmin)) { outcome = "forbidden"; return Forbidden<ChapterDto>(); }
+            var chapter = await repository.FindAsync(command.ModuleId, command.ChapterId!.Value, true, ct);
+            if (chapter is null) { outcome = "not_found"; return NotFound<ChapterDto>(); }
+            if (chapter.Version != command.ExpectedVersion) { outcome = "conflict"; return Conflict<ChapterDto>(); }
+            try
+            {
+                chapter.Update(command.Name ?? "", command.Description,
+                    AdventureModuleHandlerSupport.CreateProvenance(command.Provenance, command.UserId, time.GetUtcNow()), command.UserId, time.GetUtcNow());
+                await repository.SaveChangesAsync(ct);
+                outcome = "success"; return AdventureCatalogResult<ChapterDto>.Success(ToDto(chapter, true));
+            }
+            catch (ArgumentException ex) { outcome = "validation"; return Validation<ChapterDto>(ex.ParamName ?? "chapter", ex.Message); }
+            catch (AdventureModuleConcurrencyException) { outcome = "conflict"; return Conflict<ChapterDto>(); }
         }
-        catch (ArgumentException ex) { return Validation<ChapterDto>(ex.ParamName ?? "chapter", ex.Message); }
-        catch (AdventureModuleConcurrencyException) { return Conflict<ChapterDto>(); }
+        finally { metrics.OperationCompleted("chapter_update", outcome, Stopwatch.GetElapsedTime(started).TotalMilliseconds); }
     }
 
     public async Task<AdventureCatalogResult<bool>> DeleteAsync(Guid userId, bool admin, Guid moduleId, Guid chapterId, long expectedVersion, CancellationToken ct)
     {
-        if (!Authorized(userId, admin)) return Forbidden<bool>();
-        var module = await repository.FindModuleAsync(moduleId, true, ct);
-        var chapters = await repository.ListAsync(moduleId, true, ct);
-        var chapter = chapters.SingleOrDefault(x => x.Id == chapterId);
-        if (module is null || chapter is null) return NotFound<bool>();
-        if (chapter.Version != expectedVersion) return Conflict<bool>();
-        try { await repository.DeleteAndCompactAsync(module, chapter, chapters.Where(x => x.Id != chapterId).ToArray(), ct); return AdventureCatalogResult<bool>.Success(true); }
-        catch (AdventureModuleConcurrencyException) { return Conflict<bool>(); }
+        var started = Stopwatch.GetTimestamp(); var outcome = "failure";
+        try
+        {
+            if (!Authorized(userId, admin)) { outcome = "forbidden"; return Forbidden<bool>(); }
+            var module = await repository.FindModuleAsync(moduleId, true, ct);
+            var chapters = await repository.ListAsync(moduleId, true, ct);
+            var chapter = chapters.SingleOrDefault(x => x.Id == chapterId);
+            if (module is null || chapter is null) { outcome = "not_found"; return NotFound<bool>(); }
+            if (chapter.Version != expectedVersion) { outcome = "conflict"; return Conflict<bool>(); }
+            try { await repository.DeleteAndCompactAsync(module, chapter, chapters.Where(x => x.Id != chapterId).ToArray(), ct); outcome = "success"; return AdventureCatalogResult<bool>.Success(true); }
+            catch (AdventureModuleConcurrencyException) { outcome = "conflict"; return Conflict<bool>(); }
+        }
+        finally { metrics.OperationCompleted("chapter_delete", outcome, Stopwatch.GetElapsedTime(started).TotalMilliseconds); }
     }
 
     public async Task<AdventureCatalogResult<ChapterIndexDto>> ReorderAsync(Guid userId, bool admin, Guid moduleId, long expectedIndexVersion, IReadOnlyList<Guid>? ids, CancellationToken ct)
     {
-        if (!Authorized(userId, admin)) return Forbidden<ChapterIndexDto>();
-        var module = await repository.FindModuleAsync(moduleId, true, ct);
-        if (module is null) return NotFound<ChapterIndexDto>();
-        var chapters = await repository.ListAsync(moduleId, true, ct);
-        if (module.ChaptersVersion != expectedIndexVersion || ids is null || ids.Count != chapters.Count || ids.Distinct().Count() != ids.Count || ids.Any(id => chapters.All(x => x.Id != id)))
-            return Conflict<ChapterIndexDto>();
+        var started = Stopwatch.GetTimestamp(); var outcome = "failure";
         try
         {
-            var byId = chapters.ToDictionary(x => x.Id);
-            await repository.ReorderAsync(module, ids.Select((id, index) => (byId[id], index + 1)).ToArray(), ct);
-            return AdventureCatalogResult<ChapterIndexDto>.Success(new(module.ChaptersVersion, ids.Select(id => ToDto(byId[id], true)).ToArray()));
+            if (!Authorized(userId, admin)) { outcome = "forbidden"; return Forbidden<ChapterIndexDto>(); }
+            var module = await repository.FindModuleAsync(moduleId, true, ct);
+            if (module is null) { outcome = "not_found"; return NotFound<ChapterIndexDto>(); }
+            var chapters = await repository.ListAsync(moduleId, true, ct);
+            if (module.ChaptersVersion != expectedIndexVersion || ids is null || ids.Count != chapters.Count || ids.Distinct().Count() != ids.Count || ids.Any(id => chapters.All(x => x.Id != id)))
+            { outcome = "conflict"; return Conflict<ChapterIndexDto>(); }
+            try
+            {
+                var byId = chapters.ToDictionary(x => x.Id);
+                await repository.ReorderAsync(module, ids.Select((id, index) => (byId[id], index + 1)).ToArray(), ct);
+                outcome = "success"; return AdventureCatalogResult<ChapterIndexDto>.Success(new(module.ChaptersVersion, ids.Select(id => ToDto(byId[id], true)).ToArray()));
+            }
+            catch (AdventureModuleConcurrencyException) { outcome = "conflict"; return Conflict<ChapterIndexDto>(); }
         }
-        catch (AdventureModuleConcurrencyException) { return Conflict<ChapterIndexDto>(); }
+        finally { metrics.OperationCompleted("chapter_reorder", outcome, Stopwatch.GetElapsedTime(started).TotalMilliseconds); }
     }
 
     private async Task<AdventureCatalogResult<ChapterIndexDto>> ListAsync(Guid moduleId, bool admin, CancellationToken ct)
