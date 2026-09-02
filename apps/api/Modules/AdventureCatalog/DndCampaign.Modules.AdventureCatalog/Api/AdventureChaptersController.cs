@@ -29,7 +29,7 @@ internal sealed class AdventureChaptersController(AdventureChapterService servic
     private bool IsAdmin => User.HasClaim("platform_admin", "true");
     private static EditorialProvenanceInput EmptyProvenance => new(null, null, null, null);
     private IActionResult Map<T>(AdventureCatalogResult<T> result) => result.IsSuccess ? Ok(result.Value) : result.Error!.Type switch
-    { AdventureCatalogErrorType.Validation => BadRequest(new ValidationProblemDetails(result.Error.ValidationErrors!)), AdventureCatalogErrorType.Forbidden => Forbid(), AdventureCatalogErrorType.NotFound => NotFound(), AdventureCatalogErrorType.Conflict => Conflict(new ProblemDetails { Status = 409, Title = "Conflicto de capítulos", Detail = result.Error.Description, Extensions = { ["code"] = result.Error.Code } }), _ => throw new ArgumentOutOfRangeException() };
+    { AdventureCatalogErrorType.Validation => BadRequest(new ValidationProblemDetails(result.Error.ValidationErrors!.ToDictionary(entry => entry.Key, entry => entry.Value))), AdventureCatalogErrorType.Forbidden => Forbid(), AdventureCatalogErrorType.NotFound => NotFound(), AdventureCatalogErrorType.Conflict => Conflict(new ProblemDetails { Status = 409, Title = "Conflicto de capítulos", Detail = result.Error.Description, Extensions = { ["code"] = result.Error.Code } }), _ => throw new ArgumentOutOfRangeException() };
 }
 
 internal sealed record ChapterRequest(string? Name, string? Description, ChapterProvenanceRequest? Provenance, long? ExpectedVersion);

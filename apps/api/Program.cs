@@ -7,7 +7,7 @@ using DndCampaign.Modules.Characters;
 using DndCampaign.Modules.Combat;
 using DndCampaign.Modules.Journal;
 using DndCampaign.Modules.Missions;
-using DndCampaign.Modules.AdventureCatalog.Application.Ports;
+using DndCampaign.Modules.AdventureCatalog.Contracts.Campaigns;
 using DndCampaign.Api.Infrastructure;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using DndCampaign.Modules.AdventureCatalog.Application.Abstractions;
 using DndCampaign.Modules.AdventureCatalog.Application.AdventureModules;
 using DndCampaign.Modules.AdventureCatalog.Application.Ports;
+using DndCampaign.Modules.AdventureCatalog.Contracts.Campaigns;
 using DndCampaign.Modules.AdventureCatalog.Domain.Chapters;
 
 namespace DndCampaign.Modules.AdventureCatalog.Application.Chapters;

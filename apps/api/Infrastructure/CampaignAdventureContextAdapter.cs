@@ -1,4 +1,4 @@
-using DndCampaign.Modules.AdventureCatalog.Application.Ports;
+using DndCampaign.Modules.AdventureCatalog.Contracts.Campaigns;
 using DndCampaign.Modules.Campaigns.Contracts.AdventureContent;
 
 namespace DndCampaign.Api.Infrastructure;

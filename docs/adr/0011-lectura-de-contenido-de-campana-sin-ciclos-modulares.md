@@ -10,7 +10,7 @@ Campaigns ya consume el contrato público de AdventureCatalog para validar y pro
 
 ## Decisión
 
-AdventureCatalog define un puerto de aplicación mínimo que resuelve, para un usuario y una campaña, si la campaña existe, si el actor es su DM y cuál es su módulo vigente. Campaigns publica esos datos mediante un contrato de solo lectura. La composición raíz de `apps/api` adapta el contrato de Campaigns al puerto de AdventureCatalog, porque ya referencia ambos módulos.
+AdventureCatalog define en su superficie pública de contratos un puerto de entrada mínimo que resuelve, para un usuario y una campaña, si la campaña existe, si el actor es su DM y cuál es su módulo vigente. Campaigns publica esos datos mediante un contrato de solo lectura. La composición raíz de `apps/api` adapta ambos contratos públicos, porque ya referencia ambos módulos, sin importar capas internas de aplicación.
 
 El adaptador no expone agregados, repositorios ni `DbContext`, no autoriza mediante datos suministrados por el cliente y no conserva estado. AdventureCatalog sigue siendo propietario de capítulos, persistencia y proyección; Campaigns sigue siendo propietario de la campaña, su DM y la asociación de módulo.
 

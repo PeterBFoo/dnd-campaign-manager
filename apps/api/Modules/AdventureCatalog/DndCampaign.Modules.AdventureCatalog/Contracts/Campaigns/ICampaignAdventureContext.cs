@@ -1,4 +1,4 @@
-namespace DndCampaign.Modules.AdventureCatalog.Application.Ports;
+namespace DndCampaign.Modules.AdventureCatalog.Contracts.Campaigns;
 
 public interface ICampaignAdventureContext
 {
