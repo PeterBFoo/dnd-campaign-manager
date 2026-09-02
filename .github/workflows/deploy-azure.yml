@@ -120,3 +120,17 @@ jobs:
           install -m 600 /dev/null "$token_file"
           printf '%s' "$GRAFANA_SERVICE_ACCOUNT_TOKEN" > "$token_file"
           GRAFANA_TOKEN_FILE="$token_file" sh scripts/publish-grafana-dashboards.sh
+
+      # This artifact is the hand-off to deploy-pages. Because this is the final
+      # step, it is only created after the production deployment and its smoke
+      # test have completed successfully.
+      - name: Record successful production deployment
+        run: printf '%s\n' "$DEPLOY_SHA" > "$RUNNER_TEMP/deployed-sha"
+
+      - name: Publish successful deployment signal
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-deployment
+          path: ${{ runner.temp }}/deployed-sha
+          if-no-files-found: error
+          retention-days: 1
