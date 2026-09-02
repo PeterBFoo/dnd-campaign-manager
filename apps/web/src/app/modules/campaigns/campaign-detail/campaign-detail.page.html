@@ -20,6 +20,7 @@
         <a class="button-link" [routerLink]="['/campaigns', current.id, 'journal']">Abrir bitácora</a>
         @if (current.role === 'dm') {
           @if (current.adventureModuleId) { <a class="button-link" [routerLink]="['/campaigns', current.id, 'adventure', 'chapters']">Abrir capítulos</a> }
+          @if (current.adventureModuleId) { <a class="button-link" [routerLink]="['/campaigns', current.id, 'adventure', 'maps']">Abrir mapas</a> }
           <a class="button-link" [routerLink]="['/campaigns', current.id, 'invitations']">Invitar jugadores</a>
         }
       </div>

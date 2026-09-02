@@ -1,6 +1,6 @@
 # Tareas 013: Asignación de un módulo a una campaña
 
-- Estado: En ejecución
+- Estado: Implementación completada; integración real pendiente de entorno
 - Especificación: [spec.md](spec.md)
 - Plan: [plan.md](plan.md)
 

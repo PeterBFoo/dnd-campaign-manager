@@ -1,6 +1,6 @@
 # Spec 015: Mapas reutilizables de un módulo
 
-- Estado: Propuesta
+- Estado: Implementada; integración real de PostgreSQL/Azurite pendiente de entorno
 - Fecha: 2026-08-29
 - Tipo: incremento funcional vertical
 - Roadmap: [roadmap funcional](../../roadmap/product-roadmap.md)
@@ -94,3 +94,11 @@ No se crea una abstracción genérica `Resource`; mapa y capítulo conservan mod
 - Tokens, movimiento, fog of war, anotaciones, capas o edición de imagen.
 - Mapas visibles para jugadores o permisos configurables por mapa.
 - Abstracción genérica para recursos del módulo.
+
+## Resultado y evidencia
+
+AdventureCatalog posee ahora el agregado de mapa, su imagen privada con dimensiones validadas, la relación muchos a muchos con capítulos y una migración propia. La API ofrece autoría administrativa y proyección DM contextualizada por campaña; Angular incorpora la colección/editor de administración y la consulta de solo lectura para el DM, descargando el binario únicamente al abrir un mapa.
+
+La implementación consume directamente los capítulos ordenados de la spec 014 y conserva su identidad, procedencia, versión y recorrido web. La relación mapa-capítulo añade únicamente la asociación muchos a muchos propiedad de esta spec.
+
+Evidencia local: build .NET y Angular correctos; pruebas de AdventureCatalog correctas (las integraciones con servicios reales se omiten cuando no están definidos `IDENTITY_TEST_DATABASE` y `Storage__AdventureCatalog__ConnectionString`); pruebas Angular correctas.
